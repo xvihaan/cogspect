@@ -196,7 +196,8 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
     rgba(0, 0, 0, .95), rgba(0, 0, 0, .45) 55%, transparent 75%);
 }
 
-/* silver project pixels — always visible, no blinking */
+/* project pixels — borderless, faint at rest; take on their tone when
+   the cursor's reveal circle reaches them */
 .cell--proj {
   position: absolute;
   width: 18px;
@@ -205,30 +206,37 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   border-radius: 5px;
   cursor: pointer;
   outline: none;
-  background: linear-gradient(160deg, #d6dae2, #a6acba 60%, #c4c9d3);
-  border: 1px solid rgba(255, 255, 255, .9);
-  box-shadow:
-    0 0 0 3px rgba(154, 160, 178, .22),
-    0 2px 8px rgba(28, 28, 36, .16),
-    inset 0 1px 1px rgba(255, 255, 255, .9);
-  transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s;
+  border: none;
+  opacity: .35;
+  box-shadow: 0 1px 3px rgba(28, 28, 36, .14);
+  transition: opacity .35s ease, transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .35s;
 }
+.cell--proj[data-tone="white"]  { background: linear-gradient(160deg, #ffffff, #e6e9ee); }
+.cell--proj[data-tone="silver"] { background: linear-gradient(160deg, #d6dae2, #a9afbc); }
+.cell--proj[data-tone="dark"]   { background: linear-gradient(160deg, #4c4e57, #303138); }
 .cell--proj::after {
   content: '';
   position: absolute;
   inset: -10px;
 }
+.cell--proj.lit,
+.cell--proj:hover,
+.cell--proj:focus-visible {
+  opacity: 1;
+  box-shadow: 0 4px 14px rgba(28, 28, 36, .2);
+}
 .cell--proj:hover,
 .cell--proj:focus-visible {
   transform: scale(1.9);
   z-index: 2;
-  box-shadow:
-    0 0 0 5px rgba(154, 160, 178, .42),
-    0 0 20px rgba(178, 184, 198, 1),
-    0 4px 14px rgba(28, 28, 36, .24),
-    inset 0 1px 1px rgba(255, 255, 255, 1);
+  box-shadow: 0 6px 18px rgba(28, 28, 36, .26);
 }
 .cell--proj:active { transform: scale(1.55); }
+
+/* touch devices have no hover reveal — keep tiles fully visible */
+@media (pointer: coarse) {
+  .cell--proj { opacity: 1; }
+}
 
 /* hover preview tooltip */
 
