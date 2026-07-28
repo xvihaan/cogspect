@@ -197,36 +197,21 @@
   const projStack = document.getElementById('projectStack');
   const projLink = document.getElementById('projectLink');
 
-  let grassCols = 0;
-
+  // Six glass pixels scattered across the whole face at fractional coords.
   function buildGrass() {
-    const cols = window.innerWidth < 640 ? 14 : 24;
-    const rows = window.innerWidth < 640 ? 14 : 12;
-    if (cols === grassCols) return;
-    grassCols = cols;
-    grass.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    grass.querySelectorAll('.cell').forEach((c) => c.remove());
-    const projAt = new Map();
-    PROJECTS.forEach((p) => {
-      projAt.set(Math.round(p.fy * (rows - 1)) * cols + Math.round(p.fx * (cols - 1)), p);
+    grass.querySelectorAll('.cell--proj').forEach((c) => c.remove());
+    PROJECTS.forEach((p, i) => {
+      const t = document.createElement('div');
+      t.className = 'cell--proj';
+      t.dataset.project = p.id;
+      t.setAttribute('role', 'button');
+      t.setAttribute('tabindex', '0');
+      t.setAttribute('aria-label', `${p.title} — ${p.tagline}`);
+      t.style.left = `${p.fx * 100}%`;
+      t.style.top = `${p.fy * 100}%`;
+      t.style.animationDelay = `${(i * 0.45).toFixed(2)}s`;
+      grass.appendChild(t);
     });
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < cols * rows; i++) {
-      const cell = document.createElement('div');
-      const p = projAt.get(i);
-      if (p) {
-        cell.className = 'cell cell--proj';
-        cell.dataset.project = p.id;
-        cell.setAttribute('role', 'button');
-        cell.setAttribute('tabindex', '0');
-        cell.setAttribute('aria-label', `${p.title} — ${p.tagline}`);
-      } else {
-        const rnd = Math.random();
-        cell.className = 'cell' + (rnd > .92 ? ' cell--glow2' : rnd > .78 ? ' cell--glow1' : '');
-      }
-      frag.appendChild(cell);
-    }
-    grass.appendChild(frag);
   }
 
   function projectOf(el) {
@@ -279,7 +264,30 @@
     projOverlay.classList.add('open');
     projOverlay.setAttribute('aria-hidden', 'false');
     projOverlay.inert = false;
+    projOverlay.querySelector('.project-card').scrollTop = 0;
     haptic();
+    pixelBurst();
+  }
+
+  // pixel-materialize: tiny glass squares sparkle across the card as it opens
+  function pixelBurst() {
+    if (reducedMotion.matches) return;
+    const card = projOverlay.querySelector('.project-card');
+    const old = card.querySelector('.pix-burst');
+    if (old) old.remove();
+    const burst = document.createElement('div');
+    burst.className = 'pix-burst';
+    for (let i = 0; i < 46; i++) {
+      const s = document.createElement('i');
+      const size = 5 + Math.random() * 9;
+      s.style.cssText =
+        `left:${(Math.random() * 96).toFixed(1)}%;top:${(Math.random() * 96).toFixed(1)}%;` +
+        `width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;` +
+        `animation-delay:${(Math.random() * 240).toFixed(0)}ms`;
+      burst.appendChild(s);
+    }
+    card.appendChild(burst);
+    setTimeout(() => burst.remove(), 950);
   }
   function closeProject() {
     projOverlay.classList.remove('open');
@@ -753,7 +761,7 @@
 
   layout();
   buildGrass();
-  window.addEventListener('resize', () => { layout(); buildGrass(); });
+  window.addEventListener('resize', layout);
 
   applyCube(false, 'rotateY(-16deg) rotateX(9deg)');
   setTimeout(() => applyCube(true), 180);
