@@ -40,6 +40,11 @@ python3 -m http.server 4173 --bind 127.0.0.1
 # → http://127.0.0.1:4173
 ```
 
+## Deployment
+- Live at **https://xvihaan.github.io/cogspect/** (GitHub Pages, branch `main`, root, HTTPS enforced)
+- Repo: https://github.com/xvihaan/cogspect (public). To update: commit → `git push` → Pages redeploys automatically (~1 min)
+- Custom domain: not yet purchased. When bought, add 4 GitHub Pages A records + `CNAME www → xvihaan.github.io` at the registrar, then set the domain in repo Settings → Pages
+
 ## Next
 - Real chat backend (currently keyword routing only)
-- Optional: deploy target (Netlify?) — YELLOW tier, needs CEO approval
+- Optional: custom domain purchase + DNS hookup (CEO decision on name/TLD)
