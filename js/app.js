@@ -495,14 +495,16 @@
       } else return;
     }
     const k = 90 / (Math.min(window.innerWidth, window.innerHeight) * 0.45);
-    ry -= dx * k;
-    rx += dy * k;
+    // drag pulls the cube surface with the pointer: dragging left reveals
+    // the right face (touch-natural), matching swipe semantics
+    ry += dx * k;
+    rx -= dy * k;
     const now = performance.now();
     const dt = Math.max(8, now - drag.t);
     drag.t = now;
     const f = 16 / dt;                       // normalise to deg per 60Hz frame
-    vx = vx * 0.6 + (dy * k * f) * 0.4;
-    vy = vy * 0.6 + (-dx * k * f) * 0.4;
+    vx = vx * 0.6 + (-dy * k * f) * 0.4;
+    vy = vy * 0.6 + (dx * k * f) * 0.4;
     applyFree();
   });
 
