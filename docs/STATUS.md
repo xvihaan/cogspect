@@ -45,7 +45,16 @@ python3 -m http.server 4173 --bind 127.0.0.1
 - Repo: https://github.com/xvihaan/cogspect (public). To update: commit → `git push` → Pages redeploys automatically (~1 min)
 - Custom domain: not yet purchased. When bought, add 4 GitHub Pages A records + `CNAME www → xvihaan.github.io` at the registrar, then set the domain in repo Settings → Pages
 
+## Chat — b3ta intelligence (2026-07-28)
+- Client-side RAG over data/projects.json + data/knowledge.json (keyword scoring, Korean particle shedding); top hit decides the cube face → auto-navigate; matched project tiles get .mark glow
+- Answers from local b3ta model: cogspect → Earthpace backend POST /api/v1/chat/generic (stateless passthrough, CORS ok) → mlx model server :8001 (local gemma-4-e2b 4bit, ~3s warm)
+- Endpoint override: localStorage 'cogspect.chat.endpoint'; optional auth: backend env EARTHPACE_GENERIC_CHAT_TOKEN + localStorage 'cogspect.chat.token' (X-Cogspect-Key)
+- Unreachable model → retrieval-template fallback answer (public GitHub Pages visitors always get fallback — local model not exposed)
+- Ephemeral ghost bubble above chat dock: blur-materialise in, auto-dissolve 4.5s+55ms/char (cap 15s), click to dismiss
+- Earthpace changes (uncommitted there): backend/app/api/chat.py + schemas/chat.py (new), main.py router, llm_service.py optional model kwarg. Start stack: `make model && make backend` in Earthpace
+- Known untested: LLM path from the deployed HTTPS origin in real browsers (Chrome PNA / Safari mixed content may silently force fallback)
+
 ## Next
-- Content & feature polish phase (CEO directive 2026-07-28)
-- Real chat backend (currently keyword routing only)
+- Fill real portfolio copy in data/projects.json (CEO)
 - Custom domain: deliberately skipped for now — CEO favors cogspect.com (safe) or cogspect.xyz (fits spatial brand); all TLDs confirmed unregistered as of 2026-07-28
+- Optional: expose LLM publicly via tunnel (Tailscale Funnel / cloudflared) or cloud API if wanted later

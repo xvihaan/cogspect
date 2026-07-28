@@ -470,7 +470,7 @@
   /* ---------- drag: free tumbling ---------- */
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, input, a, textarea, form, .cell--proj')) return;
+    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg')) return;
     if (overlayOpen()) return;
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
@@ -678,6 +678,139 @@
     requestAnimationFrame(tick);
   }
 
+  /* ---------- b3ta intelligence: RAG chat ----------
+     Retrieval runs fully client-side over data/projects.json +
+     data/knowledge.json. Answers come from the local b3ta model server
+     (Earthpace backend passthrough); when it is unreachable the bot
+     degrades to a retrieval-only template answer. */
+
+  const CHAT_ENDPOINT = localStorage.getItem('cogspect.chat.endpoint')
+    || 'http://127.0.0.1:8000/api/v1/chat/generic';
+  const SYSTEM_PROMPT = '너는 cogspect 웹사이트에 상주하는 안내 지능이다. 반드시 [컨텍스트] 안의 정보만 사용해 한국어로 답한다. 2~3문장, 목록 없이 평문으로 간결하게. 컨텍스트에 없는 내용은 지어내지 말고 모른다고 답한다.';
+
+  let KNOWLEDGE = [];
+  fetch('data/knowledge.json')
+    .then((r) => r.json())
+    .then((d) => { KNOWLEDGE = d.chunks || []; })
+    .catch((err) => console.warn('knowledge.json load failed:', err));
+
+  const ghost = document.getElementById('ghostMsg');
+  let ghostTimer = 0;
+  let chatAbort = null;
+  let markedTiles = [];
+
+  function clearMarks() {
+    markedTiles.forEach((el) => el.classList.remove('mark'));
+    markedTiles = [];
+  }
+  function markProjects(ids) {
+    clearMarks();
+    projTiles.forEach((t) => {
+      if (ids.includes(t.el.dataset.project)) {
+        t.el.classList.add('mark');
+        markedTiles.push(t.el);
+      }
+    });
+  }
+
+  function dismissGhost() {
+    clearTimeout(ghostTimer);
+    ghost.classList.remove('show', 'pending');
+    ghost.classList.add('leaving');
+    setTimeout(() => ghost.classList.remove('leaving'), 500);
+    clearMarks();
+  }
+  function showGhost(text, pending) {
+    clearTimeout(ghostTimer);
+    ghost.textContent = text;
+    ghost.classList.remove('leaving');
+    ghost.classList.add('show');
+    ghost.classList.toggle('pending', !!pending);
+    if (!pending) {
+      const dur = Math.min(15000, 4500 + text.length * 55);
+      ghostTimer = setTimeout(dismissGhost, dur);
+    }
+  }
+  ghost.addEventListener('click', dismissGhost);
+
+  function tokenize(s) {
+    return s.toLowerCase().split(/[^0-9a-z가-힣]+/).filter((t) => t.length > 1);
+  }
+
+  function retrieve(q) {
+    const toks = tokenize(q);
+    const ql = q.toLowerCase();
+    const scoreText = (hay) => toks.reduce((s, t) => {
+      if (hay.includes(t)) return s + t.length;
+      // shed a trailing Korean particle and retry
+      const st = t.length > 2 ? t.slice(0, -1) : null;
+      return st && hay.includes(st) ? s + st.length : s;
+    }, 0);
+    const hits = [];
+    for (const p of PROJECTS) {
+      const hay = [p.title, p.tag, p.tagline, p.desc, (p.points || []).join(' '), (p.stack || []).join(' ')]
+        .join(' ').toLowerCase();
+      const s = scoreText(hay);
+      if (s > 1) hits.push({ kind: 'project', score: s, face: 'right', ref: p });
+    }
+    for (const c of KNOWLEDGE) {
+      const hay = [c.title, c.text, (c.keys || []).join(' ')].join(' ').toLowerCase();
+      let s = scoreText(hay);
+      if ((c.keys || []).some((k) => ql.includes(k.toLowerCase()))) s += 4;
+      if (s > 1) hits.push({ kind: 'chunk', score: s, face: c.face, ref: c });
+    }
+    hits.sort((a, b) => b.score - a.score);
+    return hits;
+  }
+
+  function askCogspect(q) {
+    if (chatAbort) chatAbort.abort();
+    const hits = retrieve(q);
+    if (!hits.length) {
+      showGhost('그 질문에 답할 지식이 아직 없어요. 프로젝트, 디자인 철학, 사이트 구성에 대해 물어보세요.');
+      return;
+    }
+    const top = hits[0];
+    const projHits = hits.filter((h) => h.kind === 'project').slice(0, 3);
+    const face = top.face || (projHits.length ? 'right' : null);
+    if (face && face !== cur) navigateTo(face);
+    if (projHits.length) markProjects(projHits.map((h) => h.ref.id));
+    showGhost('생각을 모으는 중…', true);
+    const context = hits.slice(0, 3).map((h) => h.kind === 'project'
+      ? `- ${h.ref.title} (${h.ref.tag}): ${h.ref.tagline}. ${h.ref.desc}`
+      : `- ${h.ref.title}: ${h.ref.text}`).join('\n');
+    const fallback = projHits.length
+      ? `관련 프로젝트: ${projHits.map((h) => `${h.ref.title} — ${h.ref.tagline}`).join(' · ')}`
+      : (top.ref.text || top.ref.desc || '');
+    const ctl = new AbortController();
+    chatAbort = ctl;
+    const abortTimer = setTimeout(() => ctl.abort(), 25000);
+    const token = localStorage.getItem('cogspect.chat.token') || '';
+    fetch(CHAT_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'X-Cogspect-Key': token } : {})
+      },
+      signal: ctl.signal,
+      body: JSON.stringify({
+        system: SYSTEM_PROMPT,
+        prompt: `[컨텍스트]\n${context}\n\n[질문]\n${q}`,
+        max_tokens: 200,
+        temperature: 0.3
+      })
+    })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((d) => { if (ctl === chatAbort) showGhost((d.reply || '').trim() || fallback); })
+      .catch(() => { if (ctl === chatAbort) showGhost(fallback); })
+      .finally(() => clearTimeout(abortTimer));
+  }
+
+  function isQuestion(q) {
+    return /[?？]|뭐|무엇|어떤|어떻게|있어|있나|어때|누구|왜|설명|알려|소개/.test(q)
+      || tokenize(q).length >= 3;
+  }
+
   /* ---------- chat: message → coordinate routing ---------- */
 
   const ROUTES = [
@@ -708,7 +841,8 @@
       return;
     }
     const route = ROUTES.find((r) => r.keys.some((k) => q.includes(k)));
-    if (route) {
+    if (route && !isQuestion(q)) {
+      // short navigation command → instant turn, no LLM round-trip
       if (route.face === cur && phase === 'idle') {
         navigateTo(route.face);
         showToast(`이미 ${LABELS[route.face]} 좌표에 있어요.`);
@@ -719,7 +853,7 @@
       }
       return;
     }
-    showToast('좌표를 인식하지 못했어요. matrix · gateway · keen · vision · v0id · contact 를 입력해 보세요.');
+    askCogspect(q);
   });
 
   /* ---------- boot: entrance drift ---------- */
