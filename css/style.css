@@ -494,14 +494,14 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   padding: 7px;
   border-radius: 999px;
   isolation: isolate;
-  background: linear-gradient(170deg, rgba(224, 228, 236, .22), rgba(206, 211, 222, .09) 50%, rgba(216, 220, 230, .16));
-  backdrop-filter: blur(20px) saturate(2.1);
-  -webkit-backdrop-filter: blur(20px) saturate(2.1);
-  border: 1px solid rgba(228, 231, 239, .6);
+  background: linear-gradient(170deg, rgba(190, 196, 210, .14), rgba(168, 175, 192, .05) 50%, rgba(180, 186, 201, .1));
+  backdrop-filter: blur(11px) saturate(1.9);
+  -webkit-backdrop-filter: blur(11px) saturate(1.9);
+  border: 1px solid rgba(208, 213, 224, .5);
   box-shadow:
-    0 12px 40px rgba(28, 28, 36, .14),
-    inset 0 1.5px 1px rgba(250, 251, 253, .65),
-    inset 0 -10px 22px rgba(148, 154, 174, .24),
+    0 12px 40px rgba(28, 28, 36, .13),
+    inset 0 1.5px 1px rgba(248, 250, 252, .55),
+    inset 0 -10px 22px rgba(128, 135, 158, .2),
     inset 2px 0 4px rgba(236, 238, 244, .3),
     inset -2px 0 4px rgba(236, 238, 244, .3);
 }
@@ -524,19 +524,19 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   color: var(--ink);
   padding: 10px 24px;
   border-radius: 999px;
-  border: 1px solid rgba(230, 233, 240, .55);
-  background: linear-gradient(175deg, rgba(228, 231, 239, .16) 0%, rgba(210, 215, 226, .04) 45%, rgba(206, 211, 223, .1) 100%);
+  border: 1px solid rgba(212, 217, 228, .45);
+  background: linear-gradient(175deg, rgba(196, 202, 216, .12) 0%, rgba(176, 183, 199, .03) 45%, rgba(186, 192, 206, .08) 100%);
   box-shadow:
-    inset 0 1px 1px rgba(248, 249, 252, .7),
-    inset 0 -4px 8px rgba(154, 160, 182, .28),
+    inset 0 1px 1px rgba(246, 248, 251, .6),
+    inset 0 -4px 8px rgba(128, 135, 158, .24),
     0 3px 10px rgba(28, 28, 36, .06);
   transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s, background .35s, color .45s;
 }
 .glass-btn:hover {
   transform: scale(1.07);
-  background: linear-gradient(175deg, rgba(236, 239, 245, .3) 0%, rgba(218, 222, 232, .1) 45%, rgba(212, 217, 228, .17) 100%);
-  backdrop-filter: blur(5px) saturate(2.2) brightness(1.05);
-  -webkit-backdrop-filter: blur(5px) saturate(2.2) brightness(1.05);
+  background: linear-gradient(175deg, rgba(210, 216, 228, .24) 0%, rgba(188, 195, 210, .08) 45%, rgba(196, 202, 216, .14) 100%);
+  backdrop-filter: blur(5px) saturate(2.1) brightness(1.03);
+  -webkit-backdrop-filter: blur(5px) saturate(2.1) brightness(1.03);
   box-shadow:
     inset 0 1px 1px rgba(250, 251, 253, .85),
     inset 0 -6px 12px rgba(148, 154, 174, .32),
@@ -593,10 +593,10 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   text-align: center;
   text-wrap: pretty;
   cursor: pointer;
-  background: linear-gradient(168deg, rgba(228, 231, 239, .5), rgba(210, 215, 226, .24));
-  backdrop-filter: blur(22px) saturate(1.9);
-  -webkit-backdrop-filter: blur(22px) saturate(1.9);
-  border: 1px solid rgba(232, 235, 241, .8);
+  background: linear-gradient(168deg, rgba(200, 206, 219, .4), rgba(180, 187, 202, .18));
+  backdrop-filter: blur(14px) saturate(1.9);
+  -webkit-backdrop-filter: blur(14px) saturate(1.9);
+  border: 1px solid rgba(212, 217, 228, .7);
   box-shadow:
     0 18px 50px rgba(28, 28, 36, .16),
     inset 0 1px 1px rgba(248, 249, 252, .8),
@@ -648,14 +648,14 @@ body.on-dark .ghost-msg {
   padding: 8px 24px 8px 22px;
   border-radius: 999px;
   isolation: isolate;
-  background: linear-gradient(170deg, rgba(224, 228, 236, .2), rgba(206, 211, 222, .08) 50%, rgba(216, 220, 230, .15));
-  backdrop-filter: blur(22px) saturate(2.1);
-  -webkit-backdrop-filter: blur(22px) saturate(2.1);
-  border: 1px solid rgba(228, 231, 239, .6);
+  background: linear-gradient(170deg, rgba(190, 196, 210, .13), rgba(168, 175, 192, .05) 50%, rgba(180, 186, 201, .1));
+  backdrop-filter: blur(12px) saturate(1.9);
+  -webkit-backdrop-filter: blur(12px) saturate(1.9);
+  border: 1px solid rgba(208, 213, 224, .5);
   box-shadow:
-    0 16px 50px rgba(28, 28, 36, .15),
-    inset 0 1.5px 1px rgba(250, 251, 253, .65),
-    inset 0 -12px 26px rgba(148, 154, 174, .24),
+    0 16px 50px rgba(28, 28, 36, .14),
+    inset 0 1.5px 1px rgba(248, 250, 252, .55),
+    inset 0 -12px 26px rgba(128, 135, 158, .2),
     inset 2px 0 4px rgba(236, 238, 244, .3),
     inset -2px 0 4px rgba(236, 238, 244, .3);
   transition: box-shadow .4s, transform .4s cubic-bezier(.2, .8, .2, 1);
@@ -672,8 +672,8 @@ body.on-dark .ghost-msg {
 .chat-bar:hover,
 .chat-bar:focus-within {
   transform: scale(1.015);
-  backdrop-filter: blur(26px) saturate(2.3) brightness(1.03);
-  -webkit-backdrop-filter: blur(26px) saturate(2.3) brightness(1.03);
+  backdrop-filter: blur(15px) saturate(2.1) brightness(1.02);
+  -webkit-backdrop-filter: blur(15px) saturate(2.1) brightness(1.02);
   box-shadow:
     0 22px 64px rgba(28, 28, 36, .18),
     inset 0 1.5px 1px rgba(250, 251, 253, .8),
@@ -721,10 +721,10 @@ body.on-dark .ghost-msg {
   line-height: 1.55;
   color: var(--ink);
   text-align: center;
-  background: linear-gradient(165deg, rgba(232, 235, 242, .38), rgba(214, 218, 229, .16));
-  backdrop-filter: blur(20px) saturate(1.9);
-  -webkit-backdrop-filter: blur(20px) saturate(1.9);
-  border: 1px solid rgba(234, 237, 243, .8);
+  background: linear-gradient(165deg, rgba(200, 206, 219, .3), rgba(180, 187, 202, .12));
+  backdrop-filter: blur(13px) saturate(1.9);
+  -webkit-backdrop-filter: blur(13px) saturate(1.9);
+  border: 1px solid rgba(212, 217, 228, .7);
   box-shadow:
     0 14px 40px rgba(28, 28, 36, .15),
     inset 0 1px 1px rgba(248, 249, 252, .75),
@@ -771,10 +771,10 @@ body.on-dark .ghost-msg {
   padding: 46px 42px;
   text-align: center;
   isolation: isolate;
-  background: linear-gradient(170deg, rgba(228, 231, 239, .24), rgba(210, 215, 226, .09) 50%, rgba(218, 222, 232, .16));
-  backdrop-filter: blur(30px) saturate(1.9);
-  -webkit-backdrop-filter: blur(30px) saturate(1.9);
-  border: 1px solid rgba(230, 233, 240, .75);
+  background: linear-gradient(170deg, rgba(198, 204, 217, .2), rgba(178, 185, 200, .07) 50%, rgba(188, 194, 208, .13) 100%);
+  backdrop-filter: blur(18px) saturate(1.9);
+  -webkit-backdrop-filter: blur(18px) saturate(1.9);
+  border: 1px solid rgba(212, 217, 228, .65);
   box-shadow:
     0 40px 110px rgba(28, 28, 36, .19),
     inset 0 1.5px 1px rgba(248, 249, 252, .7),
@@ -805,10 +805,10 @@ body.on-dark .ghost-msg {
   padding: 34px 44px 40px;
   text-align: left;
   isolation: isolate;
-  background: linear-gradient(170deg, rgba(228, 231, 239, .3), rgba(210, 215, 226, .12) 50%, rgba(218, 222, 232, .2));
-  backdrop-filter: blur(30px) saturate(1.9);
-  -webkit-backdrop-filter: blur(30px) saturate(1.9);
-  border: 1px solid rgba(230, 233, 240, .8);
+  background: linear-gradient(170deg, rgba(198, 204, 217, .26), rgba(178, 185, 200, .1) 50%, rgba(188, 194, 208, .17));
+  backdrop-filter: blur(18px) saturate(1.9);
+  -webkit-backdrop-filter: blur(18px) saturate(1.9);
+  border: 1px solid rgba(212, 217, 228, .7);
   box-shadow:
     0 40px 110px rgba(28, 28, 36, .2),
     inset 0 1.5px 1px rgba(248, 249, 252, .7),
