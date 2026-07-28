@@ -42,88 +42,9 @@
     back: '04 · keen', top: '05 · vision', bottom: '06 · v0id'
   };
 
-  // Portfolio projects — scattered "grass" tiles. fx/fy are fractional
-  // positions inside the pixel field (0..1).
-  const PROJECTS = [
-    {
-      id: 'keen', fx: .13, fy: .58,
-      tag: 'Design Language', title: 'keen',
-      tagline: '리퀴드 글래스 인터페이스 언어',
-      desc: 'cogspect의 시그니처 디자인 언어입니다. 굴절·반사·블러·림 라이트의 규칙을 정의해, 화면 위의 요소가 얇은 유리 렌즈처럼 느껴지는 질감을 만듭니다. 지금 보고 있는 이 사이트의 모든 UI가 keen으로 그려졌습니다.',
-      points: [
-        '다층 inset 하이라이트와 스펙큘러 시트 규격',
-        'SVG 변위 필터 기반 렌즈 굴절 — 호버 시 볼록렌즈 효과',
-        '라이트·다크 컨텍스트 자동 반전'
-      ],
-      stack: ['CSS', 'SVG Filter', 'Design Tokens'],
-      link: null
-    },
-    {
-      id: 'cogspect', fx: .26, fy: .27,
-      tag: 'Spatial UI', title: 'cogspect Spatial UI',
-      tagline: '이 웹사이트 — 3D 큐브 공간 인터페이스',
-      desc: '지금 탐험 중인 이 사이트 자체가 실험작입니다. 6면 정육면체 공간에 콘텐츠를 배치하고, 자유 회전 물리와 관성, 최근접 면 스냅으로 "페이지" 개념을 대체했습니다.',
-      points: [
-        '오일러 자유 회전 + 관성 롤 + 정방향 스냅 물리',
-        '스크롤·핀치 연속 줌과 트랙패드 햅틱 피드백',
-        '프레임워크 없는 바닐라 JS 구현'
-      ],
-      stack: ['Vanilla JS', 'CSS 3D', 'Canvas'],
-      link: { label: 'GitHub 저장소 ↗', url: 'https://github.com/xvihaan/cogspect' }
-    },
-    {
-      id: 'earthpace', fx: .44, fy: .66,
-      tag: 'AI Interface', title: 'Earthpace',
-      tagline: '온디바이스 LLM 음성 비서 플랫폼',
-      desc: 'Apple Silicon 위에서 완전 로컬로 동작하는 음성 AI 인터페이스입니다. 실시간 WebSocket 파이프라인과 지식 베이스 위에 대화형 비서를 올려, 클라우드 없이 개인의 데이터로 응답합니다.',
-      points: [
-        'Next.js 15 프론트 + FastAPI 백엔드 + MLX 모델 서버',
-        'WebSocket 실시간 세션과 대화 메모리 아카이빙',
-        'Capacitor 기반 iOS 배포 파이프라인'
-      ],
-      stack: ['Next.js', 'FastAPI', 'MLX', 'Capacitor'],
-      link: null
-    },
-    {
-      id: 'friday', fx: .57, fy: .36,
-      tag: 'AI Agent', title: 'FRIDAY',
-      tagline: 'LangGraph 멀티 에이전트 어시스턴트',
-      desc: 'HyperCLOVA X 기반 개인 AI 어시스턴트입니다. 설정 파일만으로 에이전트를 동적 생성하는 팩토리 구조와 그래프 라우팅으로, 역할별 전문 에이전트가 질문을 나눠 응답합니다.',
-      points: [
-        'StateGraph 오케스트레이터 → 동적 에이전트 라우팅',
-        'AgentFactory — JSON 설정만으로 에이전트 증설',
-        'ChromaDB 컬렉션 기반 RAG 메모리'
-      ],
-      stack: ['LangGraph', 'HyperCLOVA X', 'ChromaDB'],
-      link: null
-    },
-    {
-      id: 'b3ta', fx: .72, fy: .18,
-      tag: 'Worldbuilding', title: 'b3ta Engine',
-      tagline: 'b3ta 세계관 내러티브·비주얼 시스템',
-      desc: 'cogspect가 구동하는 세계관 프로젝트입니다. 내러티브 설정과 비주얼 규칙을 하나의 엔진처럼 묶어 웹 위에 전개합니다. keen 디자인 언어와 같은 뿌리를 공유합니다.',
-      points: [
-        '세계관 설정과 비주얼 아이덴티티 시스템',
-        '웹 기반 인터랙티브 전개',
-        'cogspect 생태계의 첫 번째 관문'
-      ],
-      stack: ['Web', 'Narrative Design'],
-      link: { label: 'b3ta.netlify.app ↗', url: 'https://b3ta.netlify.app' }
-    },
-    {
-      id: 'v0id', fx: .86, fy: .52,
-      tag: 'Archive', title: 'v0id Archive',
-      tagline: '실험과 폐기된 차원들의 기록 보관소',
-      desc: '완성보다 과정을 남기는 공간입니다. 실험, 프로토타입, 폐기된 아이디어를 차원별로 보관합니다. b3ta 세계관의 지하층이기도 합니다.',
-      points: [
-        '프로토타입·실험 기록 아카이브',
-        'b3ta 세계관의 지하층',
-        '비정기 업데이트'
-      ],
-      stack: ['Archive'],
-      link: { label: 'v0id 열기 ↗', url: 'https://b3ta.netlify.app/v0id' }
-    }
-  ];
+  // Portfolio content lives in data/projects.json — edit that file to add
+  // or change projects; no code changes needed. Loaded at boot.
+  let PROJECTS = [];
 
   const stage = document.getElementById('stage');
   const zoomWrap = document.getElementById('zoomWrap');
@@ -193,6 +114,7 @@
   const projTitle = document.getElementById('projectTitle');
   const projTagline = document.getElementById('projectTagline');
   const projDesc = document.getElementById('projectDesc');
+  const projSections = document.getElementById('projectSections');
   const projPoints = document.getElementById('projectPoints');
   const projStack = document.getElementById('projectStack');
   const projLink = document.getElementById('projectLink');
@@ -211,10 +133,11 @@
     const key = `${W}x${H}`;
     if (key === grassKey) return;
     grassKey = key;
-    if (!tileTones) {
-      // two of each tone, shuffled once per visit
-      tileTones = ['white', 'silver', 'dark', 'white', 'silver', 'dark']
-        .sort(() => Math.random() - 0.5);
+    if (!tileTones || tileTones.length < PROJECTS.length) {
+      // an even mix of tones, shuffled once per visit
+      const pool = [];
+      while (pool.length < PROJECTS.length) pool.push('white', 'silver', 'dark');
+      tileTones = pool.sort(() => Math.random() - 0.5);
     }
     grass.querySelectorAll('.cell--proj').forEach((c) => c.remove());
     projTiles = [];
@@ -271,12 +194,19 @@
 
   function openProject(p) {
     projArt.className = `project-art art--${p.id}`;
+    projArt.style.backgroundImage = p.image ? `url(${p.image})` : '';
+    projArt.style.backgroundSize = p.image ? 'cover' : '';
+    projArt.style.backgroundPosition = p.image ? 'center' : '';
+    projArt.style.backgroundRepeat = p.image ? 'no-repeat' : '';
     projTag.textContent = p.tag;
     projTitle.textContent = p.title;
     projTagline.textContent = p.tagline;
     projDesc.textContent = p.desc;
-    projPoints.innerHTML = p.points.map((pt) => `<li>${pt}</li>`).join('');
-    projStack.innerHTML = p.stack.map((s) => `<span>${s}</span>`).join('');
+    projSections.innerHTML = (p.sections || [])
+      .map((s) => `${s.heading ? `<h3>${s.heading}</h3>` : ''}<p>${s.text}</p>`)
+      .join('');
+    projPoints.innerHTML = (p.points || []).map((pt) => `<li>${pt}</li>`).join('');
+    projStack.innerHTML = (p.stack || []).map((s) => `<span>${s}</span>`).join('');
     if (p.link) {
       projLink.textContent = p.link.label;
       projLink.href = p.link.url;
@@ -795,8 +725,16 @@
   /* ---------- boot: entrance drift ---------- */
 
   layout();
-  buildGrass();
   window.addEventListener('resize', () => { layout(); buildGrass(); });
+
+  fetch('data/projects.json')
+    .then((r) => r.json())
+    .then((d) => {
+      PROJECTS = d.projects || [];
+      grassKey = '';                 // force rebuild even if a resize ran first
+      buildGrass();
+    })
+    .catch((err) => console.warn('projects.json load failed:', err));
 
   applyCube(false, 'rotateY(-16deg) rotateX(9deg)');
   setTimeout(() => applyCube(true), 180);
