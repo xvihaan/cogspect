@@ -490,26 +490,24 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 
 .glass-nav {
   position: fixed;
-  top: 24px;
-  right: 32px;
+  top: 22px;
+  right: 26px;
   z-index: 60;
   display: flex;
-  gap: 8px;
-  padding: 7px;
-  border-radius: 999px;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 30px;
   isolation: isolate;
   border: 1.5px solid transparent;
   background:
-    linear-gradient(170deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, .04) 50%, rgba(255, 255, 255, .1)) padding-box,
-    linear-gradient(155deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .28) 35%, rgba(255, 255, 255, .1) 55%, rgba(255, 255, 255, .9) 100%) border-box;
-  backdrop-filter: blur(11px) saturate(1.9);
-  -webkit-backdrop-filter: blur(11px) saturate(1.9);
+    linear-gradient(170deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .02) 50%, rgba(255, 255, 255, .05)) padding-box,
+    linear-gradient(155deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .2) 35%, rgba(255, 255, 255, .08) 55%, rgba(255, 255, 255, .7) 100%) border-box;
+  backdrop-filter: blur(14px) saturate(1.7);
+  -webkit-backdrop-filter: blur(14px) saturate(1.7);
   box-shadow:
-    0 12px 40px rgba(28, 28, 36, .13),
-    inset 0 1.5px 1px rgba(255, 255, 255, .85),
-    inset 0 -10px 22px rgba(96, 102, 128, .1),
-    inset 2px 0 4px rgba(255, 255, 255, .3),
-    inset -2px 0 4px rgba(255, 255, 255, .3);
+    0 16px 48px rgba(28, 28, 36, .15),
+    inset 0 1px 1px rgba(255, 255, 255, .45),
+    inset 0 -10px 24px rgba(96, 102, 128, .08);
 }
 .glass-nav::before {
   content: '';
@@ -524,33 +522,33 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 .glass-btn {
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: .01em;
   color: var(--ink);
-  padding: 10px 24px;
-  border-radius: 999px;
+  padding: 17px 30px;
+  border-radius: 21px;
   border: 1px solid transparent;
   background:
-    linear-gradient(175deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .02) 45%, rgba(255, 255, 255, .08) 100%) padding-box,
-    linear-gradient(155deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .24) 35%, rgba(255, 255, 255, .08) 55%, rgba(255, 255, 255, .85) 100%) border-box;
+    linear-gradient(175deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .02) 45%, rgba(255, 255, 255, .05) 100%) padding-box,
+    linear-gradient(155deg, rgba(255, 255, 255, .65), rgba(255, 255, 255, .16) 35%, rgba(255, 255, 255, .06) 55%, rgba(255, 255, 255, .55) 100%) border-box;
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .75),
-    inset 0 -4px 8px rgba(96, 102, 128, .12),
-    0 3px 10px rgba(28, 28, 36, .06);
+    inset 0 1px 1px rgba(255, 255, 255, .4),
+    inset 0 -4px 10px rgba(96, 102, 128, .09),
+    0 2px 8px rgba(28, 28, 36, .05);
   transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s, background .35s, color .45s;
 }
 .glass-btn:hover {
-  transform: scale(1.07);
+  transform: scale(1.045);
   background:
-    linear-gradient(175deg, rgba(255, 255, 255, .32) 0%, rgba(255, 255, 255, .1) 45%, rgba(255, 255, 255, .18) 100%) padding-box,
-    linear-gradient(155deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, .42) 35%, rgba(255, 255, 255, .16) 55%, rgba(255, 255, 255, 1) 100%) border-box;
-  backdrop-filter: blur(5px) saturate(2.1) brightness(1.03);
-  -webkit-backdrop-filter: blur(5px) saturate(2.1) brightness(1.03);
+    linear-gradient(175deg, rgba(255, 255, 255, .2) 0%, rgba(255, 255, 255, .06) 45%, rgba(255, 255, 255, .12) 100%) padding-box,
+    linear-gradient(155deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .3) 35%, rgba(255, 255, 255, .12) 55%, rgba(255, 255, 255, .8) 100%) border-box;
+  backdrop-filter: blur(6px) saturate(1.9) brightness(1.02);
+  -webkit-backdrop-filter: blur(6px) saturate(1.9) brightness(1.02);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .95),
-    inset 0 -6px 12px rgba(96, 102, 128, .14),
-    0 8px 22px rgba(28, 28, 36, .14);
+    inset 0 1px 1px rgba(255, 255, 255, .6),
+    inset 0 -5px 12px rgba(96, 102, 128, .1),
+    0 8px 22px rgba(28, 28, 36, .12);
 }
 .glass-btn:active { transform: scale(.97); }
 
