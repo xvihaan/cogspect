@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>cogspect — spatial interface</title>
+<meta name="description" content="cogspect — 극도의 미니멀리즘 위에 깊이의 언어를 쌓아 올리는 공간 인터페이스.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='7' fill='%230c0c0e'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Chromium-only lens refraction for liquid glass (backdrop-filter: url) -->
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <filter id="lg-lens" x="-20%" y="-20%" width="140%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.007 0.011" numOctaves="2" seed="7" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="2" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="30" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="lg-convex" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.004 0.007" numOctaves="1" seed="11" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="3" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="90" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="stage" id="stage">
+
+  <!-- zoom wrapper › perspective › cube -->
+  <div class="zoom-wrap" id="zoomWrap">
+    <div class="persp">
+      <div class="cube" id="cube">
+
+        <section class="face face--front" data-face="front" aria-label="01 canvas">
+          <p class="face-lede">백색의 도화지 위, 공간을 탐험하는 인터페이스.</p>
+        </section>
+
+        <section class="face face--matrix" data-face="right" aria-label="02 matrix">
+          <div class="matrix">
+            <div class="matrix-head">
+              <h2>Portfolio Matrix</h2>
+              <span class="kicker">02 · AI research · design assets</span>
+            </div>
+            <div class="works" id="worksGrid"></div>
+          </div>
+        </section>
+
+        <section class="face face--gateway" data-face="left" aria-label="03 gateway">
+          <div class="gateway">
+            <div class="gateway-head">
+              <span class="kicker">03 · ecosystem bridge</span>
+              <h2>Gateway</h2>
+            </div>
+            <div class="gates">
+              <a class="gate gate--light" href="https://b3ta.netlify.app" target="_blank" rel="noopener">
+                <span class="gate-kicker">Worldview Gate 01</span>
+                <h3>b3ta</h3>
+                <p>cogspect가 구동하는 세계관으로 진입합니다.</p>
+                <span class="gate-link">b3ta.netlify.app ↗</span>
+              </a>
+              <a class="gate gate--dark" href="https://b3ta.netlify.app/v0id" target="_blank" rel="noopener">
+                <span class="gate-kicker">Worldview Gate 02</span>
+                <h3>v0id</h3>
+                <p>실험과 기록의 아카이브로 하강합니다.</p>
+                <span class="gate-link">b3ta.netlify.app/v0id ↗</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section class="face face--keen" data-face="back" aria-label="04 keen">
+          <span class="kicker">04 · design language</span>
+          <h2 class="keen-title">keen</h2>
+          <p class="face-note">굴절과 반사, 블러와 림 라이트. cogspect의 시그니처 리퀴드 글래스 인터페이스 언어입니다.</p>
+        </section>
+
+        <section class="face face--vision" data-face="top" aria-label="05 vision">
+          <span class="kicker">05 · vision</span>
+          <p class="vision-lede">모든 프로젝트는 하나의 근원에서 출발합니다. <strong>cogspect</strong>는 극도의 미니멀리즘 위에 깊이의 언어를 쌓아 올립니다.</p>
+        </section>
+
+        <section class="face face--void" data-face="bottom" aria-label="06 v0id">
+          <span class="kicker kicker--dim">06 · archive</span>
+          <h2 class="void-title">v0id</h2>
+          <p class="face-note face-note--dark">실험, 프로토타입, 폐기된 차원들의 기록 보관소.</p>
+          <a class="void-link" href="https://b3ta.netlify.app/v0id" target="_blank" rel="noopener">아카이브 열기 ↗</a>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- pixel-grid ripple canvas -->
+  <canvas class="grid-canvas" id="grid"></canvas>
+
+  <!-- wordmark -->
+  <div class="wordmark">cogspect</div>
+
+  <!-- top-right liquid glass nav -->
+  <nav class="glass-nav">
+    <button class="glass-btn" id="homeBtn" type="button">home</button>
+    <button class="glass-btn" id="contactBtn" type="button">contact</button>
+  </nav>
+
+  <!-- bottom-left HUD: current face + hint -->
+  <div class="hud">
+    <span class="face-indicator" id="faceIndicator">01 · canvas</span>
+    <span class="hud-hint" id="hudHint">drag rotate · scroll zoom · ← ↑ ↓ →</span>
+  </div>
+
+  <!-- bottom chat dock -->
+  <div class="chat-dock">
+    <div class="toast" id="toast" role="status"></div>
+    <form class="chat-bar" id="chatForm" autocomplete="off">
+      <span class="pulse-dot"></span>
+      <input id="chatInput" type="text" placeholder="cogspect에게 메시지 보내기…" aria-label="cogspect에게 메시지 보내기">
+    </form>
+  </div>
+
+  <!-- contact overlay -->
+  <div class="overlay" id="contactOverlay" aria-hidden="true" inert>
+    <div class="contact-card">
+      <span class="kicker">contact</span>
+      <h2>cogspect corporation</h2>
+      <p>협업과 커미션 문의를 환영합니다.</p>
+      <a class="contact-mail" href="mailto:hello@cogspect.com">hello@cogspect.com</a>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
