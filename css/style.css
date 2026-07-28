@@ -211,7 +211,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   box-shadow: 0 1px 3px rgba(28, 28, 36, .14);
   transition: opacity .35s ease, transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .35s;
 }
-.cell--proj[data-tone="white"]  { background: linear-gradient(160deg, #ffffff, #e6e9ee); }
+.cell--proj[data-tone="white"]  { background: linear-gradient(160deg, #e9ebf1, #c8cdd8); }
 .cell--proj[data-tone="silver"] { background: linear-gradient(160deg, #d6dae2, #a9afbc); }
 .cell--proj[data-tone="dark"]   { background: linear-gradient(160deg, #4c4e57, #303138); }
 .cell--proj::after {
