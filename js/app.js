@@ -46,7 +46,7 @@
   // positions inside the pixel field (0..1).
   const PROJECTS = [
     {
-      id: 'keen', fx: .08, fy: .25,
+      id: 'keen', fx: .12, fy: .3,
       tag: 'Design Language', title: 'keen',
       tagline: '리퀴드 글래스 인터페이스 언어',
       desc: 'cogspect의 시그니처 디자인 언어입니다. 굴절·반사·블러·림 라이트의 규칙을 정의해, 화면 위의 요소가 얇은 유리 렌즈처럼 느껴지는 질감을 만듭니다. 지금 보고 있는 이 사이트의 모든 UI가 keen으로 그려졌습니다.',
@@ -59,7 +59,7 @@
       link: null
     },
     {
-      id: 'cogspect', fx: .24, fy: .7,
+      id: 'cogspect', fx: .28, fy: .62,
       tag: 'Spatial UI', title: 'cogspect Spatial UI',
       tagline: '이 웹사이트 — 3D 큐브 공간 인터페이스',
       desc: '지금 탐험 중인 이 사이트 자체가 실험작입니다. 6면 정육면체 공간에 콘텐츠를 배치하고, 자유 회전 물리와 관성, 최근접 면 스냅으로 "페이지" 개념을 대체했습니다.',
@@ -72,7 +72,7 @@
       link: { label: 'GitHub 저장소 ↗', url: 'https://github.com/xvihaan/cogspect' }
     },
     {
-      id: 'earthpace', fx: .42, fy: .32,
+      id: 'earthpace', fx: .46, fy: .28,
       tag: 'AI Interface', title: 'Earthpace',
       tagline: '온디바이스 LLM 음성 비서 플랫폼',
       desc: 'Apple Silicon 위에서 완전 로컬로 동작하는 음성 AI 인터페이스입니다. 실시간 WebSocket 파이프라인과 지식 베이스 위에 대화형 비서를 올려, 클라우드 없이 개인의 데이터로 응답합니다.',
@@ -85,7 +85,7 @@
       link: null
     },
     {
-      id: 'friday', fx: .6, fy: .75,
+      id: 'friday', fx: .6, fy: .66,
       tag: 'AI Agent', title: 'FRIDAY',
       tagline: 'LangGraph 멀티 에이전트 어시스턴트',
       desc: 'HyperCLOVA X 기반 개인 AI 어시스턴트입니다. 설정 파일만으로 에이전트를 동적 생성하는 팩토리 구조와 그래프 라우팅으로, 역할별 전문 에이전트가 질문을 나눠 응답합니다.',
@@ -98,7 +98,7 @@
       link: null
     },
     {
-      id: 'b3ta', fx: .78, fy: .2,
+      id: 'b3ta', fx: .78, fy: .32,
       tag: 'Worldbuilding', title: 'b3ta Engine',
       tagline: 'b3ta 세계관 내러티브·비주얼 시스템',
       desc: 'cogspect가 구동하는 세계관 프로젝트입니다. 내러티브 설정과 비주얼 규칙을 하나의 엔진처럼 묶어 웹 위에 전개합니다. keen 디자인 언어와 같은 뿌리를 공유합니다.',
@@ -111,7 +111,7 @@
       link: { label: 'b3ta.netlify.app ↗', url: 'https://b3ta.netlify.app' }
     },
     {
-      id: 'v0id', fx: .9, fy: .62,
+      id: 'v0id', fx: .88, fy: .58,
       tag: 'Archive', title: 'v0id Archive',
       tagline: '실험과 폐기된 차원들의 기록 보관소',
       desc: '완성보다 과정을 남기는 공간입니다. 실험, 프로토타입, 폐기된 아이디어를 차원별로 보관합니다. b3ta 세계관의 지하층이기도 합니다.',
@@ -197,19 +197,32 @@
   const projStack = document.getElementById('projectStack');
   const projLink = document.getElementById('projectLink');
 
-  // Six glass pixels scattered across the whole face at fractional coords.
+  // Clean white canvas by default: the tile texture (.grass-veil) is only
+  // revealed around the cursor via a CSS mask; six always-visible silver
+  // pixels are placed at viewport-relative fractions.
+  const grassVeil = document.getElementById('grassVeil');
+  let grassKey = '';
+
   function buildGrass() {
+    const W = window.innerWidth, H = window.innerHeight;
+    const w = grass.clientWidth || Math.max(W, H);
+    const key = `${W}x${H}`;
+    if (key === grassKey) return;
+    grassKey = key;
     grass.querySelectorAll('.cell--proj').forEach((c) => c.remove());
-    PROJECTS.forEach((p, i) => {
+    PROJECTS.forEach((p) => {
+      // fx/fy are fractions of the VISIBLE viewport, remapped into the S×S
+      // face so tiles stay on-screen in both orientations
+      const gx = 0.5 + (p.fx - 0.5) * (W / w);
+      const gy = 0.5 + (p.fy - 0.5) * (H / w);
       const t = document.createElement('div');
       t.className = 'cell--proj';
       t.dataset.project = p.id;
       t.setAttribute('role', 'button');
       t.setAttribute('tabindex', '0');
       t.setAttribute('aria-label', `${p.title} — ${p.tagline}`);
-      t.style.left = `${p.fx * 100}%`;
-      t.style.top = `${p.fy * 100}%`;
-      t.style.animationDelay = `${(i * 0.45).toFixed(2)}s`;
+      t.style.left = `${(gx * 100).toFixed(3)}%`;
+      t.style.top = `${(gy * 100).toFixed(3)}%`;
       grass.appendChild(t);
     });
   }
@@ -640,6 +653,14 @@
       ripples.push({ x: e.clientX, y: e.clientY, t0: performance.now() });
       if (ripples.length > 16) ripples.shift();
     }
+    // cursor-reveal mask on the portfolio tile veil: map viewport coords
+    // into face-local space (face is S×S centered, scaled by zoomCur)
+    if (cur !== 'right') return;
+    const S = Math.max(window.innerWidth, window.innerHeight);
+    const lx = S / 2 + (e.clientX - window.innerWidth / 2) / zoomCur;
+    const ly = S / 2 + (e.clientY - window.innerHeight / 2) / zoomCur;
+    grassVeil.style.setProperty('--mx', `${lx.toFixed(1)}px`);
+    grassVeil.style.setProperty('--my', `${ly.toFixed(1)}px`);
   });
 
   function drawGrid() {
@@ -761,7 +782,7 @@
 
   layout();
   buildGrass();
-  window.addEventListener('resize', layout);
+  window.addEventListener('resize', () => { layout(); buildGrass(); });
 
   applyCube(false, 'rotateY(-16deg) rotateX(9deg)');
   setTimeout(() => applyCube(true), 180);

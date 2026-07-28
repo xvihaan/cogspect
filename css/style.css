@@ -180,22 +180,23 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   inset: 0;
 }
 
-@keyframes tileBreath {
-  0%, 100% {
-    box-shadow:
-      0 0 0 4px rgba(228, 231, 239, .25),
-      0 2px 8px rgba(28, 28, 36, .12),
-      inset 0 1px 1px rgba(255, 255, 255, .95);
-  }
-  50% {
-    box-shadow:
-      0 0 0 7px rgba(228, 231, 239, .45),
-      0 0 18px rgba(255, 255, 255, .9),
-      0 2px 10px rgba(28, 28, 36, .16),
-      inset 0 1px 1px rgba(255, 255, 255, 1);
-  }
+/* tile texture revealed only around the cursor — the face reads as a
+   clean white canvas until the pointer sweeps across it */
+.grass-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: rgba(208, 212, 222, .3);
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 17px, var(--paper) 17px 23px),
+    repeating-linear-gradient(0deg, transparent 0 17px, var(--paper) 17px 23px);
+  -webkit-mask-image: radial-gradient(220px circle at var(--mx, -500px) var(--my, -500px),
+    rgba(0, 0, 0, .95), rgba(0, 0, 0, .45) 55%, transparent 75%);
+  mask-image: radial-gradient(220px circle at var(--mx, -500px) var(--my, -500px),
+    rgba(0, 0, 0, .95), rgba(0, 0, 0, .45) 55%, transparent 75%);
 }
 
+/* silver project pixels — always visible, no blinking */
 .cell--proj {
   position: absolute;
   width: 18px;
@@ -204,28 +205,30 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   border-radius: 5px;
   cursor: pointer;
   outline: none;
-  background: linear-gradient(160deg, rgba(255, 255, 255, .97), rgba(228, 231, 239, .85));
-  border: 1px solid rgba(255, 255, 255, .95);
-  animation: tileBreath 3.2s ease-in-out infinite;
-  transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+  background: linear-gradient(160deg, #d6dae2, #a6acba 60%, #c4c9d3);
+  border: 1px solid rgba(255, 255, 255, .9);
+  box-shadow:
+    0 0 0 3px rgba(154, 160, 178, .22),
+    0 2px 8px rgba(28, 28, 36, .16),
+    inset 0 1px 1px rgba(255, 255, 255, .9);
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s;
 }
 .cell--proj::after {
   content: '';
   position: absolute;
-  inset: -12px;
+  inset: -10px;
 }
 .cell--proj:hover,
 .cell--proj:focus-visible {
-  transform: scale(2.1);
+  transform: scale(1.9);
   z-index: 2;
-  animation: none;
   box-shadow:
-    0 0 0 5px rgba(228, 231, 239, .5),
-    0 0 22px rgba(255, 255, 255, .95),
-    0 4px 14px rgba(28, 28, 36, .2),
+    0 0 0 5px rgba(154, 160, 178, .42),
+    0 0 20px rgba(178, 184, 198, 1),
+    0 4px 14px rgba(28, 28, 36, .24),
     inset 0 1px 1px rgba(255, 255, 255, 1);
 }
-.cell--proj:active { transform: scale(1.7); }
+.cell--proj:active { transform: scale(1.55); }
 
 /* hover preview tooltip */
 
