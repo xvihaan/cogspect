@@ -46,5 +46,6 @@ python3 -m http.server 4173 --bind 127.0.0.1
 - Custom domain: not yet purchased. When bought, add 4 GitHub Pages A records + `CNAME www → xvihaan.github.io` at the registrar, then set the domain in repo Settings → Pages
 
 ## Next
+- Content & feature polish phase (CEO directive 2026-07-28)
 - Real chat backend (currently keyword routing only)
-- Optional: custom domain purchase + DNS hookup (CEO decision on name/TLD)
+- Custom domain: deliberately skipped for now — CEO favors cogspect.com (safe) or cogspect.xyz (fits spatial brand); all TLDs confirmed unregistered as of 2026-07-28

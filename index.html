@@ -36,13 +36,15 @@
           <p class="face-lede">백색의 도화지 위, 공간을 탐험하는 인터페이스.</p>
         </section>
 
-        <section class="face face--matrix" data-face="right" aria-label="02 matrix">
-          <div class="matrix">
-            <div class="matrix-head">
-              <h2>Portfolio Matrix</h2>
-              <span class="kicker">02 · AI research · design assets</span>
+        <section class="face face--matrix" data-face="right" aria-label="02 portfolio">
+          <div class="fieldwrap">
+            <div class="field-head">
+              <h2>Portfolio</h2>
+              <span class="kicker">02 · 밝은 유리 타일을 찾아보세요</span>
             </div>
-            <div class="works" id="worksGrid"></div>
+            <div class="grass" id="grassField">
+              <div class="tile-tip" id="tileTip" role="status"></div>
+            </div>
           </div>
         </section>
 
@@ -116,6 +118,21 @@
       <span class="pulse-dot"></span>
       <input id="chatInput" type="text" placeholder="cogspect에게 메시지 보내기…" aria-label="cogspect에게 메시지 보내기">
     </form>
+  </div>
+
+  <!-- project detail overlay -->
+  <div class="overlay" id="projectOverlay" aria-hidden="true" inert>
+    <div class="project-card">
+      <button class="modal-close" id="projectClose" type="button" aria-label="닫기">×</button>
+      <div class="project-art" id="projectArt"></div>
+      <span class="kicker" id="projectTag"></span>
+      <h2 id="projectTitle"></h2>
+      <p class="project-tagline" id="projectTagline"></p>
+      <p class="project-desc" id="projectDesc"></p>
+      <ul class="project-points" id="projectPoints"></ul>
+      <div class="chips" id="projectStack"></div>
+      <a class="project-link" id="projectLink" target="_blank" rel="noopener"></a>
+    </div>
   </div>
 
   <!-- contact overlay -->
