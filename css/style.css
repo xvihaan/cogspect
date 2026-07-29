@@ -667,7 +667,7 @@ body.on-dark .ghost-msg {
   align-items: center;
   gap: 10px;
   margin: 0;
-  padding: 8px 24px 8px 22px;
+  padding: 8px 24px;
   border-radius: 999px;
   isolation: isolate;
   border: 2px solid transparent;
@@ -710,15 +710,6 @@ body.on-dark .ghost-msg {
     0 0 14px rgba(204, 212, 226, .28);
 }
 
-.pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--ink);
-  animation: cgPulse 2.6s ease-in-out infinite;
-  flex: none;
-  transition: background .45s;
-}
 
 .chat-bar input {
   flex: 1;
@@ -1081,7 +1072,6 @@ body.on-dark .wordmark { color: #f5f5f3; }
 body.on-dark .face-indicator { color: #8a8a92; }
 body.on-dark .hud-hint { color: #55555c; }
 body.on-dark .glass-btn { color: #f5f5f3; }
-body.on-dark .pulse-dot { background: #f5f5f3; }
 body.on-dark .chat-bar input { color: #f5f5f3; }
 body.on-dark input::placeholder { color: #7a7a82; }
 
@@ -1091,6 +1081,5 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .cube, .glass-btn, .chat-bar,
   .cell--proj, .project-card, .contact-card, .modal-close, .tile-tip,
   .planet .orb, .ghost-msg { transition: none !important; }
-  .pulse-dot { animation: none; opacity: .6; }
   .planet { animation: none; }
 }
