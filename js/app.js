@@ -449,7 +449,7 @@
   /* ---------- drag: free tumbling ---------- */
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg')) return;
+    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .wordmark')) return;
     if (overlayOpen()) return;
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
@@ -836,6 +836,22 @@
     }
     askCogspect(q);
   });
+
+  /* ---------- wordmark: logo at rest, hover types the name ---------- */
+
+  const wordmark = document.getElementById('wordmark');
+  if (wordmark) {
+    let wmTimer = 0;
+    let wmArmed = true;                 // re-arm only after the pointer leaves
+    wordmark.addEventListener('pointerenter', () => {
+      if (!wmArmed) return;
+      wmArmed = false;
+      wordmark.classList.add('wm-on');
+      clearTimeout(wmTimer);
+      wmTimer = setTimeout(() => wordmark.classList.remove('wm-on'), 2620); // 620ms type-in + 2s dwell
+    });
+    wordmark.addEventListener('pointerleave', () => { wmArmed = true; });
+  }
 
   /* ---------- boot: entrance drift ---------- */
 
