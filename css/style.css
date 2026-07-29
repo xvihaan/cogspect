@@ -498,9 +498,9 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   right: 26px;
   z-index: 60;
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 30px;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 26px;
   isolation: isolate;
   border: 2px solid transparent;
   background:
@@ -532,8 +532,8 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   font-weight: 700;
   letter-spacing: .01em;
   color: var(--ink);
-  padding: 17px 30px;
-  border-radius: 21px;
+  padding: 11px 38px;
+  border-radius: 18px;
   border: 1.5px solid transparent;
   background:
     linear-gradient(175deg, rgba(170, 178, 192, .07) 0%, rgba(160, 168, 183, .015) 45%, rgba(166, 174, 189, .04) 100%) padding-box,
@@ -1012,29 +1012,6 @@ body.on-dark .ghost-msg {
 .project-link:hover { background: #2a2a2e; color: #fff; }
 .project-link.hidden { display: none; }
 
-/* pixel-materialize burst on modal open */
-
-.pix-burst {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-}
-.pix-burst i {
-  position: absolute;
-  border-radius: 2px;
-  background: rgba(244, 246, 250, .95);
-  box-shadow: 0 0 8px rgba(255, 255, 255, .85);
-  opacity: 0;
-  animation: pixIn .55s ease-out forwards;
-}
-@keyframes pixIn {
-  0%   { opacity: 0; transform: scale(.35); }
-  35%  { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.2) translateY(-5px); }
-}
 
 .contact-card h2 {
   margin: 14px 0 10px;

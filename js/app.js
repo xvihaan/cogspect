@@ -219,29 +219,8 @@
     projOverlay.inert = false;
     projOverlay.querySelector('.project-card').scrollTop = 0;
     haptic();
-    pixelBurst();
   }
 
-  // pixel-materialize: tiny glass squares sparkle across the card as it opens
-  function pixelBurst() {
-    if (reducedMotion.matches) return;
-    const card = projOverlay.querySelector('.project-card');
-    const old = card.querySelector('.pix-burst');
-    if (old) old.remove();
-    const burst = document.createElement('div');
-    burst.className = 'pix-burst';
-    for (let i = 0; i < 46; i++) {
-      const s = document.createElement('i');
-      const size = 5 + Math.random() * 9;
-      s.style.cssText =
-        `left:${(Math.random() * 96).toFixed(1)}%;top:${(Math.random() * 96).toFixed(1)}%;` +
-        `width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;` +
-        `animation-delay:${(Math.random() * 240).toFixed(0)}ms`;
-      burst.appendChild(s);
-    }
-    card.appendChild(burst);
-    setTimeout(() => burst.remove(), 950);
-  }
   function closeProject() {
     projOverlay.classList.remove('open');
     projOverlay.setAttribute('aria-hidden', 'true');
