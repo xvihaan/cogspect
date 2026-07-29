@@ -481,47 +481,15 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 
 .wordmark {
   position: fixed;
-  top: 24px;
-  left: 34px;
+  top: 30px;
+  left: 36px;
   z-index: 60;
-  display: flex;
-  align-items: center;
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -.035em;
   color: var(--ink);
   transition: color .45s ease;
   user-select: none;
-  cursor: default;
-}
-
-.wm-logo {
-  display: block;
-  height: 32px;
-  width: auto;
-  -webkit-user-drag: none;
-  filter: drop-shadow(0 1px 3px rgba(20, 22, 28, .18));
-}
-
-/* name types in left→right on hover (steps = typewriter), reverses out */
-.wm-text {
-  display: block;
-  max-width: 0;
-  padding-left: 10px;
-  overflow: hidden;
-  white-space: nowrap;
-  opacity: 0;
-  transition:
-    max-width .62s steps(8, end),
-    opacity .12s linear .5s;      /* collapse first, then vanish */
-}
-
-.wordmark.wm-on .wm-text {
-  max-width: 9ch;
-  opacity: 1;
-  transition:
-    max-width .62s steps(8, end),
-    opacity .08s linear;          /* appear instantly, then type */
 }
 
 .glass-nav {
