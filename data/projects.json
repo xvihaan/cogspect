@@ -70,18 +70,37 @@
       "link": null
     },
     {
-      "id": "earthpace",
+      "id": "geosr",
       "fx": 0.44, "fy": 0.66,
-      "tag": "AI Interface",
-      "title": "Earthpace",
-      "tagline": "온디바이스 LLM 음성 비서 플랫폼",
-      "desc": "Apple Silicon 위에서 완전 로컬로 동작하는 음성 AI 인터페이스입니다. 실시간 WebSocket 파이프라인과 지식 베이스 위에 대화형 비서를 올려, 클라우드 없이 개인의 데이터로 응답합니다.",
-      "points": [
-        "Next.js 15 프론트 + FastAPI 백엔드 + MLX 모델 서버",
-        "WebSocket 실시간 세션과 대화 메모리 아카이빙",
-        "Capacitor 기반 iOS 배포 파이프라인"
+      "tag": "Super Resolution",
+      "title": "Geographic Super Resolution",
+      "tagline": "위성·항공 영상 초해상도 AI 파이프라인",
+      "desc": "대규모 위성/항공 영상 기반 초해상도(Super Resolution) AI 파이프라인 구축 및 시스템 최적화. (주)지오아이티에서 AI 파이프라인 단독 구축과 연구 트러블슈팅을 담당했습니다.",
+      "meta": [
+        { "label": "기간", "value": "2025.09.01 ~ 2026.03.01 (6개월)" },
+        { "label": "인원", "value": "1명 — 대용량 SR 비전 파이프라인 구축 및 데이터·학습 시스템 최적화 총괄" },
+        { "label": "담당", "value": "AI Research Engineer" }
       ],
-      "stack": ["Next.js", "FastAPI", "MLX", "Capacitor"],
+      "sections": [
+        {
+          "heading": "대용량 데이터 파이프라인 및 I/O 병목 최적화",
+          "text": "30만 장 규모의 고해상도 위성 이미지 학습을 위해 Docker 공유 메모리와 PyTorch Worker 스레드를 튜닝하여 데이터 병목 및 데드락을 해결. 32코어 멀티프로세싱 기반의 전수 검사 스캐너를 직접 개발하여 학습 크래시를 유발하는 미세 결함 파일(.aux/.xml)을 사전 색출, 데이터 무결성 확보."
+        },
+        {
+          "heading": "모델 학습 안정화 및 평가 체계 고도화",
+          "text": "HAT 모델 파인튜닝 중 발생한 기울기 폭발(Gradient Explosion) 이슈를 Batch Size와 Iteration 기반의 LR 스케줄러 재설계로 해결하여 안정적인 수렴 도출. 원본 GSD 계층적 샘플링으로 다양한 열화 조건이 혼합된 30만 장 대규모 학습 환경에서 최종 PSNR 26.94, SSIM 0.7055의 안정적인 범용 초해상도 성능 달성."
+        },
+        {
+          "heading": "연산 자원 극대화 및 대규모 학습 방법론 도입",
+          "text": "DGX Spark의 병렬 처리 성능을 극대화하여 15만 쌍(150,000 Iteration)의 대규모 학습을 40시간 이내에 완료하는 파이프라인을 구축. 기존 소규모 데이터용 Epoch 기반 학습의 한계를 탈피하고, 대용량 실무 환경에 적합한 Step/Iteration 기반 제어 체계를 확립해 지속적 학습의 기반을 마련."
+        }
+      ],
+      "stack": {
+        "AI/DL": ["PyTorch", "Python", "BasicSR"],
+        "Data": ["Rasterio", "GDAL", "GeoPandas"],
+        "Infra/OS": ["Docker", "Linux (Ubuntu)"],
+        "Hardware": ["NVIDIA GPU Container (GB10)"]
+      },
       "link": null
     },
     {
