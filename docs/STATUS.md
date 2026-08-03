@@ -1,6 +1,6 @@
 # cogspect.ai — STATUS
 
-Updated: 2026-07-28
+Updated: 2026-08-03
 
 ## What this is
 Static portfolio site for **cogspect**, built from the Claude Design draft
@@ -10,28 +10,26 @@ Three.js because the design is a CSS-3D cube + 2D canvas ripple; DOM keeps
 text crisp and glassmorphism native via backdrop-filter.
 
 ## Files
-- `index.html` — 6 cube faces (canvas / matrix / gateway / keen / vision / v0id), fixed chrome (wordmark, glass nav, HUD, chat dock, contact overlay)
+- `index.html` — 6 cube faces (cogspect / 김민혁의 포트폴리오 / Bifröst / keen / prospect / minimalid), fixed chrome (wordmark, glass nav, HUD, chat dock, contact overlay). Markup fixes: `aria-label` typo on minimalid face, bottom face kicker now distinct ("philosophy", routable)
 - `css/style.css` — liquid-glass styling (layered inset highlights + backdrop-filter blur/saturate/brightness), face gradients, dark-face chrome inversion (`body.on-dark`), reduced-motion support
-- `js/app.js` — cube slot/NAV logic ported from the DC prototype, drag/wheel/arrow navigation, pixel-grid ripple canvas, chat keyword → face routing, toast, entrance drift
+- `js/app.js` — rigid cube model: 3×3 orientation matrix O rendered with matrix3d(); navigation pre-multiplies O by quarter turns; faces mounted permanently; `REST` table (24 resting poses); free tumble settles via `nearestRest` BFS; arriving face gets twist-rotate to keep text readable while cube stays physically faithful. Removed: NAV/CANON/SLOT_NORMALS, rotFor, rx/ry. Added: mul/mv/rotX/rotY, twistFor, settle. Drag/wheel/arrow navigation, ripple canvas, chat routing, toast
 
-## Interactions (revised after CEO feedback rounds 1–2)
-- Drag = free tumbling: Euler rx/ry accumulator, flick momentum roll (phase machine idle|drag|roll|snap|turn), settles by unwinding to nearest slot's CANON upright orientation, then re-anchors slot assignment. Rolling cube can be caught mid-roll. pointerId-filtered (multi-touch safe)
-- Arrow keys / chat keywords still do exact quarter-turns (820ms)
-- Mouse scroll + trackpad pinch drive continuous zoom 0.22–1.0 (rAF spring); zooming in past 0.6 mid-roll forces snap to nearest face then zooms into it
-- Haptics: rendered `<input switch>` proxy (Safari 17.4+ Taptic hack, fired synchronously inside gesture handlers) + vibrate() fallback — grab/flick/settle/zoom detents/contact. No web haptic API exists for Chromium desktop
-- Liquid glass v3 (CEO reverted colour haze): neutral design gradients only; hover = convex-lens bulge (scale + backdrop boost everywhere; Chromium fixed chrome additionally gets `url(#lg-convex)` displacement); always-on `#lg-lens` refraction on fixed chrome in Chromium
-- Chat input routes keywords (matrix, gateway, keen, vision, v0id, contact, 한국어 동의어) to faces; unknown input gets a hint toast
-- `home` button resets to front face; `contact` opens glass overlay (Esc / backdrop click closes; `inert` when hidden)
-- Bottom face (v0id) inverts fixed chrome colors
+## Interactions (rigid cube, 2026-08-03)
+- **Navigation**: Arrow keys / chat keywords / exact turns do quarter-rotations pre-multiplying O by world-axis rotations (ROT.right = rotY(−90), etc.). No drift; all 24 poses reachable in ≤2 turns from any pose
+- **Drag = free tumbling**: pointer delta pre-multiplies O by world-axis rotations → exponential momentum decay on release (`ROLL_DAMPING` per 60Hz frame) → settles via `nearestRest` (shortest arc to one of 24 resting poses). Can be caught mid-roll; `pointerdown` records whether it caught a roll so a tap always routes through `settle()`. pointerId-filtered (multi-touch safe). Entrance drift is rendered pre-state; O stays identity so an early keypress still turns from a square pose
+- **Twist rendering**: arriving face's content rotates by θ ∈ {0,90,180,270} (`twistFor`) to stay readable. Cube's own orientation is never corrected, preserving physical fidelity. `setTwist` rewrites θ to the revolution nearest the current value (shortest arc) and shares the cube's easing curve — instant during quarter turns (the arriving face is edge-on), eased during snaps and `goHome`
+- **Mouse scroll + trackpad pinch**: continuous zoom 0.22–1.0 (rAF spring); zooming in past 0.6 mid-roll forces snap then zooms
+- **Haptics**: rendered `<input switch>` proxy (Safari 17.4+ Taptic) + vibrate() fallback — grab/flick/settle/zoom detents/contact
+- **Glass & hover**: Liquid glass v3 (neutral gradients); hover = convex-lens bulge; Chromium gets `url(#lg-convex)` displacement filter + always-on lens refraction
+- **Chat routing**: keywords (cogspect, 김민혁, bifrost, keen, prospect, minimalid, contact, 한국어) → faces; unknown input = hint toast. Contact email: cogspect@gmail.com
+- **Controls**: `home` = front face; `contact` overlay (Esc/backdrop close). Minimalid face (bottom) inverts fixed chrome colors
 
 ## Verification
 - `node --check` on app.js: pass
-- Reviewer round 1: REVISE (5 findings — busy-flag deadlock, chainTimer race, overlay input leaks, toast lying when busy, hidden-overlay focusability) → all fixed
-- Reviewer round 2: APPROVE (all 5 findings resolved, no regressions)
-- Feature round (glass/haptics/zoom) review: APPROVE with 2 MINOR — both fixed
-- Free-roll round review: REVISE (multi-pointer drag corruption MAJOR) → pointerId filtering added → APPROVE. Rotation matrices/CANON table verified analytically against CSS spec
-- Feel round (weighty landing kick + EASE_TURN/EASE_SNAP, empty-space tap-to-navigate, gray glass tint): APPROVE with 1 MINOR (tap branch rotHold strand) — fixed
-- Residual risk: static analysis only, no live browser run — verify visually: roll/snap feel in Safari+Chrome, Chromium lens filter perf, Taptic proxy efficacy, real two-finger behavior on touch devices
+- Headless assertions (24 tests): REST table exactly 24 poses; css3d(rotY(90)) matches CSS spec; CEO's path returns to identity; all directions reversible from all 24 poses; all 6 faces ≤2 turns away; twistFor provably squares content on all 24 poses; nearestRest recovers jittered pose
+- Live Chrome (headless): navigation lap, arrival twist on portfolio face, cursor-reveal + tile lighting with live twist, synthetic flick + catch-tap settling on exact pose (HUD geometry matches), home button squaring front face. No JS errors
+- Reviewer round: REVISE (1 blocker + 3 major + 3 minor). Blocker: veil needed NO coordinate correction (O·SLOT·rotate(twist) is identity on settled face). Majors: endDrag pointer-catch routing, twist animation shortest arc, shared easing curve. Minors: all fixed
+- Residual risk: Safari (matrix3d + preserve-3d + backface-visibility untested), real touch/multi-pointer, reduced-motion, haptics/device easing feel — Chrome headless only
 
 ## Run
 ```bash

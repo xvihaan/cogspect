@@ -13,34 +13,124 @@
   const EASE_SNAP = 'cubic-bezier(.22,.86,.16,1.02)';
   const KICK = 0.03;                // landing "thunk": brief scale dip on settle
 
-  // Every face is always mounted upright in its slot; only the cube's slot
-  // assignment changes, so no content is ever rolled or mirrored.
-  const NAV = {
-    front:  { right: 'right', left: 'left',  up: 'top',    down: 'bottom', back: 'back' },
-    right:  { right: 'back',  left: 'front', up: 'top',    down: 'bottom', back: 'left' },
-    back:   { right: 'left',  left: 'right', up: 'top',    down: 'bottom', back: 'front' },
-    left:   { right: 'front', left: 'back',  up: 'top',    down: 'bottom', back: 'right' },
-    top:    { right: 'right', left: 'left',  up: 'back',   down: 'front',  back: 'bottom' },
-    bottom: { right: 'right', left: 'left',  up: 'front',  down: 'back',   back: 'top' }
-  };
+  /* ---------- rigid cube ----------
+     Each face is bolted to its own side of the cube and never moves. The
+     cube carries a single 3×3 orientation matrix; every navigation step
+     pre-multiplies it by a quarter turn about a WORLD axis, so the faces
+     keep fixed positions in space: front → right → up → down → left brings
+     you back to front, exactly like turning a real cube in your hand. */
+
+  // where each face is mounted on the cube
   const SLOT = {
     front: 'rotateY(0deg)', right: 'rotateY(90deg)', left: 'rotateY(-90deg)',
     back: 'rotateY(180deg)', top: 'rotateX(90deg)', bottom: 'rotateX(-90deg)'
   };
-  // outward normals of each slot (CSS coords: x right, y down, z toward viewer)
-  const SLOT_NORMALS = {
+  // outward normal of each face (CSS coords: x right, y down, z toward viewer)
+  const NORMAL = {
     front: [0, 0, 1], back: [0, 0, -1], right: [1, 0, 0],
     left: [-1, 0, 0], top: [0, -1, 0], bottom: [0, 1, 0]
   };
-  // cube orientation (rx, ry) that fronts each slot with upright content
-  const CANON = {
-    front: [0, 0], right: [0, -90], left: [0, 90],
-    back: [0, 180], top: [-90, 0], bottom: [90, 0]
+  // each face's "up" direction in cube-local coords (= its slot × screen-up)
+  const UP = {
+    front: [0, -1, 0], back: [0, -1, 0], right: [0, -1, 0],
+    left: [0, -1, 0], top: [0, 0, -1], bottom: [0, 0, 1]
   };
   const LABELS = {
-    front: '01 · canvas', right: '02 · portfolio', left: '03 · gateway',
-    back: '04 · keen', top: '05 · vision', bottom: '06 · v0id'
+    front: 'cogspect', right: 'portfolio', left: 'Bifröst',
+    back: 'keen', top: 'prospect', bottom: 'minimalid'
   };
+
+  /* ---------- rotation math (row-major 3×3, v' = M·v) ---------- */
+
+  const ID = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+
+  function mul(A, B) {
+    const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        C[i][j] = A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j];
+      }
+    }
+    return C;
+  }
+  function mv(M, v) {
+    return [
+      M[0][0] * v[0] + M[0][1] * v[1] + M[0][2] * v[2],
+      M[1][0] * v[0] + M[1][1] * v[1] + M[1][2] * v[2],
+      M[2][0] * v[0] + M[2][1] * v[1] + M[2][2] * v[2]
+    ];
+  }
+  function rotX(deg) {
+    const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    return [[1, 0, 0], [0, c, -s], [0, s, c]];
+  }
+  function rotY(deg) {
+    const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    return [[c, 0, s], [0, 1, 0], [-s, 0, c]];
+  }
+  const roundM = (M) => M.map((r) => r.map((n) => Math.round(n)));
+
+  // CSS matrix3d() is column-major
+  function css3d(M) {
+    const n = (v) => v.toFixed(6);
+    return `matrix3d(${n(M[0][0])},${n(M[1][0])},${n(M[2][0])},0,` +
+      `${n(M[0][1])},${n(M[1][1])},${n(M[2][1])},0,` +
+      `${n(M[0][2])},${n(M[1][2])},${n(M[2][2])},0,0,0,0,1)`;
+  }
+
+  // quarter turns about the world axes — exact integers, so orientations
+  // stay drift-free no matter how many turns are chained
+  const DIR = {
+    right: roundM(rotY(-90)), left: roundM(rotY(90)),
+    up: roundM(rotX(-90)), down: roundM(rotX(90))
+  };
+  const DIRS = ['right', 'left', 'up', 'down'];
+
+  // the 24 poses a cube can rest in; a free tumble settles on the nearest
+  const REST = (() => {
+    const key = (M) => M.map((r) => r.join()).join('|');
+    const seen = new Map([[key(ID), ID]]);
+    const queue = [ID];
+    while (queue.length) {
+      const cur = queue.pop();
+      for (const g of [DIR.up, DIR.right]) {
+        const next = roundM(mul(g, cur));
+        if (!seen.has(key(next))) { seen.set(key(next), next); queue.push(next); }
+      }
+    }
+    return [...seen.values()];
+  })();
+
+  // which face looks at the viewer under orientation M
+  function frontFaceFor(M) {
+    let best = 'front', bz = -Infinity;
+    for (const f in NORMAL) {
+      const z = mv(M, NORMAL[f])[2];
+      if (z > bz) { bz = z; best = f; }
+    }
+    return best;
+  }
+
+  // In-plane spin that makes a face read upright once it faces the viewer.
+  // The cube itself is never corrected — only the content on the arriving
+  // face — so spatial positions stay physically honest.
+  function twistFor(M, face) {
+    const w = mv(M, UP[face]);
+    const deg = -Math.atan2(w[0], -w[1]) * 180 / Math.PI;
+    return ((Math.round(deg / 90) * 90) % 360 + 360) % 360;
+  }
+
+  // nearest resting pose + how far away it is, in degrees
+  function nearestRest(M) {
+    let best = REST[0], bs = -Infinity;
+    for (const T of REST) {
+      let s = 0;
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) s += T[i][j] * M[i][j];
+      if (s > bs) { bs = s; best = T; }
+    }
+    const cos = Math.max(-1, Math.min(1, (bs - 1) / 2));
+    return { M: best, angle: Math.acos(cos) * 180 / Math.PI };
+  }
 
   // Portfolio content lives in data/projects.json — edit that file to add
   // or change projects; no code changes needed. Loaded at boot.
@@ -63,10 +153,11 @@
   let phase = 'idle';
   let cur = 'front';
   let D = 0;
-  let rx = 0, ry = 0;               // free-roll orientation (deg)
-  let vx = 0, vy = 0;               // roll velocity (deg per 60Hz frame)
+  let O = ID;                       // cube orientation (rigid body)
+  let vx = 0, vy = 0;               // roll velocity about world X / Y (deg per 60Hz frame)
   let drag = null;
-  let slotToFace = {};
+  const faceEls = {};
+  const twist = { front: 0, back: 0, right: 0, left: 0, top: 0, bottom: 0 };
   let settleTimer = 0, chainTimer = 0, toastTimer = 0, pulseTimer = 0, snapTimer = 0;
   let hintDismissed = false;
 
@@ -237,36 +328,44 @@
 
   /* ---------- cube geometry ---------- */
 
-  function assignSlots() {
-    const nav = NAV[cur];
-    const slotOf = {
-      [cur]: 'front', [nav.right]: 'right', [nav.left]: 'left',
-      [nav.up]: 'top', [nav.down]: 'bottom', [nav.back]: 'back'
-    };
-    slotToFace = {};
+  // Faces are mounted once and stay put; only their in-plane twist changes,
+  // and only for the face that is about to come into view.
+  function mountFaces() {
     cube.querySelectorAll('[data-face]').forEach((f) => {
-      const slot = slotOf[f.dataset.face] || 'back';
-      slotToFace[slot] = f.dataset.face;
-      f.style.transform = `${SLOT[slot]} translateZ(${D}px)`;
+      faceEls[f.dataset.face] = f;
+      f.style.transition = 'none';
+      placeFace(f.dataset.face);
     });
   }
 
-  function rotFor(dir, p) {
-    const a = 90 * (p === undefined ? 1 : p);
-    if (dir === 'right') return `rotateY(${-a}deg)`;
-    if (dir === 'left') return `rotateY(${a}deg)`;
-    if (dir === 'up') return `rotateX(${-a}deg)`;
-    return `rotateX(${a}deg)`;
+  function placeFace(face) {
+    const el = faceEls[face];
+    if (el) el.style.transform = `${SLOT[face]} translateZ(${D}px) rotate(${twist[face]}deg)`;
   }
 
-  function applyCube(animate, rot, ms) {
-    cube.style.transition = animate ? `transform ${ms || ROT_MS}ms ${EASE_TURN}` : 'none';
-    cube.style.transform = `translateZ(${-D}px)${rot ? ' ' + rot : ''}`;
+  // ms = 0 → instant (used when the face is still edge-on and invisible).
+  // The angle is rewritten to the revolution nearest the current one, so a
+  // 0° → 270° correction spins -90° instead of taking the long way round.
+  function setTwist(face, deg, ms, ease) {
+    const from = twist[face];
+    const to = deg + 360 * Math.round((from - deg) / 360);
+    if (to === from) return;
+    const el = faceEls[face];
+    if (el) el.style.transition = ms ? `transform ${ms}ms ${ease || EASE_SNAP}` : 'none';
+    twist[face] = to;
+    placeFace(face);
+  }
+
+  function applyCube(animate, ms, ease) {
+    cube.style.transition = animate
+      ? `transform ${ms || ROT_MS}ms ${ease || EASE_TURN}`
+      : 'none';
+    cube.style.transform = `translateZ(${-D}px) ${css3d(O)}`;
   }
 
   function applyFree() {
     cube.style.transition = 'none';
-    cube.style.transform = `translateZ(${-D}px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+    cube.style.transform = `translateZ(${-D}px) ${css3d(O)}`;
   }
 
   function layout() {
@@ -276,9 +375,8 @@
     cube.style.height = `${S}px`;
     cube.style.left = `${(W - S) / 2}px`;
     cube.style.top = `${(H - S) / 2}px`;
-    assignSlots();
-    if (phase === 'drag' || phase === 'roll') applyFree();
-    else applyCube(false);
+    mountFaces();
+    applyCube(false);
   }
 
   function setFace(face) {
@@ -289,56 +387,34 @@
 
   /* ---------- free roll: nearest-face detection & snap ---------- */
 
-  // Which slot faces the viewer for cube transform rotateX(rx) rotateY(ry)?
-  // CSS applies M = Rx·Ry to cube-local vectors; pick the slot normal with
-  // the largest resulting z (toward the viewer).
-  function frontSlotFor(rxDeg, ryDeg) {
-    const ax = rxDeg * Math.PI / 180, ay = ryDeg * Math.PI / 180;
-    const cx = Math.cos(ax), sx = Math.sin(ax);
-    const cy = Math.cos(ay), sy = Math.sin(ay);
-    let best = 'front', bz = -2;
-    for (const s in SLOT_NORMALS) {
-      const [x, y, z] = SLOT_NORMALS[s];
-      const y1 = y;
-      const z1 = -sy * x + cy * z;
-      const z2 = sx * y1 + cx * z1;
-      if (z2 > bz) { bz = z2; best = s; }
-    }
-    return best;
-  }
-
   function landThunk() {
     if (!reducedMotion.matches) kick = KICK;
     haptic();
   }
 
-  function finalizeOrientation(slot) {
-    setFace(slotToFace[slot] || cur);
-    assignSlots();
-    rx = 0; ry = 0; vx = 0; vy = 0;
+  function settle(face) {
     applyCube(false);
+    setFace(face);
+    vx = 0; vy = 0;
     rotHold = false;
     phase = 'idle';
     landThunk();
   }
 
-  // Roll to rest: unwind to the nearest slot's canonical (upright-content)
-  // orientation, then re-anchor the slot assignment and reset to identity.
+  // Roll to rest: fall onto the nearest of the cube's 24 resting poses along
+  // the shortest arc — the cube keeps whatever side it tumbled onto.
   function beginSnap() {
     if (phase !== 'drag' && phase !== 'roll') return;
     phase = 'snap';
     clearTimeout(snapTimer);
-    const slot = frontSlotFor(rx, ry);
-    const [bx, by] = CANON[slot];
-    const rxT = bx + 360 * Math.round((rx - bx) / 360);
-    const ryT = by + 360 * Math.round((ry - by) / 360);
-    const dist = Math.max(Math.abs(rxT - rx), Math.abs(ryT - ry));
-    rx = rxT; ry = ryT;
-    if (dist < 0.5 || reducedMotion.matches) { finalizeOrientation(slot); return; }
-    const ms = Math.max(280, Math.min(780, dist * 8));
-    cube.style.transition = `transform ${ms}ms ${EASE_SNAP}`;
-    cube.style.transform = `translateZ(${-D}px) rotateX(${rxT}deg) rotateY(${ryT}deg)`;
-    snapTimer = setTimeout(() => finalizeOrientation(slot), ms + 40);
+    const rest = nearestRest(O);
+    const face = frontFaceFor(rest.M);
+    const ms = Math.max(280, Math.min(780, rest.angle * 8));
+    O = rest.M;
+    setTwist(face, twistFor(O, face), reducedMotion.matches ? 0 : ms);
+    if (rest.angle < 0.5 || reducedMotion.matches) { settle(face); return; }
+    applyCube(true, ms, EASE_SNAP);
+    snapTimer = setTimeout(() => settle(face), ms + 40);
   }
 
   /* ---------- quarter-turn navigation (arrows / chat) ---------- */
@@ -346,19 +422,16 @@
   function commit(dir) {
     clearTimeout(settleTimer);
     clearTimeout(pulseTimer);
+    const target = mul(DIR[dir], O);
+    const next = frontFaceFor(target);
+    // the arriving face is edge-on right now, so it can be re-squared instantly
+    setTwist(next, twistFor(target, next), 0);
+    O = target;
     phase = 'turn';
     rotHold = true;
     haptic();
-    applyCube(true, rotFor(dir, 1));
-    const next = NAV[cur][dir];
-    settleTimer = setTimeout(() => {
-      setFace(next);
-      assignSlots();
-      applyCube(false);
-      rotHold = false;
-      phase = 'idle';
-      landThunk();
-    }, SETTLE_MS);
+    applyCube(true);
+    settleTimer = setTimeout(() => settle(next), SETTLE_MS);
   }
 
   function dismissHint() {
@@ -386,11 +459,11 @@
       return true;
     }
     clearTimeout(chainTimer);
-    const nav = NAV[cur];
-    const dir = ['right', 'left', 'up', 'down'].find((d) => nav[d] === face);
+    // whichever way the cube is currently held, find the turn that lands on it
+    const dir = DIRS.find((d) => frontFaceFor(mul(DIR[d], O)) === face);
     if (dir) { step(dir); return true; }
     // opposite face — two quarter turns along whichever axis reaches it
-    const d2 = ['right', 'left', 'up', 'down'].find((d) => NAV[nav[d]][d] === face);
+    const d2 = DIRS.find((d) => frontFaceFor(mul(DIR[d], mul(DIR[d], O))) === face);
     if (!d2) return false;
     step(d2);
     chainTimer = setTimeout(() => { if (cur !== face && phase === 'idle') step(d2); }, SETTLE_MS + 80);
@@ -404,9 +477,9 @@
     clearTimeout(pulseTimer);
     drag = null;
     stage.classList.remove('dragging');
-    rx = 0; ry = 0; vx = 0; vy = 0;
+    O = ID; vx = 0; vy = 0;
+    setTwist('front', 0, ROT_MS, EASE_TURN);   // may be in view — ride the same curve
     setFace('front');
-    assignSlots();
     applyCube(true);
     closeContact();
     closeProject();
@@ -454,9 +527,10 @@
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
     clearTimeout(pulseTimer);
+    const caught = phase === 'roll';        // grabbed a cube that was still rolling
     phase = 'drag';
     vx = 0; vy = 0;
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), moved: false, acc: 0 };
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), moved: false, acc: 0, caught };
     stage.classList.add('dragging');
     haptic(140);
   });
@@ -475,9 +549,9 @@
     }
     const k = 90 / (Math.min(window.innerWidth, window.innerHeight) * 0.45);
     // drag pulls the cube surface with the pointer: dragging left reveals
-    // the right face (touch-natural), matching swipe semantics
-    ry += dx * k;
-    rx -= dy * k;
+    // the right face (touch-natural), matching swipe semantics. Both turns
+    // are about world axes, so the cube tumbles as one rigid body.
+    O = mul(mul(rotX(-dy * k), rotY(dx * k)), O);
     const now = performance.now();
     const dt = Math.max(8, now - drag.t);
     drag.t = now;
@@ -504,15 +578,16 @@
     stage.classList.remove('dragging');
     if (phase !== 'drag') return;
     if (!d.moved) {
-      if (Math.abs(rx) < 0.5 && Math.abs(ry) < 0.5) {
+      if (d.caught) {
+        beginSnap();                 // caught a rolling cube, released in place
+      } else {
+        // the cube was already settled, so this was a plain tap
         phase = 'idle';
         rotHold = false;
         if (!cancelled) {
           const dir = emptySpaceDir(d.x, d.y);
           if (dir) step(dir);
         }
-      } else {
-        beginSnap();                 // caught a rolling cube, released in place
       }
       return;
     }
@@ -578,6 +653,8 @@
     // into face-local space (face is S×S centered, scaled by zoomCur)
     if (cur !== 'right') return;
     const S = Math.max(window.innerWidth, window.innerHeight);
+    // no twist correction needed: O · SLOT · rotate(twist) is exactly the
+    // identity for a settled face, so face-local pixels are screen pixels
     const lx = S / 2 + (e.clientX - window.innerWidth / 2) / zoomCur;
     const ly = S / 2 + (e.clientY - window.innerHeight / 2) / zoomCur;
     grassVeil.style.setProperty('--mx', `${lx.toFixed(1)}px`);
@@ -641,8 +718,7 @@
     lastTick = now;
 
     if (phase === 'roll') {
-      rx += vx * f;
-      ry += vy * f;
+      O = mul(mul(rotX(vx * f), rotY(vy * f)), O);
       const damp = Math.pow(ROLL_DAMPING, f);
       vx *= damp; vy *= damp;
       applyFree();
@@ -795,12 +871,12 @@
   /* ---------- chat: message → coordinate routing ---------- */
 
   const ROUTES = [
-    { face: 'front',  keys: ['home', 'canvas', '홈', '캔버스', '처음'] },
-    { face: 'right',  keys: ['matrix', 'portfolio', 'work', '매트릭스', '포트폴리오', '작업'] },
-    { face: 'left',   keys: ['gateway', 'gate', 'b3ta', '게이트', '베타'] },
+    { face: 'front',  keys: ['home', 'cogspect', '홈', '처음', '코그스펙트'] },
+    { face: 'right',  keys: ['portfolio', 'work', '포트폴리오', '작업', '프로젝트'] },
+    { face: 'left',   keys: ['bifrost', 'bifröst', 'gateway', 'b3ta', '비프로스트', '게이트', '베타'] },
     { face: 'back',   keys: ['keen', 'design', '킨', '디자인'] },
-    { face: 'top',    keys: ['vision', '비전'] },
-    { face: 'bottom', keys: ['v0id', 'void', 'archive', '보이드', '아카이브'] }
+    { face: 'top',    keys: ['prospect', 'vision', '프로스펙트', '비전', '전망'] },
+    { face: 'bottom', keys: ['minimalid', 'minimal', 'philosophy', 'v0id', 'void', 'archive', '미니멀리드', '아카이브'] }
   ];
   const CONTACT_KEYS = ['contact', 'mail', 'email', '연락', '문의', '메일', '컨택'];
 
@@ -851,7 +927,10 @@
     })
     .catch((err) => console.warn('projects.json load failed:', err));
 
-  applyCube(false, 'rotateY(-16deg) rotateX(9deg)');
-  setTimeout(() => applyCube(true), 180);
+  // Entrance drift is purely visual — O stays exactly ID, so an arrow key
+  // pressed inside this window still turns from a square pose.
+  cube.style.transition = 'none';
+  cube.style.transform = `translateZ(${-D}px) ${css3d(mul(rotY(-16), rotX(9)))}`;
+  setTimeout(() => { if (phase === 'idle' && !drag) applyCube(true); }, 180);
   tick();
 })();
