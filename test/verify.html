@@ -56,8 +56,23 @@ f.addEventListener('load', async () => {
   const inertFaces=()=>[...d.querySelectorAll('[data-face]')].filter(e=>e.hasAttribute('inert')).map(e=>e.dataset.face).sort().join(',');
   const scale=()=>parseFloat((d.getElementById('zoomWrap').style.transform.match(/scale\(([\d.]+)\)/)||[,'0'])[1]);
 
+  // A turn started while the entrance glide is still running must not leave
+  // the arriving face animating from a different pose than the other five.
+  await wait(300);
+  log('— rigid during an interrupted paint —');
+  key('ArrowRight');
+  await wait(0);
+  const froms=[...d.querySelectorAll('[data-face]')].map((el)=>{
+    const a=el.getAnimations?el.getAnimations():[];
+    return a.length?(String(a[0].effect.getKeyframes()[0].transform).match(/matrix3d\([^)]*\)/)||[''])[0]:'';
+  }).filter(Boolean);
+  ok(froms.length===6,`all six faces are turning (got ${froms.length})`);
+  ok(new Set(froms).size===1,`…and all start from the same pose (${new Set(froms).size} distinct)`);
+  await wait(1400);
+  d.getElementById('homeBtn').click();
+
   await wait(1600);
-  log('— rigid cube —');
+  log('\n— rigid cube —');
   ok(hud()==='cogspect','boots on cogspect'); check('boot');
   ok(d.getElementById('cube').getBoundingClientRect().width>200,'cube box not degenerate at home');
   ok(inertFaces()==='back,bottom,left,right,top','only the visible face is focusable');

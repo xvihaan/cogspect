@@ -471,6 +471,12 @@
     clearTimeout(pulseTimer);
     const target = mul(DIR[dir], O);
     const next = frontFaceFor(target);
+    // A paint may still be animating (the entrance glide). Land it first: the
+    // instant re-square below would otherwise start the arriving face from the
+    // settled pose while the other five start from the interpolated one, and
+    // the cube would visibly split for the whole turn.
+    const el = faceEls[next];
+    if (el && el.getAnimations && el.getAnimations().length) paintFaces(false);
     // the arriving face is edge-on right now, so re-square it instantly — if it
     // rode the turn's curve instead, its text would spin as the face swings in
     setTwist(next, twistFor(target, next));
