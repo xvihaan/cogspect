@@ -37,19 +37,40 @@
       "link": null
     },
     {
-      "id": "cogspect",
+      "id": "landuse",
       "fx": 0.26, "fy": 0.27,
-      "tag": "Spatial UI",
-      "title": "cogspect Spatial UI",
-      "tagline": "이 웹사이트 — 3D 큐브 공간 인터페이스",
-      "desc": "지금 탐험 중인 이 사이트 자체가 실험작입니다. 6면 정육면체 공간에 콘텐츠를 배치하고, 자유 회전 물리와 관성, 최근접 면 스냅으로 \"페이지\" 개념을 대체했습니다.",
-      "points": [
-        "오일러 자유 회전 + 관성 롤 + 정방향 스냅 물리",
-        "스크롤·핀치 연속 줌과 트랙패드 햅틱 피드백",
-        "프레임워크 없는 바닐라 JS 구현"
+      "tag": "Remote Sensing · Vision",
+      "title": "통계청 경지 변화 객체 탐지",
+      "tagline": "멀티모달 고해상도 항공·위성 영상 지목 판독",
+      "desc": "멀티모달 기반 고해상도 항공/위성 영상 지목 판독 AI 파이프라인 구축. (주)지오아이티에서 AI 판독 모델 설계와 파이프라인 아키텍처를 총괄했습니다.",
+      "meta": [
+        { "label": "기간", "value": "2025.11.01 ~ 2026.04.30 (4개월)" },
+        { "label": "인원", "value": "1명 — 비전 모델링 및 후처리 알고리즘 개발 주도" },
+        { "label": "담당", "value": "AI Research Engineer" }
       ],
-      "stack": ["Vanilla JS", "CSS 3D", "Canvas"],
-      "link": { "label": "GitHub 저장소 ↗", "url": "https://github.com/xvihaan/cogspect" }
+      "points": [
+        "F1 Score 98.12% · mIoU 0.96 — 고성능 비전 판독 엔진 완성"
+      ],
+      "sections": [
+        {
+          "heading": "불완전 데이터 학습 한계 돌파 및 판독 엔진 초정밀화",
+          "text": "원격탐사 영상 특유의 라벨링 노이즈 문제를 극복하기 위해 손실 함수 최적화(노이즈 마스킹) 전략을 도입하여 학습 과정의 기울기 충돌 차단."
+        },
+        {
+          "heading": "공간 군집도 기반 지능형 후처리 알고리즘 개발",
+          "text": "기존 다수결(Hard Voting) 기반 후처리의 정보 유실 한계를 극복하고자, 픽셀 점유율과 공간 군집도를 동시에 분석하는 하이브리드 로직을 개발. 단일 영역 내 이질적인 객체가 혼재할 경우 이를 자동으로 감지하고 객체 경계를 분리(Vectorization)하는 고도화된 후처리 파이프라인을 설계 후 판독 성능 상승."
+        },
+        {
+          "heading": "Agentic Workflow 기반 멀티모달 XAI(설명 가능한 AI) 아키텍처 설계",
+          "text": "단일 비전 모델의 판단 모호성을 해결하기 위해 VLM(시각-언어 모델) 기반의 라우팅 시스템 설계. Class 2개 이상 Confidence 30% 시 교차 검증하도록 설계하여, 단순한 분류 결과를 넘어 논리적인 '판독 사유'까지 제공하는 차세대 분석 시스템의 기반 생성."
+        }
+      ],
+      "stack": {
+        "AI/DL": ["PyTorch", "cv2"],
+        "Data": ["Rasterio", "GDAL", "GeoPandas"],
+        "Infra": ["NVIDIA GPU Container", "Ubuntu", "Docker", "Mixed Precision Training (AMP)"]
+      },
+      "link": null
     },
     {
       "id": "earthpace",
