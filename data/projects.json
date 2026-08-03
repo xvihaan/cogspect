@@ -104,18 +104,39 @@
       "link": null
     },
     {
-      "id": "friday",
+      "id": "coastal",
       "fx": 0.57, "fy": 0.36,
-      "tag": "AI Agent",
-      "title": "FRIDAY",
-      "tagline": "LangGraph 멀티 에이전트 어시스턴트",
-      "desc": "HyperCLOVA X 기반 개인 AI 어시스턴트입니다. 설정 파일만으로 에이전트를 동적 생성하는 팩토리 구조와 그래프 라우팅으로, 역할별 전문 에이전트가 질문을 나눠 응답합니다.",
-      "points": [
-        "StateGraph 오케스트레이터 → 동적 에이전트 라우팅",
-        "AgentFactory — JSON 설정만으로 에이전트 증설",
-        "ChromaDB 컬렉션 기반 RAG 메모리"
+      "tag": "RAG · Agentic",
+      "title": "연안포털 AI 에이전트 챗봇",
+      "tagline": "해양수산부 연안포털 공공 데이터 챗봇",
+      "desc": "RAG Agentic System 기반 공공 데이터 챗봇 서비스 도입 개발. (주)지오아이티에서 LLM/sLM 기반 대화형 챗봇 시스템의 설계부터 구현까지 end-to-end로 수행했습니다.",
+      "meta": [
+        { "label": "기간", "value": "2025.06.16 ~ 2025.08.31 (2개월 반)" },
+        { "label": "인원", "value": "1명 — Agentic 챗봇 설계·구현 end-to-end 수행" },
+        { "label": "담당", "value": "AI Research Engineer" }
       ],
-      "stack": ["LangGraph", "HyperCLOVA X", "ChromaDB"],
+      "points": [
+        "평가셋 50문항 기준 Top-3 문서 검색 정확도 92.68% · 답변 정확도 98% 이상"
+      ],
+      "sections": [
+        {
+          "heading": "공공 데이터 기반 RAG 구축을 위한 데이터 수집 및 구조화",
+          "text": "연안포털 내 정책·법령·자료 데이터를 확보하기 위해 웹 크롤링 및 내부 문서 파일(PDF 등)을 수집하고, 이를 JSON 형태로 통일하여 RAG 학습에 적합한 문서 데이터셋으로 정제. 문서 단위가 아닌 chunk 기반 구조와 메타데이터 설계를 적용하여 검색 정확도 및 확장성을 고려한 데이터 파이프라인을 구축."
+        },
+        {
+          "heading": "보안 요구사항을 반영한 외부망/내부망 분리형 LLM 아키텍처 설계",
+          "text": "공공기관 특성에 맞춰 외부망과 업무망을 분리한 RAG 시스템을 설계하였으며, 외부망에서는 GPT API를 활용한 고성능 응답을, 내부망에서는 Local sLM 기반 처리 구조를 적용하여 보안성과 활용성을 동시에 확보."
+        },
+        {
+          "heading": "출처 기반 응답 및 실서비스 연계 기능 구현",
+          "text": "RAG 응답의 신뢰도를 확보하기 위해 문서 chunk 단위로 source URL 메타데이터를 포함하고, 응답 시 실제 연안포털 페이지로 연결되는 링크를 제공하는 기능을 구현. 이를 통해 단순 질의응답을 넘어 실제 서비스 활용이 가능한 수준으로 챗봇을 고도화."
+        }
+      ],
+      "stack": {
+        "AI/DL": ["GPT-4o API", "Local sLM", "LangChain (RAG)", "FAISS"],
+        "Data": ["Web Crawling", "PDF Parsing", "JSON Structuring", "Document Chunking & Metadata"],
+        "Infra": ["Docker", "WebSocket", "Python API Server", "망 분리 아키텍처 (외부망·내부망)"]
+      },
       "link": null
     },
     {
