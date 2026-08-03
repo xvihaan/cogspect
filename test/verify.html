@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>cogspect — verification harness</title>
+<style>body{font:13px/1.5 ui-monospace,Menlo,monospace;margin:0;padding:12px}
+iframe{width:1280px;height:800px;border:1px solid #ddd}
+pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<!--
+  Drives the real page with synthetic events and asserts the invariants that
+  are easy to break: rigid-cube spatial memory, hit-testing through the 3D
+  transform, arrival twist, focus containment, and zoom dead zones.
+
+  Run:  python3 -m http.server 4173 --bind 127.0.0.1
+        open http://127.0.0.1:4173/test/verify.html
+  Headless:
+        chrome --headless=new --virtual-time-budget=45000 --dump-dom \
+               http://127.0.0.1:4173/test/verify.html
+  Note: under Chrome's virtual time CSS transitions do not advance, so
+  transforms are read from committed inline styles, and mid-transition frames
+  are NOT covered here — check those by eye.
+-->
+<iframe id="f" src="../index.html"></iframe>
+<pre id="out">running…</pre>
+<script>
+const out=[]; let fails=0;
+const log=(s)=>{out.push(s);document.getElementById('out').textContent=out.join('\n');};
+const ok=(c,m)=>{log((c?'ok   ':'FAIL ')+m); if(!c) fails++;};
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const f=document.getElementById('f');
+const LABELS={front:'cogspect',right:'portfolio',left:'Bifröst',back:'keen',top:'prospect',bottom:'minimalid'};
+const NORMAL={front:[0,0,1],back:[0,0,-1],right:[1,0,0],left:[-1,0,0],top:[0,-1,0],bottom:[0,1,0]};
+
+f.addEventListener('load', async () => {
+  const w=f.contentWindow, d=f.contentDocument;
+  w.addEventListener('error',e=>{log('JS ERROR: '+e.message);fails++;});
+  const desc=(el)=>el?`${el.tagName.toLowerCase()}${el.id?'#'+el.id:''}.${(el.className||'').toString().trim().replace(/\s+/g,'.')||'-'}`:'null';
+  const key=(k)=>w.dispatchEvent(new w.KeyboardEvent('keydown',{key:k,bubbles:true}));
+  const hud=()=>d.getElementById('faceIndicator').textContent;
+  const face=(n)=>d.querySelector(`[data-face="${n}"]`);
+  const mat=()=>{const s=face('front').style.transform;
+    const v=s.slice(s.indexOf('matrix3d(')+9,s.indexOf(')',s.indexOf('matrix3d('))).split(',').map(Number);
+    return [[v[0],v[4],v[8]],[v[1],v[5],v[9]],[v[2],v[6],v[10]]];};
+  const frontOf=(M)=>{let b='front',bz=-9;for(const k in NORMAL){const n=NORMAL[k];
+    const z=M[2][0]*n[0]+M[2][1]*n[1]+M[2][2]*n[2]; if(z>bz){bz=z;b=k;}} return b;};
+  const exact=(M)=>M.every(r=>r.every(n=>Math.abs(n-Math.round(n))<1e-6));
+  const check=(tag)=>{const M=mat(); ok(exact(M),`${tag}: exact pose`); ok(hud()===LABELS[frontOf(M)],`${tag}: HUD matches geometry`);};
+  const clickAt=async(el,x,y)=>{
+    el.dispatchEvent(new w.PointerEvent('pointerdown',{pointerId:11,clientX:x,clientY:y,bubbles:true}));
+    await wait(30);
+    el.dispatchEvent(new w.PointerEvent('pointerup',{pointerId:11,clientX:x,clientY:y,bubbles:true}));
+    el.dispatchEvent(new w.MouseEvent('click',{bubbles:true,clientX:x,clientY:y}));
+    await wait(350);};
+  const tileHit=()=>{const t=d.querySelector('.cell--proj'); if(!t) return {};
+    const r=t.getBoundingClientRect(); const x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
+    return {t,x,y,hit:d.elementFromPoint(x,y)};};
+  const inertFaces=()=>[...d.querySelectorAll('[data-face]')].filter(e=>e.hasAttribute('inert')).map(e=>e.dataset.face).sort().join(',');
+  const scale=()=>parseFloat((d.getElementById('zoomWrap').style.transform.match(/scale\(([\d.]+)\)/)||[,'0'])[1]);
+
+  await wait(1600);
+  log('— rigid cube —');
+  ok(hud()==='cogspect','boots on cogspect'); check('boot');
+  ok(d.getElementById('cube').getBoundingClientRect().width>200,'cube box not degenerate at home');
+  ok(inertFaces()==='back,bottom,left,right,top','only the visible face is focusable');
+
+  key('ArrowRight'); await wait(1300); ok(hud()==='portfolio','right → portfolio');
+  ok(d.getElementById('cube').getBoundingClientRect().width>200,'cube box not degenerate on a 90° pose');
+  key('ArrowUp');   await wait(1300); ok(hud()==='prospect','up → prospect');
+  key('ArrowDown'); await wait(1300); ok(hud()==='portfolio','down → the SAME portfolio face');
+  key('ArrowLeft'); await wait(1300); ok(hud()==='cogspect','left → home again');
+  check('after lap');
+
+  log('\n— arrival twist is applied while the face is edge-on —');
+  key('ArrowUp'); await wait(1300);          // now on prospect; next right turn twists a face
+  const before=w.getComputedStyle(face('right')).transform;
+  key('ArrowRight');
+  await wait(0);                              // same tick: transition has not advanced
+  const after=w.getComputedStyle(face('right')).transform;
+  ok(before!==after,'arriving face is re-squared instantly, not over the turn curve');
+  await wait(1400);
+  ok(hud()==='portfolio','…and the turn still lands on portfolio');
+  ok(/rotate\((?!0deg)-?\d+deg\)/.test(face('right').style.transform),'that arrival carries a twist');
+
+  log('\n— hit testing through the 3D transform —');
+  let h=tileHit();
+  ok(h.hit===h.t,`tile hit-testable on a twisted face (got ${desc(h.hit)})`);
+  await clickAt(h.hit||h.t,h.x,h.y);
+  ok(d.getElementById('projectOverlay').classList.contains('open'),'tile click opens the project card');
+  log('     card title: "'+d.getElementById('projectTitle').textContent+'"');
+  d.getElementById('projectClose').click(); await wait(300);
+
+  // keyboard path: a real click focuses the tile, so model that explicitly —
+  // synthetic pointer events do not move focus
+  h.t.focus();
+  ok(d.activeElement===h.t,'tile takes focus');
+  h.t.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  await wait(350);
+  ok(d.getElementById('projectOverlay').classList.contains('open'),'Enter on a focused tile opens the card');
+
+  log('\n— focus containment —');
+  ok(d.querySelector('.glass-nav').hasAttribute('inert'),'open card inerts the nav (not just the cube)');
+  ok(d.querySelector('.chat-dock').hasAttribute('inert'),'…and the chat dock');
+  ok(d.activeElement===d.querySelector('.project-card'),`focus moved into the card (is ${desc(d.activeElement)})`);
+  d.getElementById('projectClose').click(); await wait(300);
+  ok(!d.querySelector('.glass-nav').hasAttribute('inert'),'closing releases the nav');
+  ok(d.activeElement===h.t,`focus restored to the tile (is ${desc(d.activeElement)})`);
+
+  d.getElementById('homeBtn').click(); await wait(1400);
+  d.getElementById('contactBtn').click(); await wait(300);
+  ok(d.activeElement===d.querySelector('.contact-card'),'contact card takes focus');
+  w.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})); await wait(300);
+  ok(!d.querySelector('.glass-nav').hasAttribute('inert'),'Esc releases the nav too');
+
+  log('\n— links and zoom on the other faces —');
+  key('ArrowLeft'); await wait(1400);
+  const p=d.querySelector('.planet'), pr=p.getBoundingClientRect();
+  const px=Math.round(pr.left+pr.width/2), py=Math.round(pr.top+pr.height/2);
+  const ph=d.elementFromPoint(px,py);
+  ok(!!(ph&&ph.closest('.planet')),`planet hit-testable (got ${desc(ph)})`);
+  const z0=scale();
+  const ev=new w.WheelEvent('wheel',{deltaY:600,clientX:px,clientY:py,bubbles:true,cancelable:true});
+  ph.dispatchEvent(ev);
+  ok(ev.defaultPrevented,'the wheel over a planet reaches the zoom handler (no dead zone)');
+  await wait(500);
+  // informational only: the zoom spring runs on rAF, which headless virtual
+  // time does not reliably advance
+  log(`     (zoom scale ${z0.toFixed(3)} → ${scale().toFixed(3)})`);
+
+  d.getElementById('homeBtn').click(); await wait(1400);
+  key('ArrowDown'); await wait(1400);
+  const lk=d.querySelector('.void-link'), lr=lk.getBoundingClientRect();
+  const lh=d.elementFromPoint(Math.round(lr.left+lr.width/2),Math.round(lr.top+lr.height/2));
+  ok(!!(lh&&lh.closest('.void-link')),`archive link hit-testable (got ${desc(lh)})`);
+  ok(d.body.classList.contains('on-dark'),'dark face inverts the chrome');
+  ok(w.getComputedStyle(face('bottom')).userSelect==='none','faces are not text-selectable (drag surface)');
+
+  log('\n— tumble —');
+  const st=d.getElementById('stage');
+  st.dispatchEvent(new w.PointerEvent('pointerdown',{pointerId:12,clientX:640,clientY:400,bubbles:true}));
+  for(let i=1;i<=6;i++){w.dispatchEvent(new w.PointerEvent('pointermove',{pointerId:12,clientX:640-i*40,clientY:400-i*12,bubbles:true}));await wait(16);}
+  w.dispatchEvent(new w.PointerEvent('pointerup',{pointerId:12,clientX:400,clientY:328,bubbles:true}));
+  await wait(120);
+  st.dispatchEvent(new w.PointerEvent('pointerdown',{pointerId:13,clientX:640,clientY:400,bubbles:true}));
+  w.dispatchEvent(new w.PointerEvent('pointerup',{pointerId:13,clientX:640,clientY:400,bubbles:true}));
+  await wait(1600);
+  check('after flick + catch-tap');
+  ok(!face(frontOf(mat())).hasAttribute('inert'),'inert follows the landing');
+
+  d.getElementById('homeBtn').click(); await wait(1400);
+  ok(hud()==='cogspect','home returns to cogspect'); check('after home');
+  ok(!d.body.classList.contains('on-dark'),'chrome un-inverts');
+
+  log(fails?`\n${fails} FAILURES`:'\nALL PASS');
+  log('DONE');
+});
+</script>
+</body></html>

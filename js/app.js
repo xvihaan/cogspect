@@ -195,6 +195,29 @@
     try { hapticEl.click(); } catch (_) { /* no-op */ }
   }
 
+  /* ---------- focus containment ----------
+     The overlays are siblings of the cube, the nav, the HUD and the chat dock
+     inside .stage, and .glass-nav paints above the backdrop — so an open card
+     has to inert every sibling, not just the cube, or Tab walks straight out
+     of the dialog and lands on the home button. */
+
+  let lastFocus = null;
+
+  function lockChrome(on) {
+    if (on && !lastFocus) lastFocus = document.activeElement;
+    for (const el of stage.children) {
+      if (el.classList.contains('overlay')) continue;
+      el.inert = on;
+    }
+  }
+
+  function releaseChrome() {
+    if (overlayOpen()) return;                  // the other card is still up
+    lockChrome(false);
+    if (lastFocus && lastFocus.isConnected && !lastFocus.closest('[inert]')) lastFocus.focus();
+    lastFocus = null;
+  }
+
   /* ---------- portfolio grass field ---------- */
 
   const grass = document.getElementById('grassField');
@@ -308,7 +331,10 @@
     projOverlay.classList.add('open');
     projOverlay.setAttribute('aria-hidden', 'false');
     projOverlay.inert = false;
-    projOverlay.querySelector('.project-card').scrollTop = 0;
+    const card = projOverlay.querySelector('.project-card');
+    card.scrollTop = 0;
+    lockChrome(true);
+    card.focus();
     haptic();
   }
 
@@ -316,6 +342,7 @@
     projOverlay.classList.remove('open');
     projOverlay.setAttribute('aria-hidden', 'true');
     projOverlay.inert = true;
+    releaseChrome();
   }
   function projectOpen() {
     return projOverlay.classList.contains('open');
@@ -328,45 +355,58 @@
 
   /* ---------- cube geometry ---------- */
 
-  // Faces are mounted once and stay put; only their in-plane twist changes,
-  // and only for the face that is about to come into view.
-  function mountFaces() {
-    cube.querySelectorAll('[data-face]').forEach((f) => {
-      faceEls[f.dataset.face] = f;
-      f.style.transition = 'none';
-      placeFace(f.dataset.face);
-    });
-  }
+  /* The orientation rides on the FACES, never on the cube wrapper.
+     A wrapper carrying the rotation collapses to zero projected width at
+     every 90° resting pose, and a browser will not hit-test through an
+     ancestor whose box is degenerate — that made every project tile and
+     planet unclickable. Leaving the wrapper as a plain square keeps the
+     whole visible face clickable, since face box and wrapper box coincide. */
 
-  function placeFace(face) {
+  let lastTr = '';
+
+  // Repaint a single face immediately, without a transition. Used to re-square
+  // an arriving face while it is still edge-on, so its content never spins in
+  // view. Invalidates the transition cache so the next full paint rewrites it.
+  function paintOne(face, M) {
     const el = faceEls[face];
-    if (el) el.style.transform = `${SLOT[face]} translateZ(${D}px) rotate(${twist[face]}deg)`;
+    if (!el) return;
+    el.style.transition = 'none';
+    el.style.transform = `translateZ(${-D}px) ${css3d(M || O)} ${SLOT[face]} `
+      + `translateZ(${D}px) rotate(${twist[face]}deg)`;
+    lastTr = '';
   }
 
-  // ms = 0 → instant (used when the face is still edge-on and invisible).
-  // The angle is rewritten to the revolution nearest the current one, so a
-  // 0° → 270° correction spins -90° instead of taking the long way round.
-  function setTwist(face, deg, ms, ease) {
-    const from = twist[face];
-    const to = deg + 360 * Math.round((from - deg) / 360);
-    if (to === from) return;
-    const el = faceEls[face];
-    if (el) el.style.transition = ms ? `transform ${ms}ms ${ease || EASE_SNAP}` : 'none';
-    twist[face] = to;
-    placeFace(face);
-  }
-
-  function applyCube(animate, ms, ease) {
-    cube.style.transition = animate
+  function paintFaces(animate, ms, ease, M) {
+    const tr = (animate && !reducedMotion.matches)
       ? `transform ${ms || ROT_MS}ms ${ease || EASE_TURN}`
       : 'none';
-    cube.style.transform = `translateZ(${-D}px) ${css3d(O)}`;
+    const m = css3d(M || O);              // formatted once, shared by all six
+    const back = `translateZ(${-D}px) `;
+    const out = ` translateZ(${D}px) rotate(`;
+    for (const name in faceEls) {
+      const el = faceEls[name];
+      if (tr !== lastTr) el.style.transition = tr;
+      el.style.transform = back + m + ' ' + SLOT[name] + out + twist[name] + 'deg)';
+    }
+    lastTr = tr;
   }
 
-  function applyFree() {
-    cube.style.transition = 'none';
-    cube.style.transform = `translateZ(${-D}px) ${css3d(O)}`;
+  function mountFaces() {
+    cube.querySelectorAll('[data-face]').forEach((f) => { faceEls[f.dataset.face] = f; });
+    paintFaces(false);
   }
+
+  // Stored only — the next paint applies it, so a face's twist and the cube's
+  // rotation always animate as one transform on one curve. The angle is
+  // rewritten to the revolution nearest the current one, so a 0° → 270°
+  // correction spins -90° instead of taking the long way round.
+  function setTwist(face, deg) {
+    const from = twist[face];
+    twist[face] = deg + 360 * Math.round((from - deg) / 360);
+  }
+
+  function applyCube(animate, ms, ease) { paintFaces(animate, ms, ease); }
+  function applyFree() { paintFaces(false); }
 
   function layout() {
     const W = window.innerWidth, H = window.innerHeight, S = Math.max(W, H);
@@ -375,14 +415,16 @@
     cube.style.height = `${S}px`;
     cube.style.left = `${(W - S) / 2}px`;
     cube.style.top = `${(H - S) / 2}px`;
-    mountFaces();
-    applyCube(false);
+    mountFaces();                    // re-queries the faces and repaints them
   }
 
   function setFace(face) {
     cur = face;
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
+    // Faces pointing away are still in the DOM, so without this the Tab key
+    // walks into tiles and links the visitor cannot see.
+    for (const name in faceEls) faceEls[name].inert = name !== face;
   }
 
   /* ---------- free roll: nearest-face detection & snap ---------- */
@@ -411,7 +453,7 @@
     const face = frontFaceFor(rest.M);
     const ms = Math.max(280, Math.min(780, rest.angle * 8));
     O = rest.M;
-    setTwist(face, twistFor(O, face), reducedMotion.matches ? 0 : ms);
+    setTwist(face, twistFor(O, face));
     if (rest.angle < 0.5 || reducedMotion.matches) { settle(face); return; }
     applyCube(true, ms, EASE_SNAP);
     snapTimer = setTimeout(() => settle(face), ms + 40);
@@ -424,8 +466,10 @@
     clearTimeout(pulseTimer);
     const target = mul(DIR[dir], O);
     const next = frontFaceFor(target);
-    // the arriving face is edge-on right now, so it can be re-squared instantly
-    setTwist(next, twistFor(target, next), 0);
+    // the arriving face is edge-on right now, so re-square it instantly — if it
+    // rode the turn's curve instead, its text would spin as the face swings in
+    setTwist(next, twistFor(target, next));
+    paintOne(next, O);
     O = target;
     phase = 'turn';
     rotHold = true;
@@ -478,7 +522,7 @@
     drag = null;
     stage.classList.remove('dragging');
     O = ID; vx = 0; vy = 0;
-    setTwist('front', 0, ROT_MS, EASE_TURN);   // may be in view — ride the same curve
+    setTwist('front', 0);
     setFace('front');
     applyCube(true);
     closeContact();
@@ -501,11 +545,14 @@
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
     overlay.inert = false;
+    lockChrome(true);
+    overlay.querySelector('.contact-card').focus();
   }
   function closeContact() {
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.inert = true;
+    releaseChrome();
   }
   function toggleContact() {
     haptic();
@@ -584,6 +631,7 @@
         // the cube was already settled, so this was a plain tap
         phase = 'idle';
         rotHold = false;
+        applyCube(false);            // re-square if the entrance drift is still showing
         if (!cancelled) {
           const dir = emptySpaceDir(d.x, d.y);
           if (dir) step(dir);
@@ -611,7 +659,9 @@
   let lastDetent = null;
 
   window.addEventListener('wheel', (e) => {
-    if (e.target.closest && e.target.closest('button, input, a, textarea, .project-card')) return;
+    // only surfaces that scroll or type get the wheel; links and buttons on a
+    // face must not swallow it, or the cursor sits in a zoom dead zone
+    if (e.target.closest && e.target.closest('input, textarea, .project-card')) return;
     e.preventDefault();
     if (overlayOpen()) return;
     const dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
@@ -916,6 +966,7 @@
   /* ---------- boot: entrance drift ---------- */
 
   layout();
+  setFace('front');                  // also makes the five hidden faces inert
   window.addEventListener('resize', () => { layout(); buildGrass(); });
 
   fetch('data/projects.json')
@@ -929,8 +980,7 @@
 
   // Entrance drift is purely visual — O stays exactly ID, so an arrow key
   // pressed inside this window still turns from a square pose.
-  cube.style.transition = 'none';
-  cube.style.transform = `translateZ(${-D}px) ${css3d(mul(rotY(-16), rotX(9)))}`;
+  paintFaces(false, 0, null, mul(rotY(-16), rotX(9)));
   setTimeout(() => { if (phase === 'idle' && !drag) applyCube(true); }, 180);
   tick();
 })();

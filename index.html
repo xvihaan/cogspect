@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>cogspect — spatial interface</title>
-<meta name="description" content="cogspect — 미니멀리즘 위에 깊이를 쌓아 올리는 공간.">
+<meta name="description" content="cogspect — 지식의 스펙트럼.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='7' fill='%230c0c0e'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="stylesheet" href="css/style.css">
@@ -33,7 +33,7 @@
       <div class="cube" id="cube">
 
         <section class="face face--front" data-face="front" aria-label="cogspect">
-          <p class="face-lede">생각의 정수. 마침내 하나의 공간으로.</p>
+          <p class="face-lede">지극히 단백하게. 전례없이 다이나믹하게.</p>
         </section>
 
         <section class="face face--matrix" data-face="right" aria-label="portfolio">
@@ -117,7 +117,7 @@
 
   <!-- project detail overlay -->
   <div class="overlay" id="projectOverlay" aria-hidden="true" inert>
-    <div class="project-card">
+    <div class="project-card" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="projectTitle">
       <button class="modal-close" id="projectClose" type="button" aria-label="닫기">×</button>
       <div class="project-art" id="projectArt"></div>
       <span class="kicker" id="projectTag"></span>
@@ -133,7 +133,7 @@
 
   <!-- contact overlay -->
   <div class="overlay" id="contactOverlay" aria-hidden="true" inert>
-    <div class="contact-card">
+    <div class="contact-card" tabindex="-1" role="dialog" aria-modal="true">
       <span class="kicker">contact</span>
       <h2>cogspect corporation</h2>
       <p>기술과 예술의 조화를 환영합니다.</p>

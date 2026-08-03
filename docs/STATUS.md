@@ -24,10 +24,34 @@ text crisp and glassmorphism native via backdrop-filter.
 - **Chat routing**: keywords (cogspect, 김민혁, bifrost, keen, prospect, minimalid, contact, 한국어) → faces; unknown input = hint toast. Contact email: cogspect@gmail.com
 - **Controls**: `home` = front face; `contact` overlay (Esc/backdrop close). Minimalid face (bottom) inverts fixed chrome colors
 
+## Hit-testing: why the orientation lives on the faces (2026-08-03)
+The orientation matrix is written onto **each face**, not onto `#cube`
+(`paintFaces()`); `#cube` stays an untransformed square frame. A wrapper
+carrying the rotation collapses to zero projected width at every 90° resting
+pose (measured: `cube rect 640,-81,0,962`), and Chrome will not hit-test into
+descendants when an ancestor's box in the preserve-3d context is degenerate —
+which made every project tile, both Bifröst planets and the archive link
+unclickable. Rejected first, each disproved in-browser: `pointer-events: none`
+on `.cube` (kills descendants too), `backface-visibility: visible`, dropping
+the trailing `rotate()`, `rotateY()` instead of `matrix3d()`, `perspective:
+none`, `transform-style: flat`, removing `will-change`.
+Do not move the transform back onto the wrapper.
+
+Focus follows the visible face: `setFace()` marks the other five `inert`. An
+open card calls `lockChrome()`, which inerts **every** `.stage` child except
+the overlays — the cube, the nav, the HUD and the chat dock are siblings, and
+`.glass-nav` (z-index 60) paints above the backdrop (z-index 58), so inerting
+only the cube would leave the home/contact buttons tabbable behind the modal.
+`releaseChrome()` restores focus to whatever had it before the card opened.
+
+Arrival twist is applied by `paintOne()` **before** the turn starts, while the
+face is still edge-on. Folding it into the turn's transition instead makes the
+face's text counter-rotate up to 180° as it swings into view.
+
 ## Verification
 - `node --check` on app.js: pass
 - Headless assertions (24 tests): REST table exactly 24 poses; css3d(rotY(90)) matches CSS spec; CEO's path returns to identity; all directions reversible from all 24 poses; all 6 faces ≤2 turns away; twistFor provably squares content on all 24 poses; nearestRest recovers jittered pose
-- Live Chrome (headless): navigation lap, arrival twist on portfolio face, cursor-reveal + tile lighting with live twist, synthetic flick + catch-tap settling on exact pose (HUD geometry matches), home button squaring front face. No JS errors
+- Live Chrome (headless, `test/verify.html`, 38 assertions): navigation lap; cube box non-degenerate at home AND on 90° poses; arriving face re-squared instantly rather than over the turn curve; tile hit-testable on a twisted face and clicking it opens the card; Enter on a focused tile opens it too; open card inerts the nav and the chat dock, focus moves into the card and is restored to the tile on close; Bifröst planet and archive link hit-testable; wheel over a planet reaches the zoom handler; faces not text-selectable; flick + catch-tap settling on an exact pose with the HUD matching geometry; `inert` following the landing; home squaring the front face. No JS errors
 - Reviewer round: REVISE (1 blocker + 3 major + 3 minor). Blocker: veil needed NO coordinate correction (O·SLOT·rotate(twist) is identity on settled face). Majors: endDrag pointer-catch routing, twist animation shortest arc, shared easing curve. Minors: all fixed
 - Residual risk: Safari (matrix3d + preserve-3d + backface-visibility untested), real touch/multi-pointer, reduced-motion, haptics/device easing feel — Chrome headless only
 
@@ -36,7 +60,17 @@ text crisp and glassmorphism native via backdrop-filter.
 cd ~/Desktop/PROJECT/cogspect.ai
 python3 -m http.server 4173 --bind 127.0.0.1
 # → http://127.0.0.1:4173
+# verification harness → http://127.0.0.1:4173/test/verify.html
 ```
+`test/verify.html` drives the real page with synthetic events and asserts the
+invariants that are easy to break (spatial memory, hit-testing through the 3D
+transform, arrival twist, focus containment, zoom dead zones). Headless:
+```bash
+chrome --headless=new --virtual-time-budget=45000 --dump-dom \
+       http://127.0.0.1:4173/test/verify.html
+```
+Under virtual time CSS transitions and rAF do not advance, so it reads
+committed inline styles and cannot see mid-transition frames — check those by eye.
 
 ## Deployment
 - Live at **https://xvihaan.github.io/cogspect/** (GitHub Pages, branch `main`, root, HTTPS enforced)

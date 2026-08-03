@@ -59,10 +59,11 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   perspective: 1500px;
 }
 
+/* The cube is only a square, un-transformed frame. The orientation rides on
+   the faces themselves — see js/app.js paintFaces() for why. */
 .cube {
   position: absolute;
   transform-style: preserve-3d;
-  will-change: transform;
 }
 
 /* ---------- faces ---------- */
@@ -70,6 +71,11 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 .face {
   position: absolute;
   inset: 0;
+  will-change: transform;
+  /* faces are a drag surface — without this, tumbling from a headline
+     paints a black ::selection block across the copy */
+  -webkit-user-select: none;
+  user-select: none;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   display: flex;
@@ -1078,7 +1084,7 @@ body.on-dark input::placeholder { color: #7a7a82; }
 /* ---------- reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .cube, .glass-btn, .chat-bar,
+  .cube, .face, .glass-btn, .chat-bar,
   .cell--proj, .project-card, .contact-card, .modal-close, .tile-tip,
   .planet .orb, .ghost-msg { transition: none !important; }
   .planet { animation: none; }
