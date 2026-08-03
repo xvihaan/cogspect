@@ -119,10 +119,13 @@ f.addEventListener('load', async () => {
 
   log('\n— long card scrolls, close stays reachable —');
   const sc=d.getElementById('projectScroll');
+  const meta=d.getElementById('projectMeta'), stack=d.getElementById('projectStack');
+  ok(meta.querySelectorAll('dt').length>0,`meta block rendered (${meta.querySelectorAll('dt').length} rows)`);
+  ok(stack.querySelectorAll('.chip-row').length>0||stack.querySelectorAll('span').length>0,
+     `tech stack rendered (${stack.querySelectorAll('.chip-row').length} groups / ${stack.querySelectorAll('span').length} chips)`);
   // the card is already open from the click above; force it past one screen
-  d.getElementById('projectSections').innerHTML =
+  d.getElementById('projectSections').innerHTML +=
     Array.from({length:8},(_,i)=>`<h3>성과 ${i}</h3><p>${'검증용 본문 '.repeat(40)}</p>`).join('');
-  ok(w.getComputedStyle(d.getElementById('projectMeta')).display==='none','empty meta block stays hidden');
   await wait(200);
   ok(sc.scrollHeight>sc.clientHeight+50,`content overflows and the wrapper scrolls (${sc.scrollHeight} > ${sc.clientHeight})`);
   const btn=d.getElementById('projectClose'), cardR=d.querySelector('.project-card').getBoundingClientRect();

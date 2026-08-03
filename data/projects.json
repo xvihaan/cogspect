@@ -1,19 +1,35 @@
 {
-  "_guide": "포트폴리오 콘텐츠 파일. 프로젝트 추가 = 이 배열에 블록 추가. fx/fy는 화면 기준 위치(0~1). tagline=호버 툴팁, desc=팝업 본문. 선택 필드: sections(긴 글: [{heading, text}]), image(아트 배너 대신 쓸 이미지 경로), link(하단 버튼, null이면 숨김).",
+  "_guide": "포트폴리오 콘텐츠 파일. 프로젝트 추가 = 이 배열에 블록 추가. fx/fy는 화면 기준 위치(0~1). tagline=호버 툴팁, desc=팝업 본문. 선택 필드: meta([{label, value}] — 기간·인원·담당), sections(성과 기여: [{heading, text}]), points(짧은 하이라이트), stack(문자열 배열이거나 {분류: [항목]} 객체), image(아트 배너 대신 쓸 이미지 경로), link(하단 버튼, null이면 숨김).",
   "projects": [
     {
-      "id": "keen",
+      "id": "govision",
       "fx": 0.13, "fy": 0.58,
-      "tag": "Design Language",
-      "title": "keen",
-      "tagline": "리퀴드 글래스 인터페이스 언어",
-      "desc": "cogspect의 시그니처 디자인 언어입니다. 굴절·반사·블러·림 라이트의 규칙을 정의해, 화면 위의 요소가 얇은 유리 렌즈처럼 느껴지는 질감을 만듭니다. 지금 보고 있는 이 사이트의 모든 UI가 keen으로 그려졌습니다.",
-      "points": [
-        "다층 inset 하이라이트와 스펙큘러 시트 규격",
-        "SVG 변위 필터 기반 렌즈 굴절 — 호버 시 볼록렌즈 효과",
-        "라이트·다크 컨텍스트 자동 반전"
+      "tag": "GIS · AI Vision",
+      "title": "GOvision",
+      "tagline": "AI 지리공간 영상 판독 · GIS 시각화 플랫폼",
+      "desc": "AI 기반 지리공간 영상 세부 판독 및 GIS 시각화 통합 웹 플랫폼입니다. (주)지오아이티에서 기획, AI 파이프라인 연동, 프론트엔드·백엔드 아키텍처 설계를 맡았습니다.",
+      "meta": [
+        { "label": "기간", "value": "2026.01.19 ~ 2026.05.29 (진행 중)" },
+        { "label": "인원", "value": "3명 — 디자인 1 · 개발 1 · 판독 실무 1" },
+        { "label": "담당", "value": "AI Research Engineer · 풀스택 아키텍트" }
       ],
-      "stack": ["CSS", "SVG Filter", "Design Tokens"],
+      "sections": [
+        {
+          "heading": "실무 판독관의 인지 부하를 낮추는 능동적 시각화 도구 개발",
+          "text": "OpenLayers와 React 상태 관리를 동기화하여 QGIS 수준의 사용자 경험을 웹에 구현. '스와이프 분할 보기', '이상 탐지 필지 하이라이팅', '동적 속성 데이터그리드 양방향 포커싱' 등 실무 판독관의 인지 부하를 획기적으로 낮추는 능동적 시각화 도구를 직접 기획하고 개발."
+        },
+        {
+          "heading": "공간 데이터 자산화 및 시스템 병목 최소화를 위한 백엔드 최적화 주도",
+          "text": "파일 업로드 기반의 1회성 분석을 넘어, PostGIS 기반의 영구적인 공간 자산 관리 및 버전 컨트롤 데이터베이스 스키마 설계. 단일 DGX 서버 내에서 발생하는 리소스 경합을 해결하기 위해, 비동기 상태 관리와 검색 인덱스 평탄화를 통한 전역 슈퍼 검색을 도입하여 극한의 데이터 로드 환경에서도 끊김 없는 시스템 안정성을 확보."
+        }
+      ],
+      "stack": {
+        "AI/DL": ["PyTorch", "segmentation-models-pytorch", "PyTorch Lightning"],
+        "Frontend": ["React", "TypeScript", "Vite", "MUI", "OpenLayers"],
+        "Backend": ["FastAPI", "SQLAlchemy"],
+        "Data/GIS": ["PostgreSQL/PostGIS", "GeoPandas", "Rasterio"],
+        "Infra": ["NVIDIA GPU Container", "Docker Compose", "Nginx", "Redis", "Celery"]
+      },
       "link": null
     },
     {
