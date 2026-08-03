@@ -71,11 +71,17 @@ f.addEventListener('load', async () => {
 
   log('\n— arrival twist is applied while the face is edge-on —');
   key('ArrowUp'); await wait(1300);          // now on prospect; next right turn twists a face
-  const before=w.getComputedStyle(face('right')).transform;
+  // Read the running transition's own keyframes. Comparing computed transforms
+  // instead would pass on float noise alone and certify a non-fix.
   key('ArrowRight');
-  await wait(0);                              // same tick: transition has not advanced
-  const after=w.getComputedStyle(face('right')).transform;
-  ok(before!==after,'arriving face is re-squared instantly, not over the turn curve');
+  await wait(0);
+  const anims=face('right').getAnimations();
+  ok(anims.length===1,`arriving face has exactly one running transition (got ${anims.length})`);
+  const kf=anims.length?anims[0].effect.getKeyframes():[];
+  const twOf=(s)=>{const m=String(s).match(/rotate\((-?[\d.]+)deg\)\s*$/);return m?m[1]:'?';};
+  const fromTw=twOf(kf[0]&&kf[0].transform), toTw=twOf(kf[kf.length-1]&&kf[kf.length-1].transform);
+  ok(fromTw!=='?'&&fromTw===toTw,
+     `twist is settled before the turn starts, so it never rides the curve (from ${fromTw}° → to ${toTw}°)`);
   await wait(1400);
   ok(hud()==='portfolio','…and the turn still lands on portfolio');
   ok(/rotate\((?!0deg)-?\d+deg\)/.test(face('right').style.transform),'that arrival carries a twist');

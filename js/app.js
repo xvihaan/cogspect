@@ -363,6 +363,7 @@
      whole visible face clickable, since face box and wrapper box coincide. */
 
   let lastTr = '';
+  let drifting = true;              // the entrance tilt is still the rendered state
 
   // Repaint a single face immediately, without a transition. Used to re-square
   // an arriving face while it is still edge-on, so its content never spins in
@@ -373,6 +374,10 @@
     el.style.transition = 'none';
     el.style.transform = `translateZ(${-D}px) ${css3d(M || O)} ${SLOT[face]} `
       + `translateZ(${D}px) rotate(${twist[face]}deg)`;
+    // Force the style flush. Without it this write is coalesced with the next
+    // one in the same task and never becomes the transition's start value, so
+    // the twist would silently ride the turn's curve instead of preceding it.
+    void el.offsetWidth;
     lastTr = '';
   }
 
@@ -631,7 +636,9 @@
         // the cube was already settled, so this was a plain tap
         phase = 'idle';
         rotHold = false;
-        applyCube(false);            // re-square if the entrance drift is still showing
+        // only if the entrance drift never got its own paint — otherwise this
+        // would hard-cut the drift-to-square glide mid-flight
+        if (drifting) { drifting = false; applyCube(false); }
         if (!cancelled) {
           const dir = emptySpaceDir(d.x, d.y);
           if (dir) step(dir);
@@ -981,6 +988,10 @@
   // Entrance drift is purely visual — O stays exactly ID, so an arrow key
   // pressed inside this window still turns from a square pose.
   paintFaces(false, 0, null, mul(rotY(-16), rotX(9)));
-  setTimeout(() => { if (phase === 'idle' && !drag) applyCube(true); }, 180);
+  setTimeout(() => {
+    if (phase !== 'idle' || drag) return;    // someone grabbed it — leave them be
+    drifting = false;
+    applyCube(true);
+  }, 180);
   tick();
 })();
