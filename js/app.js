@@ -310,6 +310,8 @@
 
   function openProject(p) {
     projArt.className = `project-art art--${p.id}`;
+    // no artwork yet → drop the banner rather than show an empty grey box
+    projArt.style.display = p.image ? '' : 'none';
     projArt.style.backgroundImage = p.image ? `url(${p.image})` : '';
     projArt.style.backgroundSize = p.image ? 'cover' : '';
     projArt.style.backgroundPosition = p.image ? 'center' : '';

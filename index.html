@@ -39,7 +39,7 @@
         <section class="face face--matrix" data-face="right" aria-label="portfolio">
           <div class="field-head">
             <h2>김민혁의 포트폴리오</h2>
-            <span class="kicker">픽셀을 찾고 클릭하세요.</span>
+            <span class="kicker">잔디 픽셀을 찾고 클릭하세요.</span>
           </div>
           <div class="grass" id="grassField">
             <div class="grass-veil" id="grassVeil" aria-hidden="true"></div>
@@ -120,16 +120,22 @@
     <div class="project-card" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="projectTitle">
       <button class="modal-close" id="projectClose" type="button" aria-label="닫기">×</button>
       <div class="project-scroll" id="projectScroll">
-        <div class="project-art" id="projectArt"></div>
-        <span class="kicker" id="projectTag"></span>
-        <h2 id="projectTitle"></h2>
-        <p class="project-tagline" id="projectTagline"></p>
-        <dl class="project-meta" id="projectMeta"></dl>
-        <p class="project-desc" id="projectDesc"></p>
-        <div class="project-sections" id="projectSections"></div>
-        <ul class="project-points" id="projectPoints"></ul>
-        <div class="chips" id="projectStack"></div>
-        <a class="project-link" id="projectLink" target="_blank" rel="noopener"></a>
+        <div class="project-grid">
+          <div class="project-side">
+            <div class="project-art" id="projectArt"></div>
+            <span class="kicker" id="projectTag"></span>
+            <h2 id="projectTitle"></h2>
+            <p class="project-tagline" id="projectTagline"></p>
+            <dl class="project-meta" id="projectMeta"></dl>
+            <div class="chips" id="projectStack"></div>
+          </div>
+          <div class="project-main">
+            <p class="project-desc" id="projectDesc"></p>
+            <div class="project-sections" id="projectSections"></div>
+            <ul class="project-points" id="projectPoints"></ul>
+            <a class="project-link" id="projectLink" target="_blank" rel="noopener"></a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
