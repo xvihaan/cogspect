@@ -232,6 +232,8 @@
   const projPoints = document.getElementById('projectPoints');
   const projStack = document.getElementById('projectStack');
   const projLink = document.getElementById('projectLink');
+  const projMeta = document.getElementById('projectMeta');
+  const projScroll = document.getElementById('projectScroll');
 
   // Clean white canvas by default: the tile texture (.grass-veil) is only
   // revealed around the cursor via a CSS mask; six always-visible silver
@@ -320,7 +322,16 @@
       .map((s) => `${s.heading ? `<h3>${s.heading}</h3>` : ''}<p>${s.text}</p>`)
       .join('');
     projPoints.innerHTML = (p.points || []).map((pt) => `<li>${pt}</li>`).join('');
-    projStack.innerHTML = (p.stack || []).map((s) => `<span>${s}</span>`).join('');
+    // meta: [{label, value}] — 기간 / 참여 인원 / 담당 같은 고정 사실
+    projMeta.innerHTML = (p.meta || [])
+      .map((m) => `<dt>${m.label}</dt><dd>${m.value}</dd>`).join('');
+    // stack: a flat array, or {category: [items]} for a labelled row per group
+    projStack.innerHTML = Array.isArray(p.stack)
+      ? (p.stack || []).map((s) => `<span>${s}</span>`).join('')
+      : Object.entries(p.stack || {}).map(([label, items]) =>
+        `<div class="chip-row"><span class="chip-label">${label}</span>`
+        + `<div class="chips">${items.map((s) => `<span>${s}</span>`).join('')}</div></div>`).join('');
+    projStack.classList.toggle('chips', Array.isArray(p.stack));
     if (p.link) {
       projLink.textContent = p.link.label;
       projLink.href = p.link.url;
@@ -332,7 +343,7 @@
     projOverlay.setAttribute('aria-hidden', 'false');
     projOverlay.inert = false;
     const card = projOverlay.querySelector('.project-card');
-    card.scrollTop = 0;
+    projScroll.scrollTop = 0;
     lockChrome(true);
     card.focus();
     haptic();

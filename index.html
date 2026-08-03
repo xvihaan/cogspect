@@ -33,7 +33,7 @@
       <div class="cube" id="cube">
 
         <section class="face face--front" data-face="front" aria-label="cogspect">
-          <p class="face-lede">지극히 단백하게. 전례없이 다이나믹하게.</p>
+          <p class="face-lede">지극히 담백하게. 전례없이 다이나믹하게.</p>
         </section>
 
         <section class="face face--matrix" data-face="right" aria-label="portfolio">
@@ -49,8 +49,8 @@
 
         <section class="face face--gateway" data-face="left" aria-label="Bifröst">
           <div class="gateway-head">
-            <span class="kicker">비프로스트 | 하나의 연결</span>
-            <h2>Bifröst</h2>
+            <span class="kicker">Bifröst | 하나의 연결</span>
+            <h2>비프로스트</h2>
           </div>
           <div class="cosmos">
             <a class="planet planet--b3ta" href="https://b3ta.netlify.app" target="_blank" rel="noopener"
@@ -119,15 +119,18 @@
   <div class="overlay" id="projectOverlay" aria-hidden="true" inert>
     <div class="project-card" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="projectTitle">
       <button class="modal-close" id="projectClose" type="button" aria-label="닫기">×</button>
-      <div class="project-art" id="projectArt"></div>
-      <span class="kicker" id="projectTag"></span>
-      <h2 id="projectTitle"></h2>
-      <p class="project-tagline" id="projectTagline"></p>
-      <p class="project-desc" id="projectDesc"></p>
-      <div class="project-sections" id="projectSections"></div>
-      <ul class="project-points" id="projectPoints"></ul>
-      <div class="chips" id="projectStack"></div>
-      <a class="project-link" id="projectLink" target="_blank" rel="noopener"></a>
+      <div class="project-scroll" id="projectScroll">
+        <div class="project-art" id="projectArt"></div>
+        <span class="kicker" id="projectTag"></span>
+        <h2 id="projectTitle"></h2>
+        <p class="project-tagline" id="projectTagline"></p>
+        <dl class="project-meta" id="projectMeta"></dl>
+        <p class="project-desc" id="projectDesc"></p>
+        <div class="project-sections" id="projectSections"></div>
+        <ul class="project-points" id="projectPoints"></ul>
+        <div class="chips" id="projectStack"></div>
+        <a class="project-link" id="projectLink" target="_blank" rel="noopener"></a>
+      </div>
     </div>
   </div>
 

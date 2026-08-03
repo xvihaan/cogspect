@@ -117,6 +117,21 @@ f.addEventListener('load', async () => {
   await wait(350);
   ok(d.getElementById('projectOverlay').classList.contains('open'),'Enter on a focused tile opens the card');
 
+  log('\n— long card scrolls, close stays reachable —');
+  const sc=d.getElementById('projectScroll');
+  // the card is already open from the click above; force it past one screen
+  d.getElementById('projectSections').innerHTML =
+    Array.from({length:8},(_,i)=>`<h3>성과 ${i}</h3><p>${'검증용 본문 '.repeat(40)}</p>`).join('');
+  ok(w.getComputedStyle(d.getElementById('projectMeta')).display==='none','empty meta block stays hidden');
+  await wait(200);
+  ok(sc.scrollHeight>sc.clientHeight+50,`content overflows and the wrapper scrolls (${sc.scrollHeight} > ${sc.clientHeight})`);
+  const btn=d.getElementById('projectClose'), cardR=d.querySelector('.project-card').getBoundingClientRect();
+  sc.scrollTop=sc.scrollHeight;
+  await wait(120);
+  const b=btn.getBoundingClientRect();
+  ok(b.top>=cardR.top-1&&b.bottom<=cardR.bottom+1,'close button stays pinned after scrolling to the bottom');
+  ok(sc.scrollTop>0,'…and the wrapper actually scrolled');
+
   log('\n— focus containment —');
   ok(d.querySelector('.glass-nav').hasAttribute('inert'),'open card inerts the nav (not just the cube)');
   ok(d.querySelector('.chat-dock').hasAttribute('inert'),'…and the chat dock');

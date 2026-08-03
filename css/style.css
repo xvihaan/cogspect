@@ -833,9 +833,9 @@ body.on-dark .ghost-msg {
   max-width: min(860px, 92vw);
   width: 100%;
   max-height: min(86vh, 820px);
-  overflow-y: auto;
+  overflow: hidden;              /* the inner wrapper scrolls, so the close
+                                    button stays pinned to the card corner */
   border-radius: 36px;
-  padding: 34px 44px 40px;
   text-align: left;
   isolation: isolate;
   border: 2px solid transparent;
@@ -873,6 +873,69 @@ body.on-dark .ghost-msg {
   transition: transform .25s, background .25s;
 }
 .modal-close:hover { transform: scale(1.1); background: rgba(240, 242, 246, .8); }
+
+.project-scroll {
+  max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 34px 44px 40px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 148, 166, .45) transparent;
+}
+.project-scroll::-webkit-scrollbar { width: 10px; }
+.project-scroll::-webkit-scrollbar-track { background: transparent; }
+.project-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(140, 148, 166, .4) padding-box;
+}
+.project-scroll::-webkit-scrollbar-thumb:hover { background: rgba(120, 128, 148, .6) padding-box; }
+
+/* 기간 · 인원 · 담당 — the fixed facts, read before the prose */
+.project-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 18px;
+  margin: 0 0 20px;
+  padding: 16px 20px;
+  border-radius: 18px;
+  background: rgba(232, 235, 242, .42);
+  border: 1px solid rgba(226, 230, 238, .7);
+}
+.project-meta dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding-top: 2px;
+}
+.project-meta dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.project-meta:empty { display: none; }
+
+/* grouped tech stack: one labelled row per category */
+.chip-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.chip-row .chip-label {
+  flex: 0 0 78px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.chip-row .chips { margin-bottom: 0; }
+#projectStack { margin-bottom: 18px; }
 
 .project-art {
   height: 230px;
