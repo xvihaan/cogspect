@@ -299,7 +299,8 @@
   }
 
   function showTip(cell, p) {
-    tileTip.innerHTML = `<strong>${p.title}</strong><span>${p.tagline} · 클릭해서 자세히</span>`;
+    // the face's own kicker already says to click, so the tip stays title + line
+    tileTip.innerHTML = `<strong>${p.title}</strong><span>${p.tagline}</span>`;
     const half = 120;
     const x = Math.max(half, Math.min(grass.clientWidth - half, cell.offsetLeft + cell.offsetWidth / 2));
     tileTip.style.left = `${x}px`;
