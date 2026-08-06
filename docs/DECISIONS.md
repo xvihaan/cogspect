@@ -12,6 +12,15 @@ Permission and architecture decisions, newest last. Each entry: date — change 
   is removed from `~/.claude/settings.json` — a CEO-only file.
   Undo: drop the rule, or restore `.claude/settings.local.json.bak`.
 
+- **2026-08-06 — `permissions.allow` += 4 verification-loop rules** — headless
+  Chrome (`--headless=new *`), the 127.0.0.1 preview server, and read-only curl
+  against localhost and the project's own Pages URL. Reason: every verification
+  run was costing an approval. All four are local or read-only; the Chrome rule
+  is pinned to `--headless=new` so it cannot open an interactive browser.
+  Caveat: `Bash(curl *)` sits in the user-scope `ask` list, which is evaluated
+  before allow, so the two curl rules stay inert until that entry is removed
+  from `~/.claude/settings.json`.
+
 - **2026-08-06 — removed 4 over-broad allow rules** (`Bash(python3 -)`,
   `Read(//Users/minhyeok/**)`, `Bash(git rm *)`, `Bash(rmdir assets *)`) —
   they had accumulated from one-off approvals. The first pre-approved arbitrary
