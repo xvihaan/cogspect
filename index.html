@@ -18,10 +18,12 @@
     <feGaussianBlur in="noise" stdDeviation="2" result="soft"/>
     <feDisplacementMap in="SourceGraphic" in2="soft" scale="30" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
-  <filter id="lg-convex" x="-30%" y="-30%" width="160%" height="160%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.004 0.007" numOctaves="1" seed="11" result="noise"/>
-    <feGaussianBlur in="noise" stdDeviation="3" result="soft"/>
-    <feDisplacementMap in="SourceGraphic" in2="soft" scale="90" xChannelSelector="R" yChannelSelector="G"/>
+  <!-- pills are small, so the turbulence has to be finer than #lg-lens or the
+       whole surface just shifts as one block instead of rippling inside it -->
+  <filter id="lg-pill" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.013 0.018" numOctaves="1" seed="7" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="1.6" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="34" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
 </svg>
 
