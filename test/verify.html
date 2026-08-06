@@ -188,6 +188,24 @@ f.addEventListener('load', async () => {
   ok(hud()==='cogspect','home returns to cogspect'); check('after home');
   ok(!d.body.classList.contains('on-dark'),'chrome un-inverts');
 
+  // Chat: retrieval + auto-navigate + the pending indicator all run
+  // synchronously, so this needs no model server. (A grouped `stack` object
+  // once made retrieve() throw here, killing answers, navigation and marks.)
+  log('\n— chat —');
+  d.getElementById('homeBtn').click(); await wait(1400);
+  const before=fails;
+  const inp=d.getElementById('chatInput'), cf=d.getElementById('chatForm'), gm=d.getElementById('ghostMsg');
+  inp.value='AI 관련된 프로젝트가 있어?';
+  cf.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+  ok(gm.classList.contains('pending'),'a question puts the answer bubble into its pending state');
+  ok(cf.classList.contains('thinking'),'…and the chat bar shows the buffering sweep');
+  ok(w.getComputedStyle(d.querySelector('.chat-bar'),'::after').animationName==='cgSweep','the sweep animation is live');
+  await wait(1500);
+  ok(hud()==='portfolio',`the answer turned the cube to the relevant face (${hud()})`);
+  ok(d.querySelectorAll('.cell--proj.mark').length>0,
+     `matched project tiles are highlighted (${d.querySelectorAll('.cell--proj.mark').length})`);
+  if (fails===before) log('     (answers reach the model only when the local stack is up)');
+
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');
 });

@@ -870,6 +870,19 @@
     return s.toLowerCase().split(/[^0-9a-z가-힣]+/).filter((t) => t.length > 1);
   }
 
+  // question words carry no topic, so they never earn a chunk its key bonus
+  const STOPKEYS = new Set([
+    '어떻게', '뭐', '뭐하는', '무엇', '누구', '왜', '어떤', '있어', '있나',
+    '어때', '소개', '설명', '알려', '이동'
+  ]);
+
+  function stackText(s) {
+    if (!s) return '';
+    if (Array.isArray(s)) return s.join(' ');
+    return Object.entries(s)
+      .map(([k, v]) => `${k} ${Array.isArray(v) ? v.join(' ') : v}`).join(' ');
+  }
+
   function retrieve(q) {
     const toks = tokenize(q);
     const ql = q.toLowerCase();
@@ -881,15 +894,24 @@
     }, 0);
     const hits = [];
     for (const p of PROJECTS) {
-      const hay = [p.title, p.tag, p.tagline, p.desc, (p.points || []).join(' '), (p.stack || []).join(' ')]
-        .join(' ').toLowerCase();
+      // stack is either a flat array or {분류: [항목]} — search both shapes,
+      // and search the 성과 기여 bodies, which is where the detail lives
+      const hay = [
+        p.title, p.tag, p.tagline, p.desc,
+        (p.points || []).join(' '),
+        (p.meta || []).map((m) => m.value).join(' '),
+        (p.sections || []).map((s) => `${s.heading} ${s.text}`).join(' '),
+        stackText(p.stack)
+      ].join(' ').toLowerCase();
       const s = scoreText(hay);
       if (s > 1) hits.push({ kind: 'project', score: s, face: 'right', ref: p });
     }
     for (const c of KNOWLEDGE) {
       const hay = [c.title, c.text, (c.keys || []).join(' ')].join(' ').toLowerCase();
       let s = scoreText(hay);
-      if ((c.keys || []).some((k) => ql.includes(k.toLowerCase()))) s += 4;
+      // the key bonus must not fire on bare interrogatives, or the "사이트
+      // 조작법" chunk wins every question that contains "어떻게"
+      if ((c.keys || []).some((k) => !STOPKEYS.has(k) && ql.includes(k.toLowerCase()))) s += 4;
       if (s > 1) hits.push({ kind: 'chunk', score: s, face: c.face, ref: c });
     }
     hits.sort((a, b) => b.score - a.score);
@@ -911,12 +933,15 @@
     showGhost('생각을 모으는 중…', true);
     const context = hits.slice(0, 3).map((h) => h.kind === 'project'
       ? `- ${h.ref.title} (${h.ref.tag}): ${h.ref.tagline}. ${h.ref.desc}`
+        + ` 사용 기술: ${stackText(h.ref.stack)}.`
+        + ` 주요 성과: ${(h.ref.sections || []).map((s) => s.heading).join(' / ')}`
       : `- ${h.ref.title}: ${h.ref.text}`).join('\n');
     const fallback = projHits.length
       ? `관련 프로젝트: ${projHits.map((h) => `${h.ref.title} — ${h.ref.tagline}`).join(' · ')}`
       : (top.ref.text || top.ref.desc || '');
     const ctl = new AbortController();
     chatAbort = ctl;
+    chatForm.classList.add('thinking');     // quiet sweep while the model works
     const abortTimer = setTimeout(() => ctl.abort(), 25000);
     const token = localStorage.getItem('cogspect.chat.token') || '';
     fetch(CHAT_ENDPOINT, {
@@ -936,7 +961,10 @@
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d) => { if (ctl === chatAbort) showGhost((d.reply || '').trim() || fallback); })
       .catch(() => { if (ctl === chatAbort) showGhost(fallback); })
-      .finally(() => clearTimeout(abortTimer));
+      .finally(() => {
+        clearTimeout(abortTimer);
+        if (ctl === chatAbort) chatForm.classList.remove('thinking');
+      });
   }
 
   function isQuestion(q) {
