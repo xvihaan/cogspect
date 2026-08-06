@@ -206,6 +206,50 @@ f.addEventListener('load', async () => {
      `matched project tiles are highlighted (${d.querySelectorAll('.cell--proj.mark').length})`);
   if (fails===before) log('     (answers reach the model only when the local stack is up)');
 
+  // Drag has two modes, picked by zoomTarget: zoomed in a gesture swipes
+  // exactly one face; zoomed out it tumbles freely.
+  log('\n— drag modes —');
+  d.getElementById('homeBtn').click(); await wait(1400);
+  // an earlier section zoomed out; swipe mode keys off zoomTarget, so put it back
+  w.dispatchEvent(new w.WheelEvent('wheel',{deltaY:-900,clientX:640,clientY:400,bubbles:true,cancelable:true}));
+  await wait(400);
+  const stg=d.getElementById('stage');
+  const gesture=async(dx,dy,id)=>{
+    const x0=640,y0=400;
+    stg.dispatchEvent(new w.PointerEvent('pointerdown',{pointerId:id,clientX:x0,clientY:y0,bubbles:true}));
+    for(let i=1;i<=14;i++){
+      w.dispatchEvent(new w.PointerEvent('pointermove',
+        {pointerId:id,clientX:x0+dx*i/14,clientY:y0+dy*i/14,bubbles:true}));
+      await wait(16);
+    }
+    w.dispatchEvent(new w.PointerEvent('pointerup',{pointerId:id,clientX:x0+dx,clientY:y0+dy,bubbles:true}));
+  };
+  await gesture(-320,0,31); await wait(1500);
+  ok(hud()==='portfolio',`zoomed in: one long drag turns exactly one face (${hud()})`);
+  await gesture(0,-300,32); await wait(1500);
+  ok(hud()==='minimalid',`…and a vertical drag turns one face too (${hud()})`);
+  const held=hud();
+  await gesture(-30,0,33); await wait(900);
+  ok(hud()===held,'a drag under the threshold turns nothing');
+
+  for(let i=0;i<6;i++){
+    w.dispatchEvent(new w.WheelEvent('wheel',{deltaY:200,clientX:640,clientY:400,bubbles:true,cancelable:true}));
+    await wait(100);
+  }
+  await wait(600);
+  const m0=face('front').style.transform;
+  stg.dispatchEvent(new w.PointerEvent('pointerdown',{pointerId:34,clientX:640,clientY:400,bubbles:true}));
+  for(let i=1;i<=10;i++){
+    w.dispatchEvent(new w.PointerEvent('pointermove',{pointerId:34,clientX:640-i*12,clientY:400-i*5,bubbles:true}));
+    await wait(16);
+  }
+  ok(face('front').style.transform!==m0,'zoomed out: the cube tumbles continuously under the pointer');
+  w.dispatchEvent(new w.PointerEvent('pointerup',{pointerId:34,clientX:520,clientY:350,bubbles:true}));
+  await wait(3200);
+  // exactness after a tumble is covered by the catch-tap case above; headless
+  // starves rAF, so the momentum roll may still be running here
+  ok(hud()===LABELS[frontOf(mat())],`after a free tumble: HUD matches geometry (${hud()})`);
+
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');
 });

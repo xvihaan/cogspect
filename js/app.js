@@ -12,6 +12,8 @@
   const EASE_TURN = 'cubic-bezier(.36,.06,.14,1)';   // fluid glide, firm landing
   const EASE_SNAP = 'cubic-bezier(.22,.86,.16,1.02)';
   const KICK = 0.03;                // landing "thunk": brief scale dip on settle
+  const SWIPE_ZOOM = 0.7;           // at or above this a drag swipes one face
+  const SWIPE_MIN = 58;             // px of travel that commits the swipe
 
   /* ---------- rigid cube ----------
      Each face is bolted to its own side of the cube and never moves. The
@@ -590,7 +592,12 @@
   document.getElementById('homeBtn').addEventListener('click', goHome);
   document.getElementById('contactBtn').addEventListener('click', toggleContact);
 
-  /* ---------- drag: free tumbling ---------- */
+  /* ---------- drag ----------
+     Two modes, chosen by how far away the cube is:
+     · zoomed in (a face fills the view) — a drag is a swipe. One gesture
+       turns exactly one face, the same quarter turn the arrow keys do.
+     · zoomed out (the whole cube is in frame) — a drag tumbles it freely,
+       with momentum and a snap onto the nearest resting pose. */
 
   stage.addEventListener('pointerdown', (e) => {
     if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg')) return;
@@ -599,9 +606,17 @@
     clearTimeout(chainTimer);
     clearTimeout(pulseTimer);
     const caught = phase === 'roll';        // grabbed a cube that was still rolling
-    phase = 'drag';
+    // decided once, at grab time, so the mode can't flip mid-gesture
+    // judged on zoomTarget, the level the visitor actually chose — zoomCur is
+    // mid-spring during the entrance and while a turn holds the cube back
+    const swipe = !caught && phase === 'idle' && zoomTarget >= SWIPE_ZOOM;
+    if (!swipe) phase = 'drag';
     vx = 0; vy = 0;
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), moved: false, acc: 0, caught };
+    drag = {
+      id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(),
+      moved: false, acc: 0, caught,
+      swipe, sx: e.clientX, sy: e.clientY, turned: false
+    };
     stage.classList.add('dragging');
     haptic(140);
   });
@@ -610,6 +625,20 @@
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.x = e.clientX; drag.y = e.clientY;
+
+    if (drag.swipe) {
+      if (drag.turned) return;              // one face per gesture, then done
+      const tx = e.clientX - drag.sx, ty = e.clientY - drag.sy;
+      if (Math.max(Math.abs(tx), Math.abs(ty)) < SWIPE_MIN) return;
+      drag.turned = true;
+      dismissHint();
+      // the surface follows the pointer: drag left and the right face arrives
+      step(Math.abs(tx) > Math.abs(ty)
+        ? (tx < 0 ? 'right' : 'left')
+        : (ty < 0 ? 'down' : 'up'));
+      return;
+    }
+
     if (!drag.moved) {
       drag.acc += Math.hypot(dx, dy);
       if (drag.acc > 6) {
@@ -647,6 +676,14 @@
     const d = drag;
     drag = null;
     stage.classList.remove('dragging');
+    if (d.swipe) {
+      // too short to commit a turn — fall back to the empty-space tap
+      if (!d.turned && !cancelled) {
+        const dir = emptySpaceDir(d.x, d.y);
+        if (dir) step(dir);
+      }
+      return;
+    }
     if (phase !== 'drag') return;
     if (!d.moved) {
       if (d.caught) {
