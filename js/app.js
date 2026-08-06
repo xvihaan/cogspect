@@ -245,6 +245,19 @@
   let projTiles = [];
   let tileTones = null;
 
+  /* The portfolio face is a contribution-graph homage, so the project pixels
+     and the background grid have to be the same object: same cell size, same
+     radius (css .grass-veil / .cell--proj), and the same lattice. GRASS_CELL
+     and GRASS_GAP must match the values the stylesheet draws with. */
+  const GRASS_CELL = 17, GRASS_GAP = 6;
+  const GRASS_PITCH = GRASS_CELL + GRASS_GAP;
+
+  // fraction → the centre of the nearest background cell, back as a fraction
+  function snapCell(frac, size) {
+    const c = Math.round((frac * size - GRASS_CELL / 2) / GRASS_PITCH);
+    return (c * GRASS_PITCH + GRASS_CELL / 2) / size;
+  }
+
   function buildGrass() {
     const W = window.innerWidth, H = window.innerHeight;
     const w = grass.clientWidth || Math.max(W, H);
@@ -262,8 +275,10 @@
     PROJECTS.forEach((p, i) => {
       // fx/fy are fractions of the VISIBLE viewport, remapped into the S×S
       // face so tiles stay on-screen in both orientations
-      const gx = 0.5 + (p.fx - 0.5) * (W / w);
-      const gy = 0.5 + (p.fy - 0.5) * (H / w);
+      // land on an actual cell of the background grid — a project pixel that
+      // sits between cells reads as a smudge, not as a planted square
+      const gx = snapCell(0.5 + (p.fx - 0.5) * (W / w), w);
+      const gy = snapCell(0.5 + (p.fy - 0.5) * (H / w), w);
       const t = document.createElement('div');
       t.className = 'cell--proj';
       t.dataset.project = p.id;
@@ -271,8 +286,8 @@
       t.setAttribute('role', 'button');
       t.setAttribute('tabindex', '0');
       t.setAttribute('aria-label', `${p.title} — ${p.tagline}`);
-      t.style.left = `${(gx * 100).toFixed(3)}%`;
-      t.style.top = `${(gy * 100).toFixed(3)}%`;
+      t.style.left = `${(gx * w).toFixed(1)}px`;
+      t.style.top = `${(gy * w).toFixed(1)}px`;
       grass.appendChild(t);
       projTiles.push({ el: t, gx, gy });
     });

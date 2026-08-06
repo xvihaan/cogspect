@@ -208,10 +208,11 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-color: rgba(208, 212, 222, .3);
-  background-image:
-    repeating-linear-gradient(90deg, transparent 0 17px, var(--paper) 17px 23px),
-    repeating-linear-gradient(0deg, transparent 0 17px, var(--paper) 17px 23px);
+  /* one rounded 17px cell on a 23px lattice — the same square, radius and
+     pitch a project pixel uses, so the planted ones sit in the grid rather
+     than on top of it. Keep in sync with GRASS_CELL/GRASS_GAP in js/app.js. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='23' height='23'%3E%3Crect width='17' height='17' rx='5' ry='5' fill='%23dfe3ea'/%3E%3C/svg%3E");
+  background-size: 23px 23px;
   -webkit-mask-image: radial-gradient(220px circle at var(--mx, -500px) var(--my, -500px),
     rgba(0, 0, 0, .95), rgba(0, 0, 0, .45) 55%, transparent 75%);
   mask-image: radial-gradient(220px circle at var(--mx, -500px) var(--my, -500px),
@@ -222,9 +223,9 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
    the cursor's reveal circle reaches them */
 .cell--proj {
   position: absolute;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
+  width: 17px;                     /* = GRASS_CELL, matches a background cell */
+  height: 17px;
+  margin: -8.5px 0 0 -8.5px;
   border-radius: 5px;
   cursor: pointer;
   outline: none;
@@ -233,8 +234,8 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   box-shadow: 0 1px 3px rgba(28, 28, 36, .14);
   transition: opacity .35s ease, transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .35s;
 }
-.cell--proj[data-tone="white"]  { background: linear-gradient(160deg, #e9ebf1, #c8cdd8); }
-.cell--proj[data-tone="silver"] { background: linear-gradient(160deg, #d6dae2, #a9afbc); }
+.cell--proj[data-tone="white"]  { background: linear-gradient(160deg, #c9cfdb, #a9b1c0); }
+.cell--proj[data-tone="silver"] { background: linear-gradient(160deg, #9aa2b3, #7b8396); }
 .cell--proj[data-tone="dark"]   { background: linear-gradient(160deg, #4c4e57, #303138); }
 .cell--proj::after {
   content: '';
