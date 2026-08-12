@@ -443,7 +443,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
      cube.left also always centres on the viewport regardless of aspect. */
   top: 50%;
   left: 50%;
-  transform: translate(calc(-50% - min(13vw, 132px)), calc(-50% - min(29vh, 248px)));
+  transform: translate(calc(-50% - min(17vw, 172px)), calc(-50% - min(29vh, 248px)));
   width: min(600px, 62vw);
   display: flex;
   align-items: flex-start;
