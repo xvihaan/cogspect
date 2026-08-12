@@ -433,9 +433,15 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 
 .keen-entry {
   position: absolute;
-  top: min(11vh, 92px);
+  /* The cube face is S×S where S = max(viewport w, h), so on a landscape
+     screen the face is far taller than the viewport and a plain `top: Npx`
+     (relative to the FACE's own top) lands above the visible screen — this
+     anchors to 50%/50% instead, which is always the face's own centre AND
+     the viewport's centre (layout() centres the cube on both axes), then
+     pulls up by a viewport-relative amount. Safe in every orientation. */
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, calc(-50% - min(18vh, 150px)));
   width: min(880px, 88vw);
   display: flex;
   align-items: flex-start;
