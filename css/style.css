@@ -438,15 +438,23 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
      (relative to the FACE's own top) lands above the visible screen — this
      anchors to 50%/50% instead, which is always the face's own centre AND
      the viewport's centre (layout() centres the cube on both axes), then
-     pulls up by a viewport-relative amount. Safe in every orientation. */
+     pulls up-and-left by a viewport-relative amount. Safe in every
+     orientation — the same reasoning applies on the horizontal axis, since
+     cube.left also always centres on the viewport regardless of aspect. */
   top: 50%;
   left: 50%;
-  transform: translate(-50%, calc(-50% - min(21vh, 176px)));
+  transform: translate(calc(-50% - min(13vw, 132px)), calc(-50% - min(29vh, 248px)));
   width: min(600px, 62vw);
   display: flex;
   align-items: flex-start;
   gap: 18px;
   text-align: left;
+}
+/* the diagonal pull is tuned for normal displays; a short viewport (an old
+   320-wide phone in landscape-ish proportions) has too little headroom above
+   the nav/wordmark for that much upward pull, so ease off just there */
+@media (max-height: 620px) {
+  .keen-entry { transform: translate(calc(-50% - min(9vw, 90px)), calc(-50% - min(16vh, 130px))); }
 }
 
 /* placeholder for a hand-drawn glyph of the design language — kept as a
