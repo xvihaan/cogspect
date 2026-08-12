@@ -428,20 +428,35 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   transform: translateX(-50%) translateY(0);
 }
 
-/* 04 · keen */
-
-/* 04 · keen — the design language written up as a dictionary entry */
+/* 04 · keen — the design language written up as a dictionary entry, laid
+   out along the top edge: a reserved glyph slot, then the headword. */
 
 .keen-entry {
   position: absolute;
-  top: 50%;
+  top: min(11vh, 92px);
   left: 50%;
-  /* sits toward the upper left like the head of a dictionary page; the offset
-     is clamped so it never leaves the viewport on a portrait screen */
-  transform: translate(calc(-50% - min(7vw, 86px)), calc(-50% - min(9vh, 84px)));
-  width: min(620px, 78vw);
+  transform: translateX(-50%);
+  width: min(880px, 88vw);
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
   text-align: left;
 }
+
+/* placeholder for a hand-drawn glyph of the design language — kept as a
+   framed square (not a bare box) so it reads as reserved, not broken */
+.keen-glyph {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 84px;
+  border-radius: 20px;
+  background: rgba(21, 22, 28, .03);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
+  border: 1px dashed rgba(21, 22, 28, .16);
+  border: 1px dashed color-mix(in srgb, var(--fg) 16%, transparent);
+}
+
+.keen-copy { flex: 1 1 auto; min-width: 0; }
 
 .keen-head {
   display: flex;
@@ -454,7 +469,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 }
 .keen-title {
   margin: 0;
-  font-size: clamp(34px, 5.2vw, 50px);
+  font-size: clamp(30px, 4.4vw, 44px);
   font-weight: 700;
   letter-spacing: -.035em;
   line-height: 1;
@@ -476,58 +491,12 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 }
 
 .keen-def {
-  margin: 16px 0 22px;
+  margin: 16px 0 0;
   font-size: 15px;
   font-weight: 500;
   line-height: 1.75;
   color: #3a3a3e;
   text-wrap: pretty;
-}
-
-.keen-spec {
-  margin: 0;
-  display: grid;
-  gap: 12px;
-}
-.keen-row {
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 14px;
-  align-items: baseline;
-}
-.keen-spec dt {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .16em;
-  color: var(--faint);
-  padding-top: 2px;
-}
-.keen-spec dd {
-  margin: 0;
-  font-size: 12.5px;
-  font-weight: 500;
-  line-height: 1.85;
-  color: #4a4a50;
-  text-wrap: pretty;
-}
-.keen-spec code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  color: var(--ink);
-  background: rgba(21, 22, 28, .05);
-  background: color-mix(in srgb, var(--fg) 5%, transparent);
-}
-/* a colour chip drawn as one grass cell, so the palette quotes the motif */
-.keen-spec .sw {
-  display: inline-block;
-  width: 11px;
-  height: 11px;
-  border-radius: 4px;
-  margin: 0 5px -1px 0;
-  background: var(--c);
-  box-shadow: inset 0 0 0 1px rgba(21, 22, 28, .12);
 }
 
 /* 05 · vision */
