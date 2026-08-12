@@ -450,9 +450,31 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   gap: 18px;
   text-align: left;
 }
-/* the diagonal pull is tuned for normal displays; a short viewport (an old
-   320-wide phone in landscape-ish proportions) has too little headroom above
-   the nav/wordmark for that much upward pull, so ease off just there */
+/* Desktop-width screens: park it directly under the wordmark instead of a
+   viewport-relative pull, since that's much easier to tune by feel — these
+   two numbers ARE the gap (in px) from the screen's top-left corner to the
+   block's top-left corner. Smaller = closer to the corner (further
+   up/left); bigger = further from it. .wordmark itself sits at
+   left:36px/top:30px, bottom edge ~52px (see .wordmark below), so
+   TARGET_LEFT 36 lines up flush with the logo and TARGET_TOP 70 clears it
+   by ~18px. HALF_W/HALF_H are half the block's own rendered size at this
+   width (600×~66px) — only exact while width stays pinned at 600px (i.e.
+   viewport ≳ 968px, min(600px,62vw) = 600px); that's why this block is
+   gated to that width. Below it, the min(vw,px) pull above still applies. */
+@media (min-width: 968px) {
+  .keen-entry {
+    --keen-target-left: 36px;
+    --keen-target-top: 70px;
+    transform: translate(
+      calc(-50% - 50vw + 300px + var(--keen-target-left)),
+      calc(-50% - 50vh + 33px + var(--keen-target-top))
+    );
+  }
+}
+/* the diagonal/target pull above is tuned for normal displays; a short
+   viewport (an old 320-wide phone in landscape-ish proportions) has too
+   little headroom above the nav/wordmark for that much upward pull, so ease
+   off just there — this rule is last so it always wins on short screens */
 @media (max-height: 620px) {
   .keen-entry { transform: translate(calc(-50% - min(9vw, 90px)), calc(-50% - min(16vh, 130px))); }
 }
