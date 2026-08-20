@@ -20,6 +20,12 @@
   </filter>
   <!-- pills are small, so the turbulence has to be finer than #lg-lens or the
        whole surface just shifts as one block instead of rippling inside it -->
+  <!-- Bifröst: blue gate → red gate, the rainbow bridge between them -->
+  <linearGradient id="bfrostGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#4c7dff"/>
+    <stop offset=".5" stop-color="#9b6cff"/>
+    <stop offset="1" stop-color="#e0483f"/>
+  </linearGradient>
   <filter id="lg-pill" x="-30%" y="-30%" width="160%" height="160%">
     <feTurbulence type="fractalNoise" baseFrequency="0.013 0.018" numOctaves="1" seed="7" result="noise"/>
     <feGaussianBlur in="noise" stdDeviation="1.6" result="soft"/>
@@ -46,6 +52,9 @@
           <div class="grass" id="grassField">
             <div class="grass-veil" id="grassVeil" aria-hidden="true"></div>
             <div class="tile-tip" id="tileTip" role="status"></div>
+            <div class="grass-legend" aria-hidden="true">
+              <span>less</span><i></i><i></i><i></i><i></i><span>more</span>
+            </div>
           </div>
         </section>
 
@@ -55,6 +64,15 @@
             <h2>비프로스트</h2>
           </div>
           <div class="cosmos">
+            <!-- viewBox units are percentages of the square face, so the path
+                 endpoints are literally the planets' own left/top values -->
+            <svg class="bridge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <path class="bridge-glow" pathLength="100" d="M36 40 Q50 32 66 60"/>
+              <path class="bridge-path" pathLength="100" d="M36 40 Q50 32 66 60"/>
+              <circle class="bridge-spark" r="0.6">
+                <animateMotion dur="3.4s" repeatCount="indefinite" path="M36 40 Q50 32 66 60"/>
+              </circle>
+            </svg>
             <a class="planet planet--b3ta" href="https://b3ta.netlify.app" target="_blank" rel="noopener"
                data-tip="b3ta | Spatial Intelligence ↗" aria-label="b3ta — 인텔리전스로 이동">
               <i class="orb"></i>
@@ -68,8 +86,12 @@
 
         <section class="face face--keen" data-face="back" aria-label="keen">
           <div class="keen-entry">
-            <!-- reserved for a hand-drawn glyph of the design language -->
-            <div class="keen-glyph" aria-hidden="true"></div>
+            <!-- the design language shown rather than described: a slab of
+                 the actual glass, draggable across the lattice behind it -->
+            <div class="keen-slab" id="keenSlab" role="img"
+                 aria-label="keen 글래스 표본 — 끌어서 움직일 수 있습니다">
+              <span class="keen-slab-hint">drag me</span>
+            </div>
             <div class="keen-copy">
               <div class="keen-head">
                 <h2 class="keen-title">⌜keen⌟</h2>

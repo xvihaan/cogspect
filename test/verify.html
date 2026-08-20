@@ -250,6 +250,67 @@ f.addEventListener('load', async () => {
   // starves rAF, so the momentum roll may still be running here
   ok(hud()===LABELS[frontOf(mat())],`after a free tumble: HUD matches geometry (${hud()})`);
 
+  /* ---------- presence pass: the identity must be on screen at rest ------- */
+
+  log('\n— presence pass —');
+  d.getElementById('homeBtn').click();
+  await wait(1400);
+
+  // the intro must always hand the page back: a stuck 'intro' class leaves
+  // the visitor with no nav, no chat and no wordmark, which is unrecoverable
+  ok(!d.getElementById('stage').classList.contains('intro'), 'intro released the stage');
+  for (const sel of ['.glass-nav', '.chat-dock', '.wordmark', '.hud']) {
+    ok(w.getComputedStyle(d.querySelector(sel)).opacity === '1', `intro restored ${sel}`);
+  }
+
+  // the lattice is the identity — it must render without any pointer input
+  const dots = (sel, pseudo) => w.getComputedStyle(d.querySelector(sel), pseudo).backgroundImage;
+  ok(dots('.stage', '::before').includes('url('), 'stage lattice paints at rest');
+  ok(dots('.face--keen', '::before').includes('url('), 'keen face lattice paints at rest');
+  const veilMask = w.getComputedStyle(d.getElementById('grassVeil')).maskImage
+    || w.getComputedStyle(d.getElementById('grassVeil')).webkitMaskImage || '';
+  ok(!/transparent|rgba\(0,\s*0,\s*0,\s*0\)/.test(veilMask),
+     'grass veil mask never bottoms out at transparent');
+
+  // the graph and its labels
+  ok(d.querySelectorAll('.cell--amb').length > 60, 'ambient activity cells were planted');
+  const labels = [...d.querySelectorAll('.cell-label')];
+  ok(labels.length === d.querySelectorAll('.cell--proj').length,
+     'every project pixel carries a visible label');
+  ok(labels.every(l => l.textContent.trim().length > 0), 'labels carry copy');
+  key('ArrowRight');                       // → portfolio, so labels are on screen
+  await wait(1200);
+  const off = labels.filter(l => { const r = l.getBoundingClientRect();
+    return r.right < 2 || r.left > w.innerWidth - 2; });
+  ok(off.length === 0, `every label lands inside the viewport (${off.length} off-screen)`);
+
+  // Bifröst: reaching the gate builds the span
+  d.getElementById('homeBtn').click();
+  await wait(1200);
+  key('ArrowLeft');
+  await wait(1200);
+  ok(hud() === LABELS.left, 'arrived at the gate');
+  ok(face('left').classList.contains('bridged'), 'the Bifröst span was built on arrival');
+  ok(w.getComputedStyle(d.querySelector('.bridge-path')).stroke.includes('bfrostGrad'),
+     'the span resolves its gradient');
+
+  // the keen specimen must be draggable WITHOUT turning the cube under it
+  d.getElementById('homeBtn').click();
+  await wait(1200);
+  key('ArrowRight'); await wait(950); key('ArrowRight'); await wait(1200);
+  const slab = d.getElementById('keenSlab');
+  ok(!!slab && hud() === LABELS.back, 'arrived at keen with the specimen present');
+  const poseBeforeSlab = face('front').style.transform;
+  slab.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId:71, clientX:200, clientY:120, bubbles:true}));
+  for (let i=1;i<=6;i++) {
+    slab.dispatchEvent(new w.PointerEvent('pointermove', {pointerId:71, clientX:200+i*14, clientY:120+i*6, bubbles:true}));
+    await wait(16);
+  }
+  slab.dispatchEvent(new w.PointerEvent('pointerup', {pointerId:71, clientX:284, clientY:156, bubbles:true}));
+  await wait(200);
+  ok(face('front').style.transform === poseBeforeSlab, 'dragging the specimen does not turn the cube');
+  ok(/translate\(/.test(slab.style.transform), 'the specimen moved under the pointer');
+
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');
 });

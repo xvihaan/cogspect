@@ -270,7 +270,7 @@
       while (pool.length < PROJECTS.length) pool.push('white', 'silver', 'dark');
       tileTones = pool.sort(() => Math.random() - 0.5);
     }
-    grass.querySelectorAll('.cell--proj').forEach((c) => c.remove());
+    grass.querySelectorAll('.cell--proj, .cell-label').forEach((c) => c.remove());
     projTiles = [];
     PROJECTS.forEach((p, i) => {
       // fx/fy are fractions of the VISIBLE viewport, remapped into the S×S
@@ -289,8 +289,72 @@
       t.style.left = `${(gx * w).toFixed(1)}px`;
       t.style.top = `${(gy * w).toFixed(1)}px`;
       grass.appendChild(t);
+
+      // the project's name, on screen without hovering. It hangs BELOW the
+      // pixel while .tile-tip sits above it, so the two never collide.
+      const lab = document.createElement('div');
+      lab.className = 'cell-label';
+      lab.innerHTML = `<b></b><i></i>`;
+      lab.firstChild.textContent = p.title;
+      lab.lastChild.textContent = p.tagline || '';
+      lab.style.left = `${clampToView(gx * w, 92, w, W).toFixed(1)}px`;
+      lab.style.top = `${(gy * w).toFixed(1)}px`;
+      grass.appendChild(lab);
+
       projTiles.push({ el: t, gx, gy });
     });
+    buildAmbient(w);
+  }
+
+  /* A lattice is just a grid; a lattice whose cells carry different weights
+     reads as a record of activity, which is the whole point of the grass
+     homage. These cells are decoration — they carry no data and never take
+     a pointer — but they are what turns six dots in a void into a graph. */
+  const AMB_COUNT = 190;
+  function buildAmbient(w) {
+    grass.querySelectorAll('.cell--amb').forEach((c) => c.remove());
+    const cells = Math.floor(w / GRASS_PITCH);
+    const idx = (px) => Math.round((px - GRASS_CELL / 2) / GRASS_PITCH);
+    const taken = new Set(projTiles.map((t) => `${idx(t.gx * w)},${idx(t.gy * w)}`));
+    // the name hanging under each project pixel has to stay legible, so the
+    // ambient cells keep out of the box the label occupies
+    const boxes = projTiles.map((t) => ({
+      x0: t.gx * w - 92, x1: t.gx * w + 92, y0: t.gy * w + 6, y1: t.gy * w + 54
+    }));
+    const frag = document.createDocumentFragment();
+    let placed = 0, guard = 0;
+    while (placed < AMB_COUNT && guard++ < AMB_COUNT * 12) {
+      // biased toward the middle of the face — the rim is masked out anyway
+      const cx = Math.floor(cells * (0.5 + (Math.random() + Math.random() - 1) * 0.34));
+      const cy = Math.floor(cells * (0.5 + (Math.random() + Math.random() - 1) * 0.34));
+      const key = `${cx},${cy}`;
+      if (taken.has(key)) continue;
+      const px = cx * GRASS_PITCH + GRASS_CELL / 2, py = cy * GRASS_PITCH + GRASS_CELL / 2;
+      if (boxes.some((b) => px > b.x0 && px < b.x1 && py > b.y0 && py < b.y1)) continue;
+      taken.add(key);
+      const level = 1 + Math.floor(Math.random() * Math.random() * 3);   // mostly faint
+      const a = 0.22 + level * 0.13;
+      const el = document.createElement('div');
+      el.className = 'cell--amb';
+      el.dataset.level = level;
+      el.style.left = `${px.toFixed(1)}px`;
+      el.style.top = `${py.toFixed(1)}px`;
+      el.style.setProperty('--a', a.toFixed(2));
+      el.style.setProperty('--a2', Math.min(1, a * 1.7).toFixed(2));
+      el.style.setProperty('--dur', `${(5 + Math.random() * 6).toFixed(1)}s`);
+      el.style.setProperty('--delay', `${(-Math.random() * 8).toFixed(1)}s`);
+      frag.appendChild(el);
+      placed++;
+    }
+    grass.appendChild(frag);
+  }
+
+  /* Only the middle W px of the S×S face are on screen, so anything with real
+     width — a label, a tip — has to be kept inside that slice or it renders
+     off the edge of the display. */
+  function clampToView(x, half, S, W) {
+    const lo = (S - W) / 2 + half, hi = (S + W) / 2 - half;
+    return hi <= lo ? S / 2 : Math.max(lo, Math.min(hi, x));
   }
 
   function projectOf(el) {
@@ -301,8 +365,9 @@
   function showTip(cell, p) {
     // the face's own kicker already says to click, so the tip stays title + line
     tileTip.innerHTML = `<strong>${p.title}</strong><span>${p.tagline}</span>`;
-    const half = 120;
-    const x = Math.max(half, Math.min(grass.clientWidth - half, cell.offsetLeft + cell.offsetWidth / 2));
+    const half = 124;
+    const x = clampToView(cell.offsetLeft + cell.offsetWidth / 2, half,
+      grass.clientWidth || Math.max(window.innerWidth, window.innerHeight), window.innerWidth);
     tileTip.style.left = `${x}px`;
     tileTip.style.top = `${cell.offsetTop}px`;
     tileTip.classList.add('show');
@@ -456,6 +521,8 @@
 
   function setFace(face) {
     cur = face;
+    // the gate only gets built once — after that the bridge simply stands
+    if (face === 'left' && faceEls.left) faceEls.left.classList.add('bridged');
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
     // Faces pointing away are still in the DOM, so without this the Tab key
@@ -616,7 +683,7 @@
        with momentum and a snap onto the nearest resting pose. */
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg')) return;
+    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .keen-slab')) return;
     if (overlayOpen()) return;
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
@@ -766,6 +833,45 @@
     const map = { ArrowRight: 'right', ArrowLeft: 'left', ArrowUp: 'up', ArrowDown: 'down' };
     if (map[e.key]) { e.preventDefault(); step(map[e.key]); }
   });
+
+  /* ---------- keen specimen: the glass slab you can pick up ----------
+     The design language is demonstrated instead of described — dragging the
+     slab across the lattice shows the refraction doing its work. It moves on
+     transform only, so it never disturbs .keen-entry's measured box (the
+     block's position is a calc() tuned against that box). */
+
+  const keenSlab = document.getElementById('keenSlab');
+  if (keenSlab) {
+    let slabDrag = null, slabX = 0, slabY = 0;
+    const LIMIT = 190;                       // stay on the face, never behind chrome
+    const clamp = (v) => Math.max(-LIMIT, Math.min(LIMIT, v));
+
+    keenSlab.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();                   // the cube must not turn under it
+      slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      keenSlab.classList.add('dragging', 'held');
+      // Capture is an enhancement, not the mechanism: it throws when there is
+      // no live pointer with this id, and the move/up listeners live on the
+      // window anyway so the drag survives the pointer leaving the slab.
+      try { keenSlab.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!slabDrag || e.pointerId !== slabDrag.id) return;
+      // the pointer moves in screen px; the slab lives inside the zoomed face
+      slabX = clamp(slabX + (e.clientX - slabDrag.x) / zoomCur);
+      slabY = clamp(slabY + (e.clientY - slabDrag.y) / zoomCur);
+      slabDrag.x = e.clientX; slabDrag.y = e.clientY;
+      keenSlab.style.transform = `translate(${slabX.toFixed(1)}px, ${slabY.toFixed(1)}px)`;
+    });
+    const dropSlab = (e) => {
+      if (!slabDrag || e.pointerId !== slabDrag.id) return;
+      slabDrag = null;
+      keenSlab.classList.remove('dragging');
+    };
+    window.addEventListener('pointerup', dropSlab);
+    window.addEventListener('pointercancel', dropSlab);
+  }
 
   /* ---------- pixel-grid ripples ---------- */
 
@@ -1085,13 +1191,70 @@
     })
     .catch((err) => console.warn('projects.json load failed:', err));
 
-  // Entrance drift is purely visual — O stays exactly ID, so an arrow key
-  // pressed inside this window still turns from a square pose.
-  paintFaces(false, 0, null, mul(rotY(-16), rotX(9)));
-  setTimeout(() => {
-    if (phase !== 'idle' || drag) return;    // someone grabbed it — leave them be
+  /* The cube is the whole argument for this site, and a still first frame
+     cannot make it: before this, a visitor landed on a near-blank page and
+     had to guess there was anything to turn. The intro rolls the object
+     through one slow tumble — every face passes the camera once — and then
+     zooms in and lands square on the front face.
+
+     Like the old entrance drift, it never touches O: the poses are passed
+     to paintFaces() directly, so the logical orientation stays exactly ID
+     and an arrow key pressed mid-intro still turns from a square pose. */
+
+  const INTRO_LEG = 900;
+  let introTimers = [];
+  let introOver = false;
+
+  function endIntro(animate) {
+    if (introOver) return;
+    introOver = true;
+    introTimers.forEach(clearTimeout);
+    introTimers = [];
+    stage.classList.remove('intro');
     drifting = false;
-    applyCube(true);
-  }, 180);
+    rotHold = false;                 // release the zoom clamp — springs in to 1
+    phase = 'idle';
+    applyCube(animate !== false);
+  }
+
+  function runIntro() {
+    phase = 'intro';                 // pointerdown/step both bail on a non-idle phase
+    rotHold = true;                  // holds the cube back at ROT_ZOOM: an object, not a wall
+    zoomCur = 0.2;                   // ...and it grows into that on the way in
+    stage.classList.add('intro');
+    // one continuous -360° sweep about Y with a nod on X. Quaternion slerp
+    // between these takes the short way each time, which chains into a single
+    // unbroken roll, and the last pose is ID so it lands already square.
+    const legs = [
+      [mul(rotY(-120), rotX(-26)), INTRO_LEG],
+      [mul(rotY(-240), rotX(22)), INTRO_LEG],
+      [ID, INTRO_LEG - 80],
+    ];
+    paintFaces(false, 0, null, mul(rotY(-14), rotX(8)));
+    let at = 240;
+    for (const [M, ms] of legs) {
+      introTimers.push(setTimeout(() => {
+        if (introOver) return;
+        paintFaces(true, ms, 'cubic-bezier(.42,0,.3,1)', M);
+      }, at));
+      at += ms;
+    }
+    introTimers.push(setTimeout(() => endIntro(false), at + 40));
+  }
+
+  // any deliberate input skips it — and because these listeners capture, the
+  // same gesture then reaches the normal handlers with phase already 'idle'
+  for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart']) {
+    window.addEventListener(ev, () => endIntro(true), { capture: true, passive: true });
+  }
+
+  if (reducedMotion.matches) {
+    introOver = true;
+    drifting = false;
+    applyCube(false);
+  } else {
+    runIntro();
+  }
+
   tick();
 })();
