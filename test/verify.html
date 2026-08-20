@@ -306,6 +306,37 @@ f.addEventListener('load', async () => {
      'and the labels rest hidden again, leaving a clean field');
   noTr.remove();
 
+  // the notification bars: one per face, parked at the top of the SCREEN
+  d.getElementById('homeBtn').click();
+  await wait(1200);
+  ok(!face('front').querySelector('.face-banner'),
+     'the cover face keeps its bare lede — no bar');
+  /* The bar lives inside the cube, so its screen position is multiplied by
+     the zoom. Under virtual time the rAF spring never reaches 1, so pin the
+     wrap at production scale for the duration of this check — an inline
+     write would be overwritten by the next tick(), a stylesheet !important
+     cannot be. */
+  const pin = d.createElement('style');
+  pin.textContent = '#zoomWrap{transform:scale(1)!important;transition:none!important}';
+  d.head.appendChild(pin);
+  for (const [name, k] of [['right','ArrowRight'],['left','ArrowLeft'],['top','ArrowUp'],['bottom','ArrowDown']]) {
+    d.getElementById('homeBtn').click();
+    await wait(1100);
+    key(k);
+    await wait(1100);
+    const bar = face(name).querySelector('.face-banner');
+    if (!bar) { ok(false, `${name} has a bar`); continue; }
+    const r = bar.getBoundingClientRect();
+    const clear = ['.glass-nav', '.chat-bar', '.wordmark'].every(sel => {
+      const c = d.querySelector(sel).getBoundingClientRect();
+      return r.right <= c.left || c.right <= r.left || r.bottom <= c.top || c.bottom <= r.top;
+    });
+    ok(Math.abs(r.top - 86) < 2 && r.left >= 0 && r.right <= w.innerWidth && clear,
+       `${name}: bar at the top of the screen, clear of the chrome (top ${Math.round(r.top)})`);
+  }
+
+  pin.remove();
+
   // Bifröst: reaching the gate strikes the beam, and the beam is STRAIGHT
   d.getElementById('homeBtn').click();
   await wait(1200);

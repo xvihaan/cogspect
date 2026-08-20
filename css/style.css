@@ -154,48 +154,9 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   padding: 0 24px;
 }
 
-.face-note {
-  margin: 0;
-  max-width: 440px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.8;
-  color: #5a5a60;
-  text-wrap: pretty;
-  padding: 0 24px;
-}
-.face-note--dark { color: var(--faint); max-width: 420px; }
 
 /* 02 · portfolio field — sparse glowing pixels across the whole face */
 
-.field-head {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  text-align: center;
-  cursor: default;
-  user-select: none;
-}
-.field-head h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -.03em;
-  transition: color .45s ease;
-}
-.field-head .kicker {
-  letter-spacing: .18em;
-  transition: color .45s ease;
-}
-.field-head:hover h2 { color: #b9bfca; }
-.field-head:hover .kicker { color: #ccd0d9; }
 
 .grass {
   position: absolute;
@@ -317,26 +278,6 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 
 /* 03 · gateway — planet gates (design carried over from b3ta) */
 
-.gateway-head {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  text-align: center;
-  pointer-events: none;
-  user-select: none;
-}
-.gateway-head h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -.03em;
-}
 
 .cosmos {
   position: absolute;
@@ -552,28 +493,9 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 
 /* 05 · vision */
 
-.vision-lede {
-  margin: 0;
-  max-width: 560px;
-  text-align: center;
-  font-size: clamp(18px, 2.6vw, 24px);
-  font-weight: 500;
-  line-height: 1.8;
-  color: #2a2a2e;
-  text-wrap: pretty;
-  padding: 0 24px;
-}
-.vision-lede strong { font-weight: 700; }
 
 /* 06 · v0id */
 
-.void-title {
-  margin: 0;
-  font-size: clamp(44px, 7vw, 72px);
-  font-weight: 700;
-  letter-spacing: -.045em;
-  color: #f5f5f3;
-}
 .void-link {
   display: inline-flex;
   align-items: center;
@@ -1454,6 +1376,94 @@ body.on-dark input::placeholder { color: #7a7a82; }
   100% { stroke-dashoffset: 0; opacity: .8; }
 }
 @keyframes bfSpark { to { opacity: .95; } }
+
+/* ---------- 00b · the face banner ----------
+   Every face except the front one now announces itself the way a system
+   notification does: one curved glass bar, parked near the top of the
+   SCREEN. Titles used to sit dead centre of the face, where they competed
+   with whatever the face was actually for — the portfolio's pixels, the
+   gate's orbs — and on a landscape display "centre of the face" is not even
+   centre of the screen. The front face keeps its bare lede: it is the cover,
+   and a cover does not need a label. */
+
+.face-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* No -50% on the Y axis, deliberately. .face is an S×S box that layout()
+     centres on the viewport in both axes, so `top: 50%` already puts the
+     element's TOP EDGE on the screen's vertical centre; stepping back by
+     50vh therefore lands that edge exactly --banner-top px from the top of
+     the SCREEN, whatever the copy inside does to the height. That is what
+     makes this safe in every orientation without the per-block half-height
+     constant .keen-entry has to carry. */
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 86px)));
+  z-index: 4;
+  box-sizing: border-box;
+  max-width: min(560px, calc(100vw - 36px));
+  /* a bar that shrink-wraps to two short words reads as a badge, not as a
+     notification — the floor keeps all four the same family of shape */
+  min-width: min(260px, calc(100vw - 36px));
+  padding: 12px 26px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+  /* keen: fill mixed from the inverse token so the bar reads on the paper
+     faces and on the void face alike; radius from the top of keen's scale */
+  border-radius: 28px;
+  background: rgba(244, 246, 250, .3);
+  background: color-mix(in srgb, var(--fg-inv) 30%, transparent);
+  border: 1px solid rgba(21, 22, 28, .13);
+  border: 1px solid color-mix(in srgb, var(--fg) 13%, transparent);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  box-shadow:
+    0 18px 48px rgba(5, 10, 25, .16),
+    inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+body.lens .face-banner {
+  backdrop-filter: url(#lg-lens) blur(4px) saturate(145%);
+  -webkit-backdrop-filter: blur(4px) saturate(145%);
+}
+
+.face-banner .kicker {
+  font-size: 8.5px;
+  letter-spacing: .2em;
+}
+.face-banner h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.028em;
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.face-banner p {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.face-banner p strong { font-weight: 700; color: #34343a; }
+
+/* the void face is dark, so the copy has to flip with it — the glass itself
+   already flips, because body.on-dark swaps --fg / --fg-inv */
+.face--void .face-banner h2 { color: #f3f4f8; }
+.face--void .face-banner p { color: #a9abb4; }
+.face--void .face-banner p strong { color: #e6e8ee; }
+
+/* short screens have no room to hang the bar that far down */
+@media (max-height: 620px) {
+  .face-banner { --banner-top: 72px; padding: 10px 22px 12px; min-width: min(230px, calc(100vw - 36px)); }
+  .face-banner h2 { font-size: 14.5px; }
+}
 
 /* ---------- 04b · keen — the design language as a specimen ----------
    The reserved slot holds a real piece of the material instead of a
