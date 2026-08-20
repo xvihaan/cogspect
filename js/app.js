@@ -310,9 +310,10 @@
      reads as a record of activity, which is the whole point of the grass
      homage. These cells are decoration — they carry no data and never take
      a pointer — but they are what turns six dots in a void into a graph. */
-  const AMB_COUNT = 190;
+  const AMB_COUNT = 150;
   function buildAmbient(w) {
-    grass.querySelectorAll('.cell--amb').forEach((c) => c.remove());
+    const prev = grass.querySelector('.grass-amb');
+    if (prev) prev.remove();
     const cells = Math.floor(w / GRASS_PITCH);
     const idx = (px) => Math.round((px - GRASS_CELL / 2) / GRASS_PITCH);
     const taken = new Set(projTiles.map((t) => `${idx(t.gx * w)},${idx(t.gy * w)}`));
@@ -324,29 +325,34 @@
     const frag = document.createDocumentFragment();
     let placed = 0, guard = 0;
     while (placed < AMB_COUNT && guard++ < AMB_COUNT * 12) {
-      // biased toward the middle of the face — the rim is masked out anyway
-      const cx = Math.floor(cells * (0.5 + (Math.random() + Math.random() - 1) * 0.34));
-      const cy = Math.floor(cells * (0.5 + (Math.random() + Math.random() - 1) * 0.34));
+      // Spread wide and only slightly centre-weighted: a tight gaussian piles
+      // cells on top of each other, and once the cloud is blurred those piles
+      // merge into one dark patch instead of reading as scattered activity.
+      const cx = Math.floor(cells * (0.5 + (Math.random() + Math.random() - 1) * 0.52));
+      const cy = Math.floor(cells * (0.5 + (Math.random() + Math.random() - 1) * 0.52));
       const key = `${cx},${cy}`;
       if (taken.has(key)) continue;
       const px = cx * GRASS_PITCH + GRASS_CELL / 2, py = cy * GRASS_PITCH + GRASS_CELL / 2;
       if (boxes.some((b) => px > b.x0 && px < b.x1 && py > b.y0 && py < b.y1)) continue;
       taken.add(key);
       const level = 1 + Math.floor(Math.random() * Math.random() * 3);   // mostly faint
-      const a = 0.22 + level * 0.13;
+      const a = 0.18 + level * 0.11;
       const el = document.createElement('div');
       el.className = 'cell--amb';
       el.dataset.level = level;
       el.style.left = `${px.toFixed(1)}px`;
       el.style.top = `${py.toFixed(1)}px`;
       el.style.setProperty('--a', a.toFixed(2));
-      el.style.setProperty('--a2', Math.min(1, a * 1.7).toFixed(2));
-      el.style.setProperty('--dur', `${(5 + Math.random() * 6).toFixed(1)}s`);
-      el.style.setProperty('--delay', `${(-Math.random() * 8).toFixed(1)}s`);
       frag.appendChild(el);
       placed++;
     }
-    grass.appendChild(frag);
+    // one wrapper carries the blur for the whole cloud: it composites as a
+    // single layer, and blurring per-cell would cost 200 of them
+    const wrap = document.createElement('div');
+    wrap.className = 'grass-amb';
+    wrap.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(frag);
+    grass.insertBefore(wrap, grass.firstChild);
   }
 
   /* Only the middle W px of the S×S face are on screen, so anything with real
@@ -355,6 +361,18 @@
   function clampToView(x, half, S, W) {
     const lo = (S - W) / 2 + half, hi = (S + W) / 2 - half;
     return hi <= lo ? S / 2 : Math.max(lo, Math.min(hi, x));
+  }
+
+  /* Five seconds of "here is what is planted here", then the face goes back
+     to being a clean field. Re-entering the face runs it again. */
+  const REVEAL_MS = 5000;
+  let revealTimer = null;
+  function revealProjects() {
+    const face = faceEls.right;
+    if (!face || reducedMotion.matches) return;
+    clearTimeout(revealTimer);
+    face.classList.add('reveal');
+    revealTimer = setTimeout(() => face.classList.remove('reveal'), REVEAL_MS);
   }
 
   function projectOf(el) {
@@ -523,6 +541,9 @@
     cur = face;
     // the gate only gets built once — after that the bridge simply stands
     if (face === 'left' && faceEls.left) faceEls.left.classList.add('bridged');
+    // arriving at the portfolio shows the visitor where the six projects are,
+    // then lets them settle back into the field — nothing stays lit
+    if (face === 'right') revealProjects();
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
     // Faces pointing away are still in the DOM, so without this the Tab key
@@ -843,13 +864,30 @@
   const keenSlab = document.getElementById('keenSlab');
   if (keenSlab) {
     let slabDrag = null, slabX = 0, slabY = 0;
-    const LIMIT = 190;                       // stay on the face, never behind chrome
-    const clamp = (v) => Math.max(-LIMIT, Math.min(LIMIT, v));
+
+    /* The old ±190px box barely let the slab off its own slot. The range is
+       now the whole visible face: the limits are derived at grab time from
+       where the slab actually sits on screen, so it can be carried anywhere
+       the visitor can see, and stops at the edges instead of at an arbitrary
+       distance. The bottom margin keeps it from parking under the chat dock. */
+    const EDGE = 14, DOCK = 96;
+    function slabLimits() {
+      const r = keenSlab.getBoundingClientRect();
+      const z = zoomCur || 1;
+      // how far the slab may still travel, in screen px, then back to local px
+      return {
+        minX: slabX - (r.left - EDGE) / z,
+        maxX: slabX + (window.innerWidth - EDGE - r.right) / z,
+        minY: slabY - (r.top - EDGE) / z,
+        maxY: slabY + (window.innerHeight - DOCK - r.bottom) / z
+      };
+    }
+    const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
 
     keenSlab.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       e.stopPropagation();                   // the cube must not turn under it
-      slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, lim: slabLimits() };
       keenSlab.classList.add('dragging', 'held');
       // Capture is an enhancement, not the mechanism: it throws when there is
       // no live pointer with this id, and the move/up listeners live on the
@@ -859,8 +897,9 @@
     window.addEventListener('pointermove', (e) => {
       if (!slabDrag || e.pointerId !== slabDrag.id) return;
       // the pointer moves in screen px; the slab lives inside the zoomed face
-      slabX = clamp(slabX + (e.clientX - slabDrag.x) / zoomCur);
-      slabY = clamp(slabY + (e.clientY - slabDrag.y) / zoomCur);
+      const L = slabDrag.lim;
+      slabX = clamp(slabX + (e.clientX - slabDrag.x) / (zoomCur || 1), L.minX, L.maxX);
+      slabY = clamp(slabY + (e.clientY - slabDrag.y) / (zoomCur || 1), L.minY, L.maxY);
       slabDrag.x = e.clientX; slabDrag.y = e.clientY;
       keenSlab.style.transform = `translate(${slabX.toFixed(1)}px, ${slabY.toFixed(1)}px)`;
     });
@@ -1201,7 +1240,7 @@
      to paintFaces() directly, so the logical orientation stays exactly ID
      and an arrow key pressed mid-intro still turns from a square pose. */
 
-  const INTRO_LEG = 900;
+  const INTRO_LEG = 1080;
   let introTimers = [];
   let introOver = false;
 
@@ -1222,13 +1261,15 @@
     rotHold = true;                  // holds the cube back at ROT_ZOOM: an object, not a wall
     zoomCur = 0.2;                   // ...and it grows into that on the way in
     stage.classList.add('intro');
-    // one continuous -360° sweep about Y with a nod on X. Quaternion slerp
-    // between these takes the short way each time, which chains into a single
-    // unbroken roll, and the last pose is ID so it lands already square.
+    // Two moves, not three: each leg is a separate composited transition over
+    // six large faces, and three of them back to back dropped frames on the
+    // way in. Still a full -360° about Y, still every face passing the camera
+    // once — the intermediate is past 180° on purpose, so slerp's short way
+    // home from it continues in the SAME direction instead of unwinding, and
+    // the two legs read as one unbroken roll rather than a there-and-back.
     const legs = [
-      [mul(rotY(-120), rotX(-26)), INTRO_LEG],
-      [mul(rotY(-240), rotX(22)), INTRO_LEG],
-      [ID, INTRO_LEG - 80],
+      [mul(rotY(-200), rotX(-18)), INTRO_LEG],
+      [ID, INTRO_LEG - 60],
     ];
     paintFaces(false, 0, null, mul(rotY(-14), rotX(8)));
     let at = 240;

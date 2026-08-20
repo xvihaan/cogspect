@@ -213,13 +213,10 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
      than on top of it. Keep in sync with GRASS_CELL/GRASS_GAP in js/app.js. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='23' height='23'%3E%3Crect width='17' height='17' rx='5' ry='5' fill='%23dfe3ea'/%3E%3C/svg%3E");
   background-size: 23px 23px;
-  /* The cursor no longer REVEALS the lattice, it BRIGHTENS it: the mask
-     bottoms out at .62 instead of transparent, so the graph is on screen
-     from the first frame and the pointer just lights the part it is over. */
-  -webkit-mask-image: radial-gradient(260px circle at var(--mx, -500px) var(--my, -500px),
-    rgba(0, 0, 0, 1), rgba(0, 0, 0, .78) 55%, rgba(0, 0, 0, .62) 80%);
-  mask-image: radial-gradient(260px circle at var(--mx, -500px) var(--my, -500px),
-    rgba(0, 0, 0, 1), rgba(0, 0, 0, .78) 55%, rgba(0, 0, 0, .62) 80%);
+  -webkit-mask-image: radial-gradient(220px circle at var(--mx, -500px) var(--my, -500px),
+    rgba(0, 0, 0, .95), rgba(0, 0, 0, .45) 55%, transparent 75%);
+  mask-image: radial-gradient(220px circle at var(--mx, -500px) var(--my, -500px),
+    rgba(0, 0, 0, .95), rgba(0, 0, 0, .45) 55%, transparent 75%);
 }
 
 /* project pixels — borderless, faint at rest; take on their tone when
@@ -233,7 +230,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   cursor: pointer;
   outline: none;
   border: none;
-  opacity: .82;
+  opacity: .35;
   box-shadow: 0 1px 3px rgba(28, 28, 36, .14);
   transition: opacity .35s ease, transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .35s;
 }
@@ -245,25 +242,17 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   position: absolute;
   inset: -10px;
 }
-/* Ring: tells a planted project apart from ambient activity at a glance.
-   It is carried in a variable because every state below rewrites box-shadow
-   wholesale, and a tile that loses its ring the moment it lights up would
-   dissolve back into the noise exactly when it matters. */
-.cell--proj {
-  --ring: 0 0 0 3.5px rgba(250, 251, 253, .92), 0 0 0 4.5px rgba(28, 28, 36, .1);
-  box-shadow: var(--ring), 0 1px 3px rgba(28, 28, 36, .14);
-}
 .cell--proj.lit,
 .cell--proj:hover,
 .cell--proj:focus-visible {
   opacity: 1;
-  box-shadow: var(--ring), 0 4px 14px rgba(28, 28, 36, .2);
+  box-shadow: 0 4px 14px rgba(28, 28, 36, .2);
 }
 .cell--proj:hover,
 .cell--proj:focus-visible {
   transform: scale(1.9);
   z-index: 2;
-  box-shadow: var(--ring), 0 6px 18px rgba(28, 28, 36, .26);
+  box-shadow: 0 6px 18px rgba(28, 28, 36, .26);
 }
 .cell--proj:active { transform: scale(1.55); }
 
@@ -273,7 +262,6 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   transform: scale(1.6);
   z-index: 2;
   box-shadow:
-    var(--ring),
     0 0 0 6px rgba(154, 160, 178, .35),
     0 0 22px rgba(178, 184, 198, .95),
     0 6px 18px rgba(28, 28, 36, .28);
@@ -1306,99 +1294,57 @@ body.on-dark input::placeholder { color: #7a7a82; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   PRESENCE PASS
-   The whole visual identity used to be gated behind pointer movement, so
-   a visitor's first frame was a blank page. Everything in this block makes
-   it visible at rest, and adds the three set pieces (grass graph, keen
-   specimen, Bifröst bridge). It is purely additive — deleting the block
-   returns the site to the pre-pass design.
+   SET PIECES
+   Four additions to the faces, all optional: deleting this block returns
+   the site to the plain design. An earlier version of this pass also made
+   the pixel lattice permanently visible — that was wrong. The lattice
+   belongs to the cursor; only the things below stay on screen.
    ═══════════════════════════════════════════════════════════════════════ */
 
-:root {
-  /* one cell of the lattice, on the same 12px pitch drawGrid() ripples on,
-     so the static texture and the ripple are demonstrably one surface */
-  --px-dot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Crect x='4.5' y='4.5' width='3' height='3' rx='1' fill='%23a3aab9'/%3E%3C/svg%3E");
-  --px-dot-lite: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Crect x='4.5' y='4.5' width='3' height='3' rx='1' fill='%23ffffff'/%3E%3C/svg%3E");
-}
+/* ---------- 02b · portfolio: ambient activity, blurred back into paper ---
+   The lattice reads as a bare grid; cells at differing weights read as a
+   record of activity, which is the point of the grass homage. But at full
+   sharpness 190 hard little squares are unpleasant to look at, so the whole
+   cloud lives behind one blur: present enough to give the face a body,
+   never sharp enough to count. One blurred wrapper also composites as a
+   single layer, where 190 individually animated cells did not. */
 
-/* the field the cube floats in */
-.stage::before {
-  content: '';
+.grass-amb {
   position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
-  background-image: var(--px-dot);
-  background-size: 12px 12px;
-  opacity: .20;
+  filter: blur(4px);
+  opacity: .3;
 }
-
-/* every paper face carries the lattice, faded out toward the rim so the
-   face keeps its soft vignette instead of ending on a hard grid edge.
-   z-index -1 puts it above the face's own background and below its copy;
-   .face has will-change:transform, so it is its own stacking context and
-   the negative index cannot escape it. .face--matrix is deliberately
-   absent — the portfolio face has .grass-veil, its own coarser lattice. */
-.face--front::before,
-.face--gateway::before,
-.face--keen::before,
-.face--vision::before,
-.face--void::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: var(--px-dot);
-  background-size: 12px 12px;
-  opacity: .34;
-  -webkit-mask-image: radial-gradient(78% 78% at 50% 50%, #000 50%, transparent 100%);
-  mask-image: radial-gradient(78% 78% at 50% 50%, #000 50%, transparent 100%);
-}
-.face--void::before { background-image: var(--px-dot-lite); opacity: .10; }
-/* the keen face is the one place the lattice is the SUBJECT — the slab has
-   to have something with structure underneath it or the refraction has
-   nothing to bend and the glass reads as flat plastic */
-.face--keen::before { opacity: .68; }
-
-/* ---------- 02b · portfolio as a contribution graph ---------- */
-
-/* ambient activity: the lattice alone is a grid, but a grid with cells of
-   differing weight reads as a record of activity — which is the whole
-   point of the grass homage. Project pixels are then the bright entries
-   in that record rather than six dots in a void. */
 .cell--amb {
   position: absolute;
   width: 17px;
   height: 17px;
   margin: -8.5px 0 0 -8.5px;
   border-radius: 5px;
-  pointer-events: none;
   opacity: var(--a, .3);
-  animation: ambBreathe var(--dur, 7s) ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
 }
-.cell--amb[data-level="1"] { background: #ccd2dd; }
-.cell--amb[data-level="2"] { background: #b4bbca; }
-.cell--amb[data-level="3"] { background: #9aa2b3; }
+.cell--amb[data-level="1"] { background: #d2d8e2; }
+.cell--amb[data-level="2"] { background: #bcc3d0; }
+.cell--amb[data-level="3"] { background: #a6adbc; }
 
-@keyframes ambBreathe {
-  0%, 100% { opacity: var(--a, .3); }
-  50%      { opacity: var(--a2, .55); }
-}
+/* ---------- 02c · portfolio: the five-second introduction ----------
+   Arriving at the face lights the six planted pixels and names them, then
+   lets them settle back into the field. Nothing is permanently on screen —
+   the visitor is shown where the projects are, once, and the face returns
+   to its clean state. */
 
-/* a project's name, readable without hovering. It sits BELOW the pixel and
-   the hover tip sits above it, so the two never collide and neither has to
-   be toggled against the other. */
 .cell-label {
   position: absolute;
   z-index: 2;
   width: 176px;
   margin-top: 13px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(4px);
   text-align: center;
   pointer-events: none;
-  transition: opacity .3s ease;
+  opacity: 0;
+  /* slow fade OUT is the default; the reveal below overrides it to a fast in */
+  transition: opacity .9s ease, transform .9s ease;
 }
 .cell-label b {
   display: block;
@@ -1418,37 +1364,35 @@ body.on-dark input::placeholder { color: #7a7a82; }
   color: var(--muted);
 }
 
-/* the legend is what makes the metaphor unmistakable */
-/* .grass is the S×S face, not the viewport, so a percentage from its bottom
-   edge lands off-screen on any landscape display (the same trap .keen-entry
-   documents). Anchor to the face centre — which layout() always parks on the
-   viewport centre — and step down by a viewport-relative amount instead. */
-.grass-legend {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, calc(-50% + min(31vh, 268px)));
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  pointer-events: none;
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--faint);
+.face--matrix.reveal .cell-label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  transition: opacity .5s ease, transform .5s cubic-bezier(.2, .8, .2, 1);
 }
-.grass-legend i {
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  background: #ccd2dd;
+.face--matrix.reveal .cell--proj {
+  opacity: 1;
+  box-shadow:
+    0 0 0 5px rgba(154, 160, 178, .28),
+    0 0 20px rgba(172, 178, 194, .85),
+    0 4px 14px rgba(28, 28, 36, .22);
+  transition: opacity .5s ease, box-shadow .5s ease;
 }
-.grass-legend i:nth-of-type(2) { background: #b4bbca; }
-.grass-legend i:nth-of-type(3) { background: #9aa2b3; }
-.grass-legend i:nth-of-type(4) { background: #7b8396; }
+/* stagger, so the six light up as a sweep rather than a flashbulb */
+.face--matrix.reveal .cell--proj:nth-of-type(2),
+.face--matrix.reveal .cell-label:nth-of-type(2) { transition-delay: .07s; }
+.face--matrix.reveal .cell--proj:nth-of-type(3),
+.face--matrix.reveal .cell-label:nth-of-type(3) { transition-delay: .14s; }
+.face--matrix.reveal .cell--proj:nth-of-type(4),
+.face--matrix.reveal .cell-label:nth-of-type(4) { transition-delay: .21s; }
+.face--matrix.reveal .cell--proj:nth-of-type(5),
+.face--matrix.reveal .cell-label:nth-of-type(5) { transition-delay: .28s; }
+.face--matrix.reveal .cell--proj:nth-of-type(6),
+.face--matrix.reveal .cell-label:nth-of-type(6) { transition-delay: .35s; }
 
-/* ---------- 03b · Bifröst — the bridge actually gets built ---------- */
+/* ---------- 03b · Bifröst — a straight shaft of light ----------
+   Ragnarok's bridge is a beam, not an arc: one straight run of spectrum
+   from gate to gate. Three coincident strokes build it — a wide soft haze,
+   the spectrum band itself, and a white-hot core. */
 
 .bridge {
   position: absolute;
@@ -1461,46 +1405,34 @@ body.on-dark input::placeholder { color: #7a7a82; }
 /* Stroke widths are in viewBox units (1 unit = 1% of the square face), NOT
    px: vector-effect:non-scaling-stroke would measure the dash pattern in
    device px instead of the pathLength="100" normalised space, which turns
-   the single full-length dash into a repeating dotted line. The trade is
-   that the span thickens with the cube, which is what you want anyway. */
-.bridge-path {
+   a single full-length dash into a repeating dotted line. */
+.bridge-haze,
+.bridge-band,
+.bridge-core {
   fill: none;
   stroke: url(#bfrostGrad);
-  stroke-width: .17;
-  stroke-linecap: round;
-  /* pathLength="100" on the element, so 100 is exactly the full span */
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  opacity: 0;
-  filter: drop-shadow(0 0 5px rgba(120, 110, 255, .55));
-}
-.bridge-glow {
-  fill: none;
-  stroke: url(#bfrostGrad);
-  stroke-width: .62;
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   opacity: 0;
 }
-/* a white bead on a white face is invisible — the glow is what carries it */
+.bridge-haze { stroke-width: 1.6; filter: blur(6px); }
+.bridge-band { stroke-width: .42; filter: drop-shadow(0 0 4px rgba(126, 110, 255, .7)); }
+.bridge-core { stroke-width: .1; stroke: #fff; }
 .bridge-spark {
   fill: #fff;
   opacity: 0;
   filter: drop-shadow(0 0 5px #7b6bff) drop-shadow(0 0 13px rgba(123, 107, 255, .8));
 }
 
-/* one class drives the whole choreography: orbs wake, then the span is
-   drawn between them, then the light starts running across it */
+/* one class drives the whole choreography: the gates wake, the beam strikes
+   out from the blue gate to the red one, then the light runs along it */
 .face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) both; }
 .face--gateway.bridged .planet--v0id .orb { animation-delay: .16s; }
-.face--gateway.bridged .bridge-path {
-  animation: bfDraw 1.35s cubic-bezier(.5, .05, .2, 1) .62s forwards;
-}
-.face--gateway.bridged .bridge-glow {
-  animation: bfDrawGlow 1.35s cubic-bezier(.5, .05, .2, 1) .62s forwards;
-}
-.face--gateway.bridged .bridge-spark { animation: bfSpark .5s ease 1.85s forwards; }
+.face--gateway.bridged .bridge-haze { animation: bfHaze 1.15s cubic-bezier(.4, .05, .2, 1) .6s forwards; }
+.face--gateway.bridged .bridge-band { animation: bfDraw 1.15s cubic-bezier(.4, .05, .2, 1) .62s forwards; }
+.face--gateway.bridged .bridge-core { animation: bfCore 1.15s cubic-bezier(.4, .05, .2, 1) .66s forwards; }
+.face--gateway.bridged .bridge-spark { animation: bfSpark .5s ease 1.7s forwards; }
 
 @keyframes orbWake {
   0%   { transform: scale(.2); opacity: 0; }
@@ -1511,18 +1443,23 @@ body.on-dark input::placeholder { color: #7a7a82; }
   0%   { stroke-dashoffset: 100; opacity: 1; }
   100% { stroke-dashoffset: 0; opacity: 1; }
 }
-@keyframes bfDrawGlow {
+@keyframes bfHaze {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  40%  { opacity: .22; }
-  100% { stroke-dashoffset: 0; opacity: .16; }
+  35%  { opacity: .3; }
+  100% { stroke-dashoffset: 0; opacity: .26; }
+}
+@keyframes bfCore {
+  0%   { stroke-dashoffset: 100; opacity: 0; }
+  30%  { opacity: .95; }
+  100% { stroke-dashoffset: 0; opacity: .8; }
 }
 @keyframes bfSpark { to { opacity: .95; } }
 
-/* ---------- 04b · keen — the design language as a specimen ---------- */
-
-/* the reserved slot holds a real piece of the material instead of a
+/* ---------- 04b · keen — the design language as a specimen ----------
+   The reserved slot holds a real piece of the material instead of a
    description of it: a glass slab the visitor can pick up and drag across
-   the lattice, refracting it live. */
+   the face, refracting whatever passes under it. */
+
 .keen-slab {
   flex: 0 0 96px;
   width: 96px;
@@ -1531,6 +1468,7 @@ body.on-dark input::placeholder { color: #7a7a82; }
   cursor: grab;
   touch-action: none;
   position: relative;
+  z-index: 3;
   will-change: transform;
   background: rgba(244, 246, 250, .26);
   background: color-mix(in srgb, var(--fg-inv) 26%, transparent);
@@ -1574,13 +1512,14 @@ body.lens .keen-slab {
 .glass-nav, .hud, .chat-dock, .wordmark { transition: opacity .7s ease .1s; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cell--amb { animation: none; }
   .face--gateway.bridged .planet .orb,
-  .face--gateway.bridged .bridge-path,
-  .face--gateway.bridged .bridge-glow,
+  .face--gateway.bridged .bridge-haze,
+  .face--gateway.bridged .bridge-band,
+  .face--gateway.bridged .bridge-core,
   .face--gateway.bridged .bridge-spark { animation: none; }
-  .face--gateway.bridged .bridge-path { stroke-dashoffset: 0; opacity: 1; }
-  .face--gateway.bridged .bridge-glow { stroke-dashoffset: 0; opacity: .16; }
+  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .26; }
+  .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: 1; }
+  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .8; }
   .face--gateway.bridged .bridge-spark { opacity: .95; }
   .stage.intro .glass-nav,
   .stage.intro .hud,

@@ -250,9 +250,9 @@ f.addEventListener('load', async () => {
   // starves rAF, so the momentum roll may still be running here
   ok(hud()===LABELS[frontOf(mat())],`after a free tumble: HUD matches geometry (${hud()})`);
 
-  /* ---------- presence pass: the identity must be on screen at rest ------- */
+  /* ---------- set pieces ---------------------------------------------- */
 
-  log('\n— presence pass —');
+  log('\n— set pieces —');
   d.getElementById('homeBtn').click();
   await wait(1400);
 
@@ -263,53 +263,83 @@ f.addEventListener('load', async () => {
     ok(w.getComputedStyle(d.querySelector(sel)).opacity === '1', `intro restored ${sel}`);
   }
 
-  // the lattice is the identity — it must render without any pointer input
-  const dots = (sel, pseudo) => w.getComputedStyle(d.querySelector(sel), pseudo).backgroundImage;
-  ok(dots('.stage', '::before').includes('url('), 'stage lattice paints at rest');
-  ok(dots('.face--keen', '::before').includes('url('), 'keen face lattice paints at rest');
-  const veilMask = w.getComputedStyle(d.getElementById('grassVeil')).maskImage
-    || w.getComputedStyle(d.getElementById('grassVeil')).webkitMaskImage || '';
-  ok(!/transparent|rgba\(0,\s*0,\s*0,\s*0\)/.test(veilMask),
-     'grass veil mask never bottoms out at transparent');
+  // The lattice belongs to the cursor. An earlier pass painted it
+  // permanently and that is exactly what must not come back.
+  const bgOf = (sel, pseudo) => w.getComputedStyle(d.querySelector(sel), pseudo).backgroundImage;
+  ok(bgOf('.stage', '::before') === 'none', 'the stage paints no permanent lattice');
+  ok(bgOf('.face--keen', '::before') === 'none', 'faces paint no permanent lattice');
+  const veil = w.getComputedStyle(d.getElementById('grassVeil'));
+  const veilMask = veil.maskImage || veil.webkitMaskImage || '';
+  ok(/transparent|rgba\(0,\s*0,\s*0,\s*0\)/.test(veilMask),
+     'the grass veil is still revealed by the cursor, not painted on');
+  ok(!d.querySelector('.grass-legend'), 'no legend');
 
-  // the graph and its labels
+  // the ambient cloud exists but lives behind a blur
   ok(d.querySelectorAll('.cell--amb').length > 60, 'ambient activity cells were planted');
+  const ambWrap = d.querySelector('.grass-amb');
+  ok(!!ambWrap && /blur\(/.test(w.getComputedStyle(ambWrap).filter),
+     'the ambient cloud is blurred rather than sharp');
+
+  // the five-second introduction: lit on arrival, gone afterwards
   const labels = [...d.querySelectorAll('.cell-label')];
   ok(labels.length === d.querySelectorAll('.cell--proj').length,
-     'every project pixel carries a visible label');
-  ok(labels.every(l => l.textContent.trim().length > 0), 'labels carry copy');
-  key('ArrowRight');                       // → portfolio, so labels are on screen
+     'every project pixel has a label to reveal');
+  key('ArrowRight');
   await wait(1200);
+  ok(hud() === LABELS.right, 'arrived at the portfolio');
+  ok(face('right').classList.contains('reveal'), 'arrival lights the six projects');
+  ok(w.getComputedStyle(labels[0]).opacity !== '0', 'labels are showing during the reveal');
   const off = labels.filter(l => { const r = l.getBoundingClientRect();
     return r.right < 2 || r.left > w.innerWidth - 2; });
   ok(off.length === 0, `every label lands inside the viewport (${off.length} off-screen)`);
+  // the clock starts when the face LANDS (setFace runs on settle), not when
+  // the key was pressed, so allow for the quarter turn before checking
+  await wait(5400);
+  ok(!face('right').classList.contains('reveal'), 'the reveal releases after five seconds');
+  // the fade-out is a .9s transition and transitions do not advance under
+  // virtual time, so read the resting value with the transition removed
+  const noTr = d.createElement('style');
+  noTr.textContent = '.cell-label{transition:none!important}';
+  d.head.appendChild(noTr);
+  void d.body.offsetHeight;
+  ok(labels.every(l => w.getComputedStyle(l).opacity === '0'),
+     'and the labels rest hidden again, leaving a clean field');
+  noTr.remove();
 
-  // Bifröst: reaching the gate builds the span
+  // Bifröst: reaching the gate strikes the beam, and the beam is STRAIGHT
   d.getElementById('homeBtn').click();
   await wait(1200);
   key('ArrowLeft');
   await wait(1200);
   ok(hud() === LABELS.left, 'arrived at the gate');
-  ok(face('left').classList.contains('bridged'), 'the Bifröst span was built on arrival');
-  ok(w.getComputedStyle(d.querySelector('.bridge-path')).stroke.includes('bfrostGrad'),
-     'the span resolves its gradient');
+  ok(face('left').classList.contains('bridged'), 'the Bifröst beam was struck on arrival');
+  const beam = d.querySelector('.bridge-band');
+  ok(w.getComputedStyle(beam).stroke.includes('bfrostGrad'), 'the beam resolves its gradient');
+  const dAttr = beam.getAttribute('d');
+  ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);
 
-  // the keen specimen must be draggable WITHOUT turning the cube under it
+  // the keen specimen: draggable, far, and without turning the cube under it
   d.getElementById('homeBtn').click();
   await wait(1200);
   key('ArrowRight'); await wait(950); key('ArrowRight'); await wait(1200);
   const slab = d.getElementById('keenSlab');
   ok(!!slab && hud() === LABELS.back, 'arrived at keen with the specimen present');
   const poseBeforeSlab = face('front').style.transform;
-  slab.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId:71, clientX:200, clientY:120, bubbles:true}));
-  for (let i=1;i<=6;i++) {
-    slab.dispatchEvent(new w.PointerEvent('pointermove', {pointerId:71, clientX:200+i*14, clientY:120+i*6, bubbles:true}));
-    await wait(16);
+  const r0 = slab.getBoundingClientRect();
+  slab.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId:71, clientX:r0.left+48, clientY:r0.top+48, bubbles:true}));
+  for (let i=1;i<=40;i++) {
+    slab.dispatchEvent(new w.PointerEvent('pointermove',
+      {pointerId:71, clientX:r0.left+48+i*14, clientY:r0.top+48+i*9, bubbles:true}));
+    await wait(8);
   }
-  slab.dispatchEvent(new w.PointerEvent('pointerup', {pointerId:71, clientX:284, clientY:156, bubbles:true}));
+  slab.dispatchEvent(new w.PointerEvent('pointerup', {pointerId:71, bubbles:true}));
   await wait(200);
   ok(face('front').style.transform === poseBeforeSlab, 'dragging the specimen does not turn the cube');
-  ok(/translate\(/.test(slab.style.transform), 'the specimen moved under the pointer');
+  const r1 = slab.getBoundingClientRect();
+  const moved = Math.hypot(r1.left-r0.left, r1.top-r0.top);
+  ok(moved > 260, `the specimen travels the face, not a small box (${Math.round(moved)}px)`);
+  ok(r1.right <= w.innerWidth && r1.left >= 0 && r1.top >= 0,
+     'the specimen stops at the edge of the screen');
 
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');
