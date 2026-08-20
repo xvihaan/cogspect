@@ -537,8 +537,19 @@
     mountFaces();                    // re-queries the faces and repaints them
   }
 
+  /* The notification bar rides on its own face, so while the cube is turning
+     you would otherwise watch it swing into frame edge-on. Only a face that
+     has actually landed square carries .landed, and the bar fades in off
+     that — which is why this is cleared the moment any motion starts and set
+     again only in setFace(), i.e. exactly on settle. */
+  function setLanded(face) {
+    for (const n in faceEls) faceEls[n].classList.toggle('landed', n === face);
+  }
+  function clearLanded() { setLanded(null); }
+
   function setFace(face) {
     cur = face;
+    setLanded(face);
     // the gate only gets built once — after that the bridge simply stands
     if (face === 'left' && faceEls.left) faceEls.left.classList.add('bridged');
     // arriving at the portfolio shows the visitor where the six projects are,
@@ -588,6 +599,7 @@
   function commit(dir) {
     clearTimeout(settleTimer);
     clearTimeout(pulseTimer);
+    clearLanded();
     const target = mul(DIR[dir], O);
     const next = frontFaceFor(target);
     // A paint may still be animating (the entrance glide). Land it first: the
@@ -714,7 +726,7 @@
     // judged on zoomTarget, the level the visitor actually chose — zoomCur is
     // mid-spring during the entrance and while a turn holds the cube back
     const swipe = !caught && phase === 'idle' && zoomTarget >= SWIPE_ZOOM;
-    if (!swipe) phase = 'drag';
+    if (!swipe) { phase = 'drag'; clearLanded(); }
     vx = 0; vy = 0;
     drag = {
       id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(),

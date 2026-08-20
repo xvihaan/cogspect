@@ -317,7 +317,10 @@ f.addEventListener('load', async () => {
      write would be overwritten by the next tick(), a stylesheet !important
      cannot be. */
   const pin = d.createElement('style');
-  pin.textContent = '#zoomWrap{transform:scale(1)!important;transition:none!important}';
+  // the bar's own arrival transition does not advance under virtual time
+  // either, so read its resting landed pose rather than a frozen first frame
+  pin.textContent = '#zoomWrap{transform:scale(1)!important;transition:none!important}'
+    + '.face-banner{transition:none!important}';
   d.head.appendChild(pin);
   for (const [name, k] of [['right','ArrowRight'],['left','ArrowLeft'],['top','ArrowUp'],['bottom','ArrowDown']]) {
     d.getElementById('homeBtn').click();
@@ -326,6 +329,8 @@ f.addEventListener('load', async () => {
     await wait(1100);
     const bar = face(name).querySelector('.face-banner');
     if (!bar) { ok(false, `${name} has a bar`); continue; }
+    ok(face(name).classList.contains('landed'),
+       `${name}: the bar is only shown once the face has landed`);
     const r = bar.getBoundingClientRect();
     const clear = ['.glass-nav', '.chat-bar', '.wordmark'].every(sel => {
       const c = d.querySelector(sel).getBoundingClientRect();
@@ -336,6 +341,16 @@ f.addEventListener('load', async () => {
   }
 
   pin.remove();
+
+  // mid-turn: no face may claim the bar
+  d.getElementById('homeBtn').click();
+  await wait(1100);
+  key('ArrowRight');
+  await wait(220);                       // still turning — settle is ~880ms
+  ok(![...d.querySelectorAll('.face')].some(f => f.classList.contains('landed')),
+     'no bar is shown while the cube is turning');
+  await wait(1200);
+  ok(face('right').classList.contains('landed'), 'and it comes back on arrival');
 
   // Bifröst: reaching the gate strikes the beam, and the beam is STRAIGHT
   d.getElementById('homeBtn').click();

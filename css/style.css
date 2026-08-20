@@ -1397,7 +1397,10 @@ body.on-dark input::placeholder { color: #7a7a82; }
      the SCREEN, whatever the copy inside does to the height. That is what
      makes this safe in every orientation without the per-block half-height
      constant .keen-entry has to carry. */
-  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 86px)));
+  /* hidden until the face it belongs to has landed — see setLanded() */
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 86px) - 12px)) scale(.94);
+  opacity: 0;
+  transition: opacity .34s ease, transform .42s cubic-bezier(.2, .85, .2, 1);
   z-index: 4;
   box-sizing: border-box;
   max-width: min(560px, calc(100vw - 36px));
@@ -1415,19 +1418,32 @@ body.on-dark input::placeholder { color: #7a7a82; }
   /* keen: fill mixed from the inverse token so the bar reads on the paper
      faces and on the void face alike; radius from the top of keen's scale */
   border-radius: 28px;
-  background: rgba(244, 246, 250, .3);
-  background: color-mix(in srgb, var(--fg-inv) 30%, transparent);
-  border: 1px solid rgba(21, 22, 28, .13);
-  border: 1px solid color-mix(in srgb, var(--fg) 13%, transparent);
-  backdrop-filter: blur(6px) saturate(140%);
-  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  /* Glassier means LESS fill, not more: the body of the glass comes from the
+     blur and the saturation lift, and the fill is only there to keep the
+     copy legible. At 30% this read as a white plate; 15% lets the face show
+     through and the heavier blur does the work instead. The rim light and
+     the border carry the shape now that the fill barely does. */
+  background: rgba(244, 246, 250, .15);
+  background: color-mix(in srgb, var(--fg-inv) 15%, transparent);
+  border: 1px solid rgba(21, 22, 28, .15);
+  border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent);
+  backdrop-filter: blur(9px) saturate(165%);
+  -webkit-backdrop-filter: blur(9px) saturate(165%);
   box-shadow:
-    0 18px 48px rgba(5, 10, 25, .16),
-    inset 0 1px 0 rgba(255, 255, 255, .2);
+    0 20px 52px rgba(5, 10, 25, .15),
+    inset 0 1px 0 rgba(255, 255, 255, .3),
+    inset 0 -1px 0 rgba(255, 255, 255, .1);
 }
 body.lens .face-banner {
-  backdrop-filter: url(#lg-lens) blur(4px) saturate(145%);
-  -webkit-backdrop-filter: blur(4px) saturate(145%);
+  backdrop-filter: url(#lg-lens) blur(7px) saturate(170%);
+  -webkit-backdrop-filter: blur(7px) saturate(170%);
+}
+
+.face.landed .face-banner {
+  opacity: 1;
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 86px))) scale(1);
+  /* a beat after the landing, so the bar arrives behind the face, not with it */
+  transition-delay: .1s;
 }
 
 .face-banner .kicker {
@@ -1522,6 +1538,8 @@ body.lens .keen-slab {
 .glass-nav, .hud, .chat-dock, .wordmark { transition: opacity .7s ease .1s; }
 
 @media (prefers-reduced-motion: reduce) {
+  .face-banner { transition: none; }
+  .face.landed .face-banner { transition: none; transition-delay: 0s; }
   .face--gateway.bridged .planet .orb,
   .face--gateway.bridged .bridge-haze,
   .face--gateway.bridged .bridge-band,
