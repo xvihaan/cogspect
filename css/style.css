@@ -1377,20 +1377,24 @@ body.on-dark input::placeholder { color: #7a7a82; }
      makes this safe in every orientation without the per-block half-height
      constant .keen-entry has to carry. */
   /* hidden until the face it belongs to has landed — see setLanded() */
-  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 86px) - 12px)) scale(.94);
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px) - 12px)) scale(.94);
   opacity: 0;
   transition: opacity .34s ease, transform .42s cubic-bezier(.2, .85, .2, 1);
   z-index: 4;
   box-sizing: border-box;
-  max-width: min(560px, calc(100vw - 36px));
-  /* a bar that shrink-wraps to two short words reads as a badge, not as a
-     notification — the floor keeps all four the same family of shape */
-  min-width: min(260px, calc(100vw - 36px));
-  padding: 12px 26px 14px;
+  /* One size for every face. The bars used to shrink-wrap their copy, so a
+     two-word title made a badge and a two-sentence one made a slab; fixing
+     both axes makes them read as one recurring element instead of five
+     different plates. The copy is sized to fit THIS box — see the type
+     scale below — rather than the box being sized to fit the copy. */
+  width: min(360px, calc(100vw - 32px));
+  height: 60px;
+  padding: 0 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 2px;
   text-align: center;
   cursor: default;
   user-select: none;
@@ -1420,29 +1424,33 @@ body.lens .face-banner {
 
 .face.landed .face-banner {
   opacity: 1;
-  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 86px))) scale(1);
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(1);
   /* a beat after the landing, so the bar arrives behind the face, not with it */
   transition-delay: .1s;
 }
 
 .face-banner .kicker {
-  font-size: 8.5px;
-  letter-spacing: .2em;
+  font-size: 7.5px;
+  letter-spacing: .18em;
+  line-height: 1.4;
 }
 .face-banner h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: -.028em;
   line-height: 1.3;
   color: var(--ink);
-  text-wrap: balance;
+  /* the title must stay on one line: a wrapped title is the one thing that
+     will not fit the fixed height once a kicker and a description are also
+     in the box */
+  white-space: nowrap;
 }
 .face-banner p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 10px;
   font-weight: 500;
-  line-height: 1.6;
+  line-height: 1.4;
   color: var(--muted);
   text-wrap: pretty;
 }
@@ -1454,10 +1462,10 @@ body.lens .face-banner {
 .face--void .face-banner p { color: #a9abb4; }
 .face--void .face-banner p strong { color: #e6e8ee; }
 
-/* short screens have no room to hang the bar that far down */
-@media (max-height: 620px) {
-  .face-banner { --banner-top: 72px; padding: 10px 22px 12px; min-width: min(230px, calc(100vw - 36px)); }
-  .face-banner h2 { font-size: 14.5px; }
+/* the widest title (prospect's) only just clears a 320-wide screen at 13px */
+@media (max-width: 400px) {
+  .face-banner h2 { font-size: 12px; }
+  .face-banner p { font-size: 9.5px; }
 }
 
 /* ---------- 04b · keen — the design language as a specimen ----------

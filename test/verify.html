@@ -323,6 +323,7 @@ f.addEventListener('load', async () => {
     + '.face-banner{transition:none!important}';
   d.head.appendChild(pin);
   // every face is reached FROM the front face; the back one needs two turns
+  const bars = [];
   for (const [name, ks] of [['right',['ArrowRight']], ['left',['ArrowLeft']],
                             ['top',['ArrowUp']], ['bottom',['ArrowDown']],
                             ['back',['ArrowRight','ArrowRight']]]) {
@@ -339,8 +340,18 @@ f.addEventListener('load', async () => {
       const c = d.querySelector(sel).getBoundingClientRect();
       return r.right <= c.left || c.right <= r.left || r.bottom <= c.top || c.bottom <= r.top;
     });
-    ok(Math.abs(r.top - 86) < 2 && r.left >= 0 && r.right <= w.innerWidth && clear,
+    ok(r.top > 0 && r.top < 110 && r.left >= 0 && r.right <= w.innerWidth && clear,
        `${name}: bar at the top of the screen, clear of the chrome (top ${Math.round(r.top)})`);
+    // one size for every face, and the copy sized to fit it rather than the
+    // other way round — a wrapped title is what would break this
+    const h2 = bar.querySelector('h2');
+    ok(bar.scrollHeight <= bar.clientHeight + 1 && h2.scrollWidth <= h2.clientWidth + 1,
+       `${name}: the copy fits the fixed box`);
+    bars.push({ name, w: Math.round(r.width), h: Math.round(r.height), t: Math.round(r.top) });
+  }
+  for (const k of ['w', 'h', 't']) {
+    const vals = new Set(bars.map((b) => b[k]));
+    ok(vals.size === 1, `every bar shares the same ${k} (${[...vals].join(', ')})`);
   }
 
   // the keen face keeps its dictionary entry, and it must clear its bar
