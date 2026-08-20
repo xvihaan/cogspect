@@ -1412,8 +1412,13 @@ body.on-dark input::placeholder { color: #7a7a82; }
   border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent);
   backdrop-filter: blur(9px) saturate(165%);
   -webkit-backdrop-filter: blur(9px) saturate(165%);
+  /* The drop is what lifts the bar off the face; it only has to suggest the
+     gap, not announce it. Pulled back from 20/52/.15 — the cast is shorter,
+     tighter and fainter, so the bar still reads as floating without the
+     halo underneath it. On the void face this was always invisible anyway:
+     a near-black shadow on a near-black face casts nothing. */
   box-shadow:
-    0 20px 52px rgba(5, 10, 25, .15),
+    0 13px 34px rgba(5, 10, 25, .1),
     inset 0 1px 0 rgba(255, 255, 255, .3),
     inset 0 -1px 0 rgba(255, 255, 255, .1);
 }
