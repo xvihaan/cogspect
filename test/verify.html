@@ -322,11 +322,14 @@ f.addEventListener('load', async () => {
   pin.textContent = '#zoomWrap{transform:scale(1)!important;transition:none!important}'
     + '.face-banner{transition:none!important}';
   d.head.appendChild(pin);
-  for (const [name, k] of [['right','ArrowRight'],['left','ArrowLeft'],['top','ArrowUp'],['bottom','ArrowDown']]) {
+  // every face is reached FROM the front face; the back one needs two turns
+  for (const [name, ks] of [['right',['ArrowRight']], ['left',['ArrowLeft']],
+                            ['top',['ArrowUp']], ['bottom',['ArrowDown']],
+                            ['back',['ArrowRight','ArrowRight']]]) {
     d.getElementById('homeBtn').click();
     await wait(1100);
-    key(k);
-    await wait(1100);
+    for (const k of ks) { key(k); await wait(1000); }
+    await wait(200);
     const bar = face(name).querySelector('.face-banner');
     if (!bar) { ok(false, `${name} has a bar`); continue; }
     ok(face(name).classList.contains('landed'),
@@ -339,6 +342,14 @@ f.addEventListener('load', async () => {
     ok(Math.abs(r.top - 86) < 2 && r.left >= 0 && r.right <= w.innerWidth && clear,
        `${name}: bar at the top of the screen, clear of the chrome (top ${Math.round(r.top)})`);
   }
+
+  // the keen face keeps its dictionary entry, and it must clear its bar
+  const kb = face('back').querySelector('.face-banner').getBoundingClientRect();
+  const ke = d.querySelector('.keen-entry').getBoundingClientRect();
+  ok(ke.top >= kb.bottom,
+     `the keen entry sits below its bar (bar ends ${Math.round(kb.bottom)}, entry starts ${Math.round(ke.top)})`);
+  ok(d.querySelector('.keen-entry .keen-title').textContent.includes('keen'),
+     'and the dictionary entry still says what it said');
 
   pin.remove();
 

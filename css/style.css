@@ -369,83 +369,62 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   transform: translateX(-50%) translateY(0);
 }
 
-/* 04 · keen — the design language written up as a dictionary entry, laid
-   out along the top edge: a reserved glyph slot, then the headword. */
+/* 04 · keen — the design language written up as a dictionary entry, sitting
+   under the face's own notification bar. */
 
 .keen-entry {
   position: absolute;
-  /* The cube face is S×S where S = max(viewport w, h), so on a landscape
-     screen the face is far taller than the viewport and a plain `top: Npx`
-     (relative to the FACE's own top) lands above the visible screen — this
-     anchors to 50%/50% instead, which is always the face's own centre AND
-     the viewport's centre (layout() centres the cube on both axes), then
-     pulls up-and-left by a viewport-relative amount. Safe in every
-     orientation — the same reasoning applies on the horizontal axis, since
-     cube.left also always centres on the viewport regardless of aspect. */
+  /* Positioned by the distance from the SCREEN's top-left corner, and those
+     two numbers are the only knobs: smaller = closer to the corner, bigger =
+     further from it.
+
+     How it works, and why there is no half-size constant any more: the cube
+     face is an S×S box (S = max(viewport w, h)) that layout() centres on the
+     viewport in BOTH axes, so `top: 50%; left: 50%` puts this block's TOP-LEFT
+     CORNER exactly on the centre of the screen — a plain `top: Npx` would be
+     measured from the face's own top edge, which on any landscape display
+     sits far above the visible screen. Stepping back by 50vw/50vh from that
+     centre therefore lands the corner at (target_left, target_top) from the
+     screen's corner, whatever the block's own size happens to be. The earlier
+     version subtracted 50% and added back half the block's rendered size,
+     which silently broke the moment the glass specimen changed its height. */
   top: 50%;
   left: 50%;
-  transform: translate(calc(-50% - min(17vw, 172px)), calc(-50% - min(29vh, 248px)));
+  --keen-target-left: 18px;
+  --keen-target-top: 150px;
+  transform:
+    translateX(calc(-50vw + var(--keen-target-left)))
+    translateY(calc(-50vh + var(--keen-target-top)));
   width: min(600px, 62vw);
   display: flex;
   align-items: flex-start;
   gap: 18px;
   text-align: left;
 }
-/* Desktop-width screens: park it directly under the wordmark instead of a
-   viewport-relative pull, since that's much easier to tune by feel — these
-   two numbers ARE the gap (in px) from the screen's top-left corner to the
-   block's top-left corner. Smaller = closer to the corner (further
-   up/left); bigger = further from it. .wordmark itself sits at
-   left:36px/top:30px, bottom edge ~52px (see .wordmark below), so
-   TARGET_LEFT 36 lines up flush with the logo and TARGET_TOP 70 clears it
-   by ~18px. HALF_W/HALF_H are half the block's own rendered size at this
-   width (600×96px — the glass specimen sets the height) — only exact
-   while width stays pinned at 600px (i.e.
-   viewport ≳ 968px, min(600px,62vw) = 600px); that's why this block is
-   gated to that width. Below it, the min(vw,px) pull above still applies. */
+/* Desktop: flush under the wordmark's own left edge, and low enough to clear
+   the Design space bar (which ends around y135). */
 @media (min-width: 968px) {
   .keen-entry {
     --keen-target-left: 150px;
-    --keen-target-top: 70px;
-    transform: translate(
-      calc(-50% - 50vw + 300px + var(--keen-target-left)),
-      calc(-50% - 50vh + 48px + var(--keen-target-top))
-    );
+    --keen-target-top: 160px;
   }
 }
-/* Narrow screens: the 96px specimen makes the block much taller than the
-   66px it used to be, and at 62vw the copy column is squeezed so hard that
-   it wraps into the wordmark. Give the block more width, a smaller specimen
-   and a gentler pull. This sits BEFORE the short-viewport rule below so that
-   one still wins last on screens that match both. */
+/* Narrow screens: at 62vw the copy column is squeezed so hard it wraps for
+   pages, so widen the block and shrink the specimen to give it room. */
 @media (max-width: 967px) {
   .keen-entry {
     width: min(600px, 88vw);
     gap: 14px;
-    transform: translate(calc(-50% - min(6vw, 60px)), calc(-50% - min(23vh, 186px)));
+    --keen-target-left: 18px;
+    --keen-target-top: 150px;
   }
   .keen-slab { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 19px; }
 }
-
-/* the diagonal/target pull above is tuned for normal displays; a short
-   viewport (an old 320-wide phone in landscape-ish proportions) has too
-   little headroom above the nav/wordmark for that much upward pull, so ease
-   off just there — this rule is last so it always wins on short screens */
+/* A short viewport has less room between the bar and the chat dock, and the
+   bar itself moves up to 72px there — so follow it up. Last, so it wins on
+   screens that match both this and the width rule above. */
 @media (max-height: 620px) {
-  .keen-entry { transform: translate(calc(-50% - min(5vw, 50px)), calc(-50% - min(13vh, 105px))); }
-}
-
-/* placeholder for a hand-drawn glyph of the design language — kept as a
-   framed square (not a bare box) so it reads as reserved, not broken */
-.keen-glyph {
-  flex: 0 0 56px;
-  width: 56px;
-  height: 56px;
-  border-radius: 15px;
-  background: rgba(21, 22, 28, .03);
-  background: color-mix(in srgb, var(--fg) 3%, transparent);
-  border: 1px dashed rgba(21, 22, 28, .16);
-  border: 1px dashed color-mix(in srgb, var(--fg) 16%, transparent);
+  .keen-entry { --keen-target-top: 126px; }
 }
 
 .keen-copy { flex: 1 1 auto; min-width: 0; }
