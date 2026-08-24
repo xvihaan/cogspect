@@ -311,33 +311,62 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   inset: -14px;
 }
 
+/* A gate is a light, not a marble. The old orb hit full saturation at 62%
+   of its radius and ran out to a crisp circumference, with a hard white
+   specular dot on top — which reads as a glossy ball. The colour is held
+   back further out and starts losing alpha well before the edge, the
+   highlight is broad and low-contrast instead of a dot, and most of the
+   presence is carried by bloom around it rather than by the disc itself. */
 .planet .orb {
   display: block;
+  position: relative;
   width: 100%;
   height: 100%;
   border-radius: 50%;
   /* solid-color fallbacks for browsers without color-mix() */
   background: var(--pc);
   box-shadow: 0 0 18px rgba(28, 28, 36, .25);
-  background: radial-gradient(circle at 36% 30%,
+  background: radial-gradient(circle at 38% 32%,
     #ffffff 0%,
-    #f0f5ff 9%,
-    color-mix(in srgb, var(--pc) 38%, #ffffff) 25%,
-    color-mix(in srgb, var(--pc) 78%, #ffffff) 44%,
-    var(--pc) 62%,
-    color-mix(in srgb, var(--pc) 55%, transparent) 82%,
+    color-mix(in srgb, var(--pc) 16%, #ffffff) 20%,
+    color-mix(in srgb, var(--pc) 52%, #ffffff) 46%,
+    color-mix(in srgb, var(--pc) 82%, transparent) 70%,
+    color-mix(in srgb, var(--pc) 46%, transparent) 86%,
     transparent 100%);
   box-shadow:
-    0 0 16px color-mix(in srgb, var(--pc) 40%, transparent),
-    0 0 44px color-mix(in srgb, var(--pc) 20%, transparent);
-  transition: transform .3s cubic-bezier(.2, .8, .2, 1), box-shadow .3s;
+    0 0 9px color-mix(in srgb, var(--pc) 26%, transparent),
+    0 0 24px color-mix(in srgb, var(--pc) 20%, transparent),
+    0 0 58px color-mix(in srgb, var(--pc) 11%, transparent);
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s;
 }
+/* the light it holds, breathing slowly around it */
+.planet .orb::before {
+  content: '';
+  position: absolute;
+  inset: -70%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--pc) 30%, transparent) 0%,
+    color-mix(in srgb, var(--pc) 12%, transparent) 42%,
+    transparent 72%);
+  filter: blur(5px);
+  animation: orbGlow 5.5s ease-in-out infinite;
+}
+.planet--v0id .orb::before { animation-delay: -2.4s; }
+
+@keyframes orbGlow {
+  0%, 100% { opacity: .62; transform: scale(.94); }
+  50%      { opacity: 1;   transform: scale(1.12); }
+}
+
 .planet:hover .orb,
 .planet:focus-visible .orb {
-  transform: scale(1.85);
+  transform: scale(1.5);
   box-shadow:
-    0 0 24px color-mix(in srgb, var(--pc) 55%, transparent),
-    0 0 70px color-mix(in srgb, var(--pc) 30%, transparent);
+    0 0 14px color-mix(in srgb, var(--pc) 40%, transparent),
+    0 0 38px color-mix(in srgb, var(--pc) 28%, transparent),
+    0 0 84px color-mix(in srgb, var(--pc) 16%, transparent);
 }
 
 /* hover description */
@@ -1196,6 +1225,7 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .cell--proj, .project-card, .contact-card, .modal-close, .tile-tip,
   .planet .orb, .ghost-msg { transition: none !important; }
   .planet, .bridge { animation: none; }
+  .planet .orb::before { animation: none; opacity: .8; transform: scale(1); }
   .chat-bar.thinking::after { animation: none; opacity: .5; }
 }
 
@@ -1374,7 +1404,11 @@ body.on-dark input::placeholder { color: #7a7a82; }
 
 /* one class drives the whole choreography: the gates wake, the beam strikes
    out from the blue gate to the red one, then the light starts running */
-.face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) both; }
+/* `backwards`, not `both`: a forwards-filling animation keeps applying its
+   end transform after it finishes, and animation origin outranks author
+   rules — which silently killed the hover scale on this face. Backwards
+   still covers v0id's delay, then gets out of the way. */
+.face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) backwards; }
 .face--gateway.bridged .planet--v0id .orb { animation-delay: .16s; }
 .face--gateway.bridged .bridge-haze { animation: bfHaze 1.25s cubic-bezier(.4, .05, .2, 1) .58s forwards; }
 .face--gateway.bridged .bridge-band { animation: bfBand 1.25s cubic-bezier(.4, .05, .2, 1) .62s forwards; }

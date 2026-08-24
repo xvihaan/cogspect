@@ -396,6 +396,15 @@ f.addEventListener('load', async () => {
   const bx = 66 - 36, by = 60 - 40;                     // the beam's own run
   const dot = Math.abs(gx * bx + gy * by) / (Math.hypot(gx, gy) * Math.hypot(bx, by));
   ok(dot < 0.02, `the spectrum runs across the beam, not along it (cos ${dot.toFixed(3)})`);
+  /* orbWake must not fill forwards. A finished animation that fills keeps
+     applying its end transform, and animation origin outranks author rules,
+     so the hover/focus scale on these orbs would silently stop working. */
+  const orbFill = w.getComputedStyle(d.querySelector('.planet--b3ta .orb')).animationFillMode;
+  ok(!/both|forwards/.test(orbFill), `the gate wake does not fill forwards (${orbFill})`);
+  ok(w.getComputedStyle(d.querySelector('.planet--v0id')).animationDelay ===
+     w.getComputedStyle(d.querySelector('.planet--b3ta')).animationDelay,
+     'both gates float on the same phase, so the beam stays on its anchors');
+
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);
 
