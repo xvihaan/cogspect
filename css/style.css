@@ -297,8 +297,13 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   margin: -15px 0 0 -15px;
   animation: planetFloat 7s ease-in-out infinite;
 }
+/* Both gates float on the SAME phase and the bridge svg floats with them —
+   the beam's endpoints are fixed in the svg's own coordinates, so anything
+   that moves a gate without moving the svg pulls the beam off its anchors.
+   v0id used to run at -3.5s, i.e. exactly out of phase, which is why the
+   two ends drifted apart in opposite directions. */
 .planet--b3ta { --pc: #4c7dff; left: 36%; top: 40%; }
-.planet--v0id { --pc: #e0483f; left: 66%; top: 60%; animation-delay: -3.5s; }
+.planet--v0id { --pc: #e0483f; left: 66%; top: 60%; }
 
 .planet::before {
   content: '';
@@ -1190,7 +1195,7 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .cube, .face, .glass-btn, .chat-bar,
   .cell--proj, .project-card, .contact-card, .modal-close, .tile-tip,
   .planet .orb, .ghost-msg { transition: none !important; }
-  .planet { animation: none; }
+  .planet, .bridge { animation: none; }
   .chat-bar.thinking::after { animation: none; opacity: .5; }
 }
 
@@ -1310,56 +1315,61 @@ body.on-dark input::placeholder { color: #7a7a82; }
   height: 100%;
   pointer-events: none;
   overflow: visible;
+  animation: planetFloat 7s ease-in-out infinite;   /* rides with the gates */
 }
 .bridge-haze,
 .bridge-band,
 .bridge-inner,
 .bridge-core {
   fill: none;
-  stroke-linecap: round;
+  /* butt, not round: a round cap on a beam this wide hangs half its own
+     width past the gate it is supposed to land on. Flat ends stop dead at
+     the gate centres, where the orbs cover them. */
+  stroke-linecap: butt;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   opacity: 0;
 }
+/* Muted, not vivid. A saturated seven-colour band on a near-white face reads
+   as a toy; the spectrum is carried by low-chroma tints instead, at partial
+   opacity, so the face shows through and the span reads as a piece of
+   prismatic GLASS rather than a painted stripe. The gradients feather to
+   transparent at both edges for the same reason — a hard edge is paint, a
+   soft one is glass. */
 .bridge-haze {
   stroke: url(#bfrostHaze);
-  stroke-width: 7.4;
-  /* enough blur that it reads as light thrown onto the face, little enough
-     that the colour survives it — past ~14px the whole aura greys out */
+  stroke-width: 4.6;
   filter: blur(9px);
 }
 .bridge-band {
   stroke: url(#bfrostBand);
-  stroke-width: 2.3;
+  stroke-width: 1.35;
 }
-/* The centre of a beam is hotter than its edges. This has to stay THIN and
-   faint: a wide soft white down the middle bleaches the spectrum and the
-   bridge comes out a pale ribbon with colour only along its edges, which is
-   the opposite of what it is for. */
+/* a light-guide has a brighter line down its middle; barely there */
 .bridge-inner {
   stroke: #fff;
-  stroke-width: .3;
+  stroke-width: .22;
   filter: blur(2px);
 }
 .bridge-core {
   stroke: #fff;
-  stroke-width: .12;
+  stroke-width: .07;
 }
 /* light running toward the far gate, once the span is up */
 .bridge-flow {
   fill: none;
-  stroke: rgba(255, 255, 255, .85);
-  stroke-width: 1.1;
+  stroke: rgba(255, 255, 255, .8);
+  stroke-width: .7;
   stroke-linecap: round;
-  stroke-dasharray: 1.6 15;
+  stroke-dasharray: 1.4 16;
   opacity: 0;
-  filter: blur(1.4px);
+  filter: blur(1.6px);
 }
 /* a white bead on a white face is invisible — the glow is what carries it */
 .bridge-spark {
   fill: #fff;
   opacity: 0;
-  filter: drop-shadow(0 0 5px #ffd60a) drop-shadow(0 0 14px rgba(52, 199, 89, .8));
+  filter: drop-shadow(0 0 5px rgba(214, 205, 232, .95)) drop-shadow(0 0 13px rgba(169, 198, 176, .6));
 }
 
 /* one class drives the whole choreography: the gates wake, the beam strikes
@@ -1381,27 +1391,27 @@ body.on-dark input::placeholder { color: #7a7a82; }
   100% { transform: scale(1); opacity: 1; }
 }
 @keyframes bfBand {
-  0%   { stroke-dashoffset: 100; opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
+  0%   { stroke-dashoffset: 100; opacity: .78; }
+  100% { stroke-dashoffset: 0; opacity: .78; }
 }
 @keyframes bfHaze {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  40%  { opacity: .58; }
-  100% { stroke-dashoffset: 0; opacity: .48; }
+  40%  { opacity: .4; }
+  100% { stroke-dashoffset: 0; opacity: .32; }
 }
 @keyframes bfInner {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  35%  { opacity: .5; }
-  100% { stroke-dashoffset: 0; opacity: .38; }
+  35%  { opacity: .34; }
+  100% { stroke-dashoffset: 0; opacity: .26; }
 }
 @keyframes bfCore {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  30%  { opacity: .95; }
-  100% { stroke-dashoffset: 0; opacity: .75; }
+  30%  { opacity: .6; }
+  100% { stroke-dashoffset: 0; opacity: .45; }
 }
-@keyframes bfFlowIn { to { opacity: .5; } }
+@keyframes bfFlowIn { to { opacity: .32; } }
 @keyframes bfFlow { to { stroke-dashoffset: -16.6; } }
-@keyframes bfSpark { to { opacity: .95; } }
+@keyframes bfSpark { to { opacity: .8; } }
 
 /* ---------- 00b · the face banner ----------
    Every face except the front one now announces itself the way a system
@@ -1586,12 +1596,12 @@ body.lens .keen-slab {
   .face--gateway.bridged .bridge-core,
   .face--gateway.bridged .bridge-flow,
   .face--gateway.bridged .bridge-spark { animation: none; }
-  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .48; }
-  .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: 1; }
-  .face--gateway.bridged .bridge-inner { stroke-dashoffset: 0; opacity: .38; }
-  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .75; }
-  .face--gateway.bridged .bridge-flow { opacity: .5; }
-  .face--gateway.bridged .bridge-spark { opacity: .95; }
+  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .32; }
+  .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: .78; }
+  .face--gateway.bridged .bridge-inner { stroke-dashoffset: 0; opacity: .26; }
+  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .45; }
+  .face--gateway.bridged .bridge-flow { opacity: .32; }
+  .face--gateway.bridged .bridge-spark { opacity: .8; }
   .stage.intro .glass-nav,
   .stage.intro .hud,
   .stage.intro .chat-dock,

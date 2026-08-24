@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>init</title>
+<style>html,body{margin:0;overflow:hidden}iframe{border:0;width:100vw;height:100vh;display:block}</style>
+</head><body><iframe id="f" src="../index.html"></iframe>
+<script>
+const q=new URLSearchParams(location.search), AT=+(q.get('t')||2800);
+const fr=document.getElementById('f');
+fr.addEventListener('load',()=>{
+  const w=fr.contentWindow,d=fr.contentDocument;
+  const st=d.createElement('style');
+  st.textContent='#zoomWrap{transform:scale(1)!important;transition:none!important}'
+   +'.face{transition:none!important}.face-banner{transition:none!important}';
+  d.head.appendChild(st);
+  const key=k=>w.dispatchEvent(new w.KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true}));
+  setTimeout(()=>key('Shift'),20);
+  setTimeout(()=>key('ArrowLeft'),300);
+  setTimeout(()=>{
+    d.getAnimations().forEach(a=>{try{a.pause();a.currentTime=AT;}catch(e){}});
+    // where do the beam's endpoints actually land, against the gate centres?
+    const svg=d.querySelector('.bridge').getBoundingClientRect();
+    const P=(x,y)=>({x:svg.left+svg.width*x/100, y:svg.top+svg.height*y/100});
+    const C=sel=>{const r=d.querySelector(sel).getBoundingClientRect();
+      return {x:(r.left+r.right)/2,y:(r.top+r.bottom)/2};};
+    const a=P(36,40), b=P(66,60), o1=C('.planet--b3ta'), o2=C('.planet--v0id');
+    const dd=(p,o)=>Math.hypot(p.x-o.x,p.y-o.y).toFixed(2);
+    document.title=JSON.stringify({t:AT,blueGap:+dd(a,o1),redGap:+dd(b,o2)});
+  },1600);
+});
+</script></body></html>

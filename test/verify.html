@@ -387,8 +387,10 @@ f.addEventListener('load', async () => {
   // along it — a gradient parallel to the run is a two-tone line, not a prism
   const grad = d.getElementById('bfrostBand');
   const stops = [...grad.querySelectorAll('stop')].map((n) => n.getAttribute('stop-color'));
-  ok(stops.length >= 6 && new Set(stops).size === stops.length,
-     `the beam carries a full spectrum (${stops.length} distinct stops)`);
+  // distinct COLOURS, not distinct stops: the outermost pair are repeats of
+  // their neighbours at zero opacity, feathering the band's edges
+  const hues = new Set(stops);
+  ok(hues.size >= 6, `the beam carries a full spectrum (${hues.size} distinct colours)`);
   const gx = +grad.getAttribute('x2') - +grad.getAttribute('x1');
   const gy = +grad.getAttribute('y2') - +grad.getAttribute('y1');
   const bx = 66 - 36, by = 60 - 40;                     // the beam's own run
