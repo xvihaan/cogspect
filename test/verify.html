@@ -382,7 +382,18 @@ f.addEventListener('load', async () => {
   ok(hud() === LABELS.left, 'arrived at the gate');
   ok(face('left').classList.contains('bridged'), 'the Bifröst beam was struck on arrival');
   const beam = d.querySelector('.bridge-band');
-  ok(w.getComputedStyle(beam).stroke.includes('bfrostGrad'), 'the beam resolves its gradient');
+  ok(w.getComputedStyle(beam).stroke.includes('bfrostBand'), 'the beam resolves its gradient');
+  // it has to be a SPECTRUM, and it has to run across the beam rather than
+  // along it — a gradient parallel to the run is a two-tone line, not a prism
+  const grad = d.getElementById('bfrostBand');
+  const stops = [...grad.querySelectorAll('stop')].map((n) => n.getAttribute('stop-color'));
+  ok(stops.length >= 6 && new Set(stops).size === stops.length,
+     `the beam carries a full spectrum (${stops.length} distinct stops)`);
+  const gx = +grad.getAttribute('x2') - +grad.getAttribute('x1');
+  const gy = +grad.getAttribute('y2') - +grad.getAttribute('y1');
+  const bx = 66 - 36, by = 60 - 40;                     // the beam's own run
+  const dot = Math.abs(gx * bx + gy * by) / (Math.hypot(gx, gy) * Math.hypot(bx, by));
+  ok(dot < 0.02, `the spectrum runs across the beam, not along it (cos ${dot.toFixed(3)})`);
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);
 

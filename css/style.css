@@ -1290,10 +1290,18 @@ body.on-dark input::placeholder { color: #7a7a82; }
 .face--matrix.reveal .cell--proj:nth-of-type(6),
 .face--matrix.reveal .cell-label:nth-of-type(6) { transition-delay: .35s; }
 
-/* ---------- 03b · Bifröst — a straight shaft of light ----------
-   Ragnarok's bridge is a beam, not an arc: one straight run of spectrum
-   from gate to gate. Three coincident strokes build it — a wide soft haze,
-   the spectrum band itself, and a white-hot core. */
+/* ---------- 03b · Bifröst — the rainbow bridge ----------
+   Ragnarok's bridge is a shaft of light with the whole spectrum spread
+   across its width, not a coloured line. Five coincident strokes on the
+   same straight run build it: the atmosphere it throws, the spectrum band
+   itself, a hot whitened centre, a white core, and the energy running
+   along it toward the far gate.
+
+   Stroke widths are in viewBox units (1 unit = 1% of the square face), NOT
+   px: vector-effect:non-scaling-stroke would measure the dash pattern in
+   device px instead of the pathLength="100" normalised space, which turns
+   a single full-length dash into a repeating dotted line. The trade — the
+   beam thickens with the cube — is what you want anyway. */
 
 .bridge {
   position: absolute;
@@ -1303,57 +1311,96 @@ body.on-dark input::placeholder { color: #7a7a82; }
   pointer-events: none;
   overflow: visible;
 }
-/* Stroke widths are in viewBox units (1 unit = 1% of the square face), NOT
-   px: vector-effect:non-scaling-stroke would measure the dash pattern in
-   device px instead of the pathLength="100" normalised space, which turns
-   a single full-length dash into a repeating dotted line. */
 .bridge-haze,
 .bridge-band,
+.bridge-inner,
 .bridge-core {
   fill: none;
-  stroke: url(#bfrostGrad);
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   opacity: 0;
 }
-.bridge-haze { stroke-width: 1.6; filter: blur(6px); }
-.bridge-band { stroke-width: .42; filter: drop-shadow(0 0 4px rgba(126, 110, 255, .7)); }
-.bridge-core { stroke-width: .1; stroke: #fff; }
+.bridge-haze {
+  stroke: url(#bfrostHaze);
+  stroke-width: 7.4;
+  /* enough blur that it reads as light thrown onto the face, little enough
+     that the colour survives it — past ~14px the whole aura greys out */
+  filter: blur(9px);
+}
+.bridge-band {
+  stroke: url(#bfrostBand);
+  stroke-width: 2.3;
+}
+/* The centre of a beam is hotter than its edges. This has to stay THIN and
+   faint: a wide soft white down the middle bleaches the spectrum and the
+   bridge comes out a pale ribbon with colour only along its edges, which is
+   the opposite of what it is for. */
+.bridge-inner {
+  stroke: #fff;
+  stroke-width: .3;
+  filter: blur(2px);
+}
+.bridge-core {
+  stroke: #fff;
+  stroke-width: .12;
+}
+/* light running toward the far gate, once the span is up */
+.bridge-flow {
+  fill: none;
+  stroke: rgba(255, 255, 255, .85);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-dasharray: 1.6 15;
+  opacity: 0;
+  filter: blur(1.4px);
+}
+/* a white bead on a white face is invisible — the glow is what carries it */
 .bridge-spark {
   fill: #fff;
   opacity: 0;
-  filter: drop-shadow(0 0 5px #7b6bff) drop-shadow(0 0 13px rgba(123, 107, 255, .8));
+  filter: drop-shadow(0 0 5px #ffd60a) drop-shadow(0 0 14px rgba(52, 199, 89, .8));
 }
 
 /* one class drives the whole choreography: the gates wake, the beam strikes
-   out from the blue gate to the red one, then the light runs along it */
+   out from the blue gate to the red one, then the light starts running */
 .face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) both; }
 .face--gateway.bridged .planet--v0id .orb { animation-delay: .16s; }
-.face--gateway.bridged .bridge-haze { animation: bfHaze 1.15s cubic-bezier(.4, .05, .2, 1) .6s forwards; }
-.face--gateway.bridged .bridge-band { animation: bfDraw 1.15s cubic-bezier(.4, .05, .2, 1) .62s forwards; }
-.face--gateway.bridged .bridge-core { animation: bfCore 1.15s cubic-bezier(.4, .05, .2, 1) .66s forwards; }
-.face--gateway.bridged .bridge-spark { animation: bfSpark .5s ease 1.7s forwards; }
+.face--gateway.bridged .bridge-haze { animation: bfHaze 1.25s cubic-bezier(.4, .05, .2, 1) .58s forwards; }
+.face--gateway.bridged .bridge-band { animation: bfBand 1.25s cubic-bezier(.4, .05, .2, 1) .62s forwards; }
+.face--gateway.bridged .bridge-inner { animation: bfInner 1.25s cubic-bezier(.4, .05, .2, 1) .66s forwards; }
+.face--gateway.bridged .bridge-core { animation: bfCore 1.25s cubic-bezier(.4, .05, .2, 1) .7s forwards; }
+.face--gateway.bridged .bridge-flow {
+  animation: bfFlowIn .7s ease 1.75s forwards, bfFlow 2.6s linear 1.75s infinite;
+}
+.face--gateway.bridged .bridge-spark { animation: bfSpark .5s ease 1.85s forwards; }
 
 @keyframes orbWake {
   0%   { transform: scale(.2); opacity: 0; }
   55%  { transform: scale(1.25); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-@keyframes bfDraw {
+@keyframes bfBand {
   0%   { stroke-dashoffset: 100; opacity: 1; }
   100% { stroke-dashoffset: 0; opacity: 1; }
 }
 @keyframes bfHaze {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  35%  { opacity: .3; }
-  100% { stroke-dashoffset: 0; opacity: .26; }
+  40%  { opacity: .58; }
+  100% { stroke-dashoffset: 0; opacity: .48; }
+}
+@keyframes bfInner {
+  0%   { stroke-dashoffset: 100; opacity: 0; }
+  35%  { opacity: .5; }
+  100% { stroke-dashoffset: 0; opacity: .38; }
 }
 @keyframes bfCore {
   0%   { stroke-dashoffset: 100; opacity: 0; }
   30%  { opacity: .95; }
-  100% { stroke-dashoffset: 0; opacity: .8; }
+  100% { stroke-dashoffset: 0; opacity: .75; }
 }
+@keyframes bfFlowIn { to { opacity: .5; } }
+@keyframes bfFlow { to { stroke-dashoffset: -16.6; } }
 @keyframes bfSpark { to { opacity: .95; } }
 
 /* ---------- 00b · the face banner ----------
@@ -1535,11 +1582,15 @@ body.lens .keen-slab {
   .face--gateway.bridged .planet .orb,
   .face--gateway.bridged .bridge-haze,
   .face--gateway.bridged .bridge-band,
+  .face--gateway.bridged .bridge-inner,
   .face--gateway.bridged .bridge-core,
+  .face--gateway.bridged .bridge-flow,
   .face--gateway.bridged .bridge-spark { animation: none; }
-  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .26; }
+  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .48; }
   .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: 1; }
-  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .8; }
+  .face--gateway.bridged .bridge-inner { stroke-dashoffset: 0; opacity: .38; }
+  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .75; }
+  .face--gateway.bridged .bridge-flow { opacity: .5; }
   .face--gateway.bridged .bridge-spark { opacity: .95; }
   .stage.intro .glass-nav,
   .stage.intro .hud,
