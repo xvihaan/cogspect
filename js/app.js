@@ -1006,7 +1006,13 @@
   /* A ripple thrown from the top edge of the chat bar, once per spoken beat.
      It is the same pixel grid the pointer disturbs — the voice just pushes a
      bigger, slower, half-round wave through it. */
+  let lastVoiceRipple = 0;
   function voiceRipple() {
+    // boundary events and the steady beat both feed this; a floor keeps the
+    // two from stacking into a wall of overlapping fronts
+    const now = performance.now();
+    if (now - lastVoiceRipple < 170) return;
+    lastVoiceRipple = now;
     const r = chatForm.getBoundingClientRect();
     ripples.push({
       x: (r.left + r.right) / 2, y: r.top,
@@ -1102,7 +1108,7 @@
   const VOICE_KEY = 'cogspect.voice';
   let voiceOn = localStorage.getItem(VOICE_KEY) !== 'off';
   let parkedSpeech = null;              // blocked by autoplay, waiting for a gesture
-  let beatTimer = null;
+  let beatTimer = null, waveEnd = null;
 
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
@@ -1110,12 +1116,28 @@
   }
   if (TTS) TTS.addEventListener('voiceschanged', koVoice);
 
-  function stopBeat() { clearInterval(beatTimer); beatTimer = null; }
+  /* The wave is the message's own pulse, not the engine's. Driving it off
+     onstart meant waiting on speech warm-up — which is hundreds of ms on the
+     first utterance, and never arrives at all when autoplay refuses or the
+     visitor has muted cpt — so the bubble appeared and the grid answered
+     late, or not at all. It now begins on the same tick as the text. */
+  function stopBeat() {
+    clearInterval(beatTimer); beatTimer = null;
+    clearTimeout(waveEnd); waveEnd = null;
+  }
+  function startWave(ms) {
+    stopBeat();
+    voiceRipple();                       // same tick as the bubble
+    beatTimer = setInterval(voiceRipple, 560);
+    waveEnd = setTimeout(stopBeat, ms);
+  }
 
   function speak(text) {
     if (!TTS || !voiceOn || !text) return;
-    TTS.cancel();
-    stopBeat();
+    // only cancel when there is something to cancel: cancel() immediately
+    // followed by speak() is a well-known Chrome stall, and paying for it on
+    // every utterance is exactly the delay this is trying to remove
+    if (TTS.speaking || TTS.pending) TTS.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const v = koVoice();
     if (v) u.voice = v;
@@ -1123,18 +1145,12 @@
     u.rate = 1.24;                       // brisk — a guide, not a narrator
     u.pitch = 1;
     let spoke = false;
-    u.onstart = () => {
-      spoke = true;
-      parkedSpeech = null;
-      voiceRipple();
-      // a steady pulse underneath, so the grid still moves on engines that
-      // never fire boundary events (Safari does not, for one)
-      beatTimer = setInterval(voiceRipple, 620);
-    };
+    u.onstart = () => { spoke = true; parkedSpeech = null; };
+    // engines that emit boundaries pulse the grid on the actual words, over
+    // the steady beat startWave() is already running
     u.onboundary = voiceRipple;
     u.onend = stopBeat;
     u.onerror = (e) => {
-      stopBeat();
       if (!spoke && /not-allowed|blocked/i.test(e.error || '')) parkedSpeech = text;
     };
     TTS.speak(u);
@@ -1182,6 +1198,7 @@
 
   function dismissGhost() {
     clearTimeout(ghostTimer);
+    stopBeat();
     ghost.classList.remove('show', 'pending');
     ghost.classList.add('leaving');
     setTimeout(() => ghost.classList.remove('leaving'), 500);
@@ -1194,8 +1211,9 @@
     ghost.classList.add('show');
     ghost.classList.toggle('pending', !!pending);
     if (!pending) {
-      speak(text);
       const dur = Math.min(15000, 4500 + text.length * 55);
+      startWave(dur);                    // grid moves with the text…
+      speak(text);                       // …and the voice starts alongside it
       ghostTimer = setTimeout(dismissGhost, dur);
     }
   }
