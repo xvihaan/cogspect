@@ -250,6 +250,49 @@ f.addEventListener('load', async () => {
   // starves rAF, so the momentum roll may still be running here
   ok(hud()===LABELS[frontOf(mat())],`after a free tumble: HUD matches geometry (${hud()})`);
 
+  /* ---------- cpt: the greeting, the voice, the wave -------------------- */
+
+  log('\n— cpt —');
+  // the harness has already been driving the page for a while, so the
+  // greeting has long since come and gone; re-check the wiring instead of
+  // the timing, which _rig.html covers with a shimmed rAF
+  ok(typeof w.speechSynthesis !== 'undefined', 'the browser exposes a speech engine');
+  const vb = d.getElementById('voiceToggle');
+  ok(!!vb, 'the voice can be turned off');
+  ok(vb.getAttribute('aria-pressed') === 'true', 'and it starts on');
+  ok(w.getComputedStyle(vb).pointerEvents === 'auto',
+     'the toggle is clickable even though .hud is pointer-events:none');
+  vb.click();
+  await wait(60);
+  ok(vb.getAttribute('aria-pressed') === 'false' && vb.classList.contains('off'),
+     'clicking it mutes cpt');
+  ok(w.localStorage.getItem('cogspect.voice') === 'off', 'and the choice is remembered');
+  vb.click();
+  await wait(60);
+  ok(vb.getAttribute('aria-pressed') === 'true', 'and it turns back on');
+
+  // speaking must never be the only channel: the bubble carries the text
+  // whether or not any audio was allowed to play
+  let said = null;
+  const realSpeak = w.speechSynthesis.speak.bind(w.speechSynthesis);
+  w.speechSynthesis.speak = (u) => { said = u.text; };
+  const g = d.getElementById('ghostMsg');
+  g.click();                                   // clear anything showing
+  await wait(600);
+  // force the offline path: the deployed site always answers from retrieval,
+  // and it keeps this check off the local model server and its latency
+  const realFetch = w.fetch;
+  w.fetch = (u, o) => (String(u).includes('/chat/') ? Promise.reject(new Error('offline'))
+                                                   : realFetch.call(w, u, o));
+  d.getElementById('chatInput').value = 'cogspect가 뭐야?';
+  d.getElementById('chatForm').dispatchEvent(new w.Event('submit', {bubbles: true, cancelable: true}));
+  await wait(1400);
+  w.fetch = realFetch;
+  ok(g.classList.contains('show') && g.textContent.trim().length > 0,
+     'an answer always reaches the bubble');
+  ok(said && said === g.textContent, 'and the same text is handed to the voice');
+  w.speechSynthesis.speak = realSpeak;
+
   /* ---------- set pieces ---------------------------------------------- */
 
   log('\n— set pieces —');

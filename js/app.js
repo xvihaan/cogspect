@@ -963,23 +963,31 @@
     ctx.clearRect(0, 0, W, H);
     const now = performance.now();
     for (let i = ripples.length - 1; i >= 0; i--) {
-      if (now - ripples[i].t0 >= 1500) ripples.splice(i, 1);
+      if (now - ripples[i].t0 >= (ripples[i].life || 1500)) ripples.splice(i, 1);
     }
     if (!ripples.length) return;
-    const P = 12, R = 140;
+    const P = 12;
     for (const r of ripples) {
+      // pointer wakes are small, quick circles; a voice ripple is a wide slow
+      // half-circle opening upward out of the chat bar, so reach, speed,
+      // decay and shape all come off the ripple itself
+      const R = r.R || 140;
       const age = (now - r.t0) / 1000;
-      const front = age * 190, decay = Math.exp(-age * 2.2);
+      const front = age * (r.speed || 190), decay = Math.exp(-age * (r.decay || 2.2));
       if (decay < 0.02) continue;
       const x0 = Math.max(0, Math.floor((r.x - R) / P) * P), x1 = Math.min(W, r.x + R);
       const y0 = Math.max(0, Math.floor((r.y - R) / P) * P), y1 = Math.min(H, r.y + R);
       for (let gx = x0; gx < x1; gx += P) {
         for (let gy = y0; gy < y1; gy += P) {
           const dx = gx - r.x, dy = gy - r.y;
+          if (r.half && dy > 0) continue;            // upper half only
           const d = Math.hypot(dx, dy);
           if (d > R) continue;
           const band = d - front;
-          const w = Math.exp(-(band * band) / 900) * decay;
+          let w = Math.exp(-(band * band) / (r.band || 900)) * decay;
+          // taper toward the horizontal so the half ripple reads as an arc
+          // rising out of the bar rather than a disc cut in two
+          if (r.half) w *= 0.3 + 0.7 * (-dy / (d || 1));
           if (w < 0.03) continue;
           const ang = Math.atan2(dy, dx);
           const off = Math.sin(d * 0.09 - age * 9) * 4 * w;
@@ -992,6 +1000,21 @@
         }
       }
     }
+  }
+
+  /* A ripple thrown from the top edge of the chat bar, once per spoken beat.
+     It is the same pixel grid the pointer disturbs — the voice just pushes a
+     bigger, slower, half-round wave through it. */
+  function voiceRipple() {
+    const r = chatForm.getBoundingClientRect();
+    ripples.push({
+      x: (r.left + r.right) / 2, y: r.top,
+      t0: performance.now(),
+      // wide enough to clear the answer bubble sitting directly above the
+      // bar, or the arc is swallowed by it and never reads
+      half: 1, R: 440, speed: 300, decay: 1.25, band: 3200, life: 2800
+    });
+    if (ripples.length > 20) ripples.shift();
   }
 
   /* ---------- render loop: momentum + zoom spring + ripples ---------- */
@@ -1056,6 +1079,105 @@
     });
   }
 
+  /* ---------- cpt's voice ----------
+     Web Speech, so there is no network call and nothing to host. Two things
+     make this harder than it looks:
+
+     · Autoplay. Browsers gate speech behind a user gesture, and they do not
+       agree on how: Chrome usually lets a page-load utterance through,
+       Safari never does. So a blocked greeting is not dropped — it is parked
+       and spoken on the visitor's first interaction instead, and the bubble
+       shows either way. Audio is never the only channel.
+     · Voices load late. getVoices() is commonly empty on first call and
+       fills in asynchronously, so the Korean voice is resolved at speak time
+       and the list is re-read on voiceschanged.
+
+     Ripples are driven off boundary events where the engine emits them, so
+     the grid pulses on the actual words; engines that stay silent fall back
+     to a steady beat for the utterance's duration. */
+
+  const TTS = window.speechSynthesis;
+  const VOICE_KEY = 'cogspect.voice';
+  let voiceOn = localStorage.getItem(VOICE_KEY) !== 'off';
+  let parkedSpeech = null;              // blocked by autoplay, waiting for a gesture
+  let beatTimer = null;
+
+  function koVoice() {
+    const all = TTS ? TTS.getVoices() : [];
+    return all.find((v) => /^ko/i.test(v.lang)) || null;
+  }
+  if (TTS) TTS.addEventListener('voiceschanged', koVoice);
+
+  function stopBeat() { clearInterval(beatTimer); beatTimer = null; }
+
+  function speak(text) {
+    if (!TTS || !voiceOn || !text) return;
+    TTS.cancel();
+    stopBeat();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = koVoice();
+    if (v) u.voice = v;
+    u.lang = v ? v.lang : 'ko-KR';
+    u.rate = 1.02;
+    u.pitch = 1;
+    let spoke = false;
+    u.onstart = () => {
+      spoke = true;
+      parkedSpeech = null;
+      voiceRipple();
+      // a steady pulse underneath, so the grid still moves on engines that
+      // never fire boundary events (Safari does not, for one)
+      beatTimer = setInterval(voiceRipple, 620);
+    };
+    u.onboundary = voiceRipple;
+    u.onend = stopBeat;
+    u.onerror = (e) => {
+      stopBeat();
+      if (!spoke && /not-allowed|blocked/i.test(e.error || '')) parkedSpeech = text;
+    };
+    TTS.speak(u);
+    // Chrome reports nothing at all when it silently refuses; if the engine
+    // has not started by now, treat it as blocked and wait for a gesture
+    setTimeout(() => { if (!spoke && !TTS.speaking) parkedSpeech = text; }, 700);
+  }
+
+  function hushVoice() {
+    if (TTS) TTS.cancel();
+    stopBeat();
+    parkedSpeech = null;
+  }
+
+  /* cpt speaks on its own, unprompted — so there has to be a way to stop it
+     that does not involve muting the whole tab. The choice is remembered, so
+     a visitor who turns it off never hears it again on this browser. */
+  const voiceBtn = document.getElementById('voiceToggle');
+  function paintVoiceBtn() {
+    if (!voiceBtn) return;
+    voiceBtn.classList.toggle('off', !voiceOn);
+    voiceBtn.setAttribute('aria-pressed', String(voiceOn));
+    voiceBtn.setAttribute('aria-label', voiceOn ? '음성 안내 끄기' : '음성 안내 켜기');
+  }
+  if (voiceBtn) {
+    if (!TTS) voiceBtn.hidden = true;          // nothing to toggle
+    paintVoiceBtn();
+    voiceBtn.addEventListener('click', () => {
+      voiceOn = !voiceOn;
+      localStorage.setItem(VOICE_KEY, voiceOn ? 'on' : 'off');
+      if (!voiceOn) hushVoice();
+      paintVoiceBtn();
+    });
+  }
+
+  // first real interaction releases anything autoplay refused
+  for (const ev of ['pointerdown', 'keydown', 'touchstart']) {
+    window.addEventListener(ev, () => {
+      if (!parkedSpeech) return;
+      const t = parkedSpeech;
+      parkedSpeech = null;
+      speak(t);
+    }, { capture: true, passive: true });
+  }
+
   function dismissGhost() {
     clearTimeout(ghostTimer);
     ghost.classList.remove('show', 'pending');
@@ -1070,11 +1192,12 @@
     ghost.classList.add('show');
     ghost.classList.toggle('pending', !!pending);
     if (!pending) {
+      speak(text);
       const dur = Math.min(15000, 4500 + text.length * 55);
       ghostTimer = setTimeout(dismissGhost, dur);
     }
   }
-  ghost.addEventListener('click', dismissGhost);
+  ghost.addEventListener('click', () => { hushVoice(); dismissGhost(); });
 
   function tokenize(s) {
     return s.toLowerCase().split(/[^0-9a-z가-힣]+/).filter((t) => t.length > 1);
@@ -1252,6 +1375,19 @@
      to paintFaces() directly, so the logical orientation stays exactly ID
      and an arrow key pressed mid-intro still turns from a square pose. */
 
+  /* Nobody arriving here knows what this is. The cube says "spatial toy", not
+     "portfolio", so cpt introduces the place once, in its own voice, right
+     after the intro lands — late enough that it is not competing with the
+     tumble for attention, early enough to catch someone before they leave. */
+  const GREETING = '안녕하세요, 저는 cogspect의 안내 에이전트 cpt입니다. '
+    + '이곳은 기술과 예술의 접목을 지향하는 cogspect이자, 개발자 김민혁의 포트폴리오입니다. '
+    + '작업물은 오른쪽 면에 있어요. 방향키나 드래그로 넘겨 보시고, 궁금한 건 아래에 물어보세요.';
+
+  function greet() {
+    if (overlayOpen() || ghost.classList.contains('show')) return;
+    showGhost(GREETING);
+  }
+
   const INTRO_LEG = 1080;
   let introTimers = [];
   let introOver = false;
@@ -1266,6 +1402,8 @@
     rotHold = false;                 // release the zoom clamp — springs in to 1
     phase = 'idle';
     applyCube(animate !== false);
+    // a beat after the cube settles, not on top of it
+    setTimeout(greet, 900);
   }
 
   function runIntro() {
@@ -1305,6 +1443,7 @@
     introOver = true;
     drifting = false;
     applyCube(false);
+    setTimeout(greet, 2000);
   } else {
     runIntro();
   }

@@ -1641,3 +1641,51 @@ body.lens .keen-slab {
   .stage.intro .chat-dock,
   .stage.intro .wordmark { opacity: 1; }
 }
+
+/* ---------- cpt's voice toggle ----------
+   .hud is pointer-events:none so the cube stays draggable underneath it, so
+   the button has to opt back in. Same muted HUD type as its neighbours: it
+   is a control, not a feature to advertise. */
+.voice-toggle {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #b6b6bc;
+  transition: color .3s ease, opacity .3s ease;
+}
+.voice-toggle:hover { color: var(--muted); }
+.voice-toggle i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  /* the dot breathes while the voice is live, so the control also reads as
+     an indicator of whether anything is speaking */
+  animation: voicePulse 2.4s ease-in-out infinite;
+}
+.voice-toggle.off { opacity: .55; }
+.voice-toggle.off i {
+  animation: none;
+  background: none;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+@keyframes voicePulse {
+  0%, 100% { opacity: .45; transform: scale(.9); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+body.on-dark .voice-toggle { color: #6e7078; }
+body.on-dark .voice-toggle:hover { color: #a9abb4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-toggle i { animation: none; }
+}
