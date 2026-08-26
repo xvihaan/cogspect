@@ -988,6 +988,7 @@
           // taper toward the horizontal so the half ripple reads as an arc
           // rising out of the bar rather than a disc cut in two
           if (r.half) w *= 0.3 + 0.7 * (-dy / (d || 1));
+          w = Math.min(1, w * (r.gain || 1));
           if (w < 0.03) continue;
           const ang = Math.atan2(dy, dx);
           const off = Math.sin(d * 0.09 - age * 9) * 4 * w;
@@ -1012,7 +1013,8 @@
       t0: performance.now(),
       // wide enough to clear the answer bubble sitting directly above the
       // bar, or the arc is swallowed by it and never reads
-      half: 1, R: 440, speed: 300, decay: 1.25, band: 3200, life: 2800
+      half: 1, R: 440, speed: 300, decay: 1.25, band: 3200, life: 2800,
+      gain: 1.9
     });
     if (ripples.length > 20) ripples.shift();
   }
@@ -1118,7 +1120,7 @@
     const v = koVoice();
     if (v) u.voice = v;
     u.lang = v ? v.lang : 'ko-KR';
-    u.rate = 1.02;
+    u.rate = 1.24;                       // brisk — a guide, not a narrator
     u.pitch = 1;
     let spoke = false;
     u.onstart = () => {
