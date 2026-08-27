@@ -257,6 +257,13 @@ f.addEventListener('load', async () => {
   // greeting has long since come and gone; re-check the wiring instead of
   // the timing, which _rig.html covers with a shimmed rAF
   ok(typeof w.speechSynthesis !== 'undefined', 'the browser exposes a speech engine');
+  for (const sel of ['.chat-bar', '.ghost-msg']) {
+    const cs = w.getComputedStyle(d.querySelector(sel));
+    ok(parseFloat(cs.borderTopWidth) === 0,
+       `${sel} carries no outline — cpt's surfaces are talked to, not read`);
+    ok(/blur\(/.test(cs.backdropFilter || cs.webkitBackdropFilter || ''),
+       `${sel} still reads as glass without one`);
+  }
   const vb = d.getElementById('voiceToggle');
   ok(!!vb, 'the voice can be turned off');
   ok(vb.getAttribute('aria-pressed') === 'true', 'and it starts on');
@@ -417,8 +424,8 @@ f.addEventListener('load', async () => {
   await wait(900);                            // it starts a beat after arrival
   ok(kslabEl.classList.contains('teasing'), 'arriving at keen demonstrates the drag');
   const tease = kslabEl.getAnimations().find((a) => (a.animationName || '') === 'slabTease');
-  ok(tease && tease.effect.getTiming().iterations === 3,
-     `it dips three times and stops (${tease ? tease.effect.getTiming().iterations : 'no animation'})`);
+  ok(tease && tease.effect.getTiming().iterations === 2,
+     `it dips twice and stops (${tease ? tease.effect.getTiming().iterations : 'no animation'})`);
   ok(d.getElementById('keenHandle').querySelector('p').textContent.trim() === 'DRAG ME',
      'and the bar says what to do while it does');
 

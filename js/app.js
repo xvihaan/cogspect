@@ -1329,22 +1329,45 @@
 
   function dismissGhost() {
     clearTimeout(ghostTimer);
+    stopTyping();
     stopBeat();
     ghost.classList.remove('show', 'pending');
     ghost.classList.add('leaving');
     setTimeout(() => ghost.classList.remove('leaving'), 500);
     clearMarks();
   }
-  function showGhost(text, pending) {
+  /* cpt types the greeting out rather than pasting it. An agent that
+     produces its answer in front of you reads as something composing;
+     the same words arriving all at once read as a caption. 34ms a
+     character puts the last one down comfortably before the voice
+     finishes, so the text never lags behind what is being said. */
+  const TYPE_MS = 34;
+  let typeTimer = null;
+  function stopTyping() {
+    clearInterval(typeTimer); typeTimer = null;
+    ghost.classList.remove('typing');
+  }
+
+  function showGhost(text, pending, typed) {
     clearTimeout(ghostTimer);
-    ghost.textContent = text;
+    stopTyping();
     ghost.classList.remove('leaving');
     ghost.classList.add('show');
     ghost.classList.toggle('pending', !!pending);
+    const type = typed && !pending && !reducedMotion.matches;
+    ghost.textContent = type ? '' : text;
     if (!pending) {
       const dur = Math.min(15000, 4500 + text.length * 55);
       startWave(dur);                    // grid moves with the text…
       speak(text);                       // …and the voice starts alongside it
+      if (type) {
+        let i = 0;
+        ghost.classList.add('typing');
+        typeTimer = setInterval(() => {
+          ghost.textContent = text.slice(0, ++i);
+          if (i >= text.length) stopTyping();
+        }, TYPE_MS);
+      }
       ghostTimer = setTimeout(dismissGhost, dur);
     }
   }
@@ -1536,7 +1559,7 @@
 
   function greet() {
     if (overlayOpen() || ghost.classList.contains('show')) return;
-    showGhost(GREETING);
+    showGhost(GREETING, false, true);
   }
 
   const INTRO_LEG = 1080;
