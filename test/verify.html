@@ -643,9 +643,19 @@ f.addEventListener('load', async () => {
      travelling along it, so the span is white until something passes through
      it — the gradient is an alpha ramp, nothing else. This is the assertion
      that stops it drifting back into a painted rainbow. */
-  const white = (c) => ['#ffffff', '#fff', 'white'].indexOf(String(c).toLowerCase()) >= 0;
-  ok(stops.length > 0 && stops.every(white),
-     `the shaft itself is white, with no colour in it (${[...new Set(stops)].join(', ')})`);
+  /* Achromatic, not literally #ffffff. Pure white alone was invisible: on a
+     near-white page the whole available contrast is about eleven levels, so
+     the shaft is white through the middle and silver at its flanks. What
+     must hold is that it carries no HUE — every colour on this bridge comes
+     from the rain. */
+  const chroma = (c) => {
+    const m = String(c).match(/[\da-f]{2}/gi) || [];
+    const v = m.map((h) => parseInt(h, 16));
+    return v.length === 3 ? Math.max(...v) - Math.min(...v) : 99;
+  };
+  const hues = stops.map(chroma);
+  ok(stops.length > 0 && Math.max(...hues) <= 16,
+     `the shaft carries no colour, only white and silver (${[...new Set(stops)].join(', ')})`);
   const alphas = [...grad.querySelectorAll('stop')]
     .map((n) => parseFloat(n.getAttribute('stop-opacity') || '1'));
   ok(Math.min(...alphas) === 0 && Math.max(...alphas) === 1,
@@ -681,9 +691,15 @@ f.addEventListener('load', async () => {
          so rays that are merely brighter disappear into the beam
      Width is deliberately NOT asserted: these are narrower than the band and
      visible anyway, because they are saturated. */
-  const dashes = rays.map((r) => parseFloat(w.getComputedStyle(r).strokeDasharray));
-  ok(Math.min(...dashes) >= 6,
-     `each ray is long enough to read as a streak (shortest ${Math.min(...dashes)} of 100)`);
+  /* Rain is MANY streaks at once. Each path carries a repeating pattern, so
+     the period — dash plus gap — has to stay small against the span's 100
+     units, or the shower is a handful of comets. */
+  const periods = rays.map((r) => {
+    const n = w.getComputedStyle(r).strokeDasharray.match(/[\d.]+/g) || [];
+    return n.slice(0, 2).reduce((a, b) => a + parseFloat(b), 0);
+  });
+  ok(Math.max(...periods) <= 20 && Math.min(...periods) > 0,
+     `each path carries a shower, not one streak (longest period ${Math.max(...periods)} of 100)`);
   const coloured = rays.filter((r) => {
     const c = w.getComputedStyle(r).stroke;
     const m = c.match(/\d+/g);

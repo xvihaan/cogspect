@@ -1450,22 +1450,23 @@ body.on-dark input::placeholder { color: #7a7a82; }
 }
 .bridge-haze {
   stroke: url(#bfrostHaze);
-  stroke-width: 4.6;
-  filter: blur(9px);
+  stroke-width: 2.9;
+  filter: blur(7px);
 }
 .bridge-band {
   stroke: url(#bfrostBand);
-  stroke-width: 1.45;
+  stroke-width: .8;
+  filter: drop-shadow(0 1px 4px rgba(21, 22, 28, .07));
 }
 /* a light-guide has a brighter line down its middle */
 .bridge-inner {
   stroke: #fff;
-  stroke-width: .3;
-  filter: blur(2px);
+  stroke-width: .18;
+  filter: blur(1.4px);
 }
 .bridge-core {
   stroke: #fff;
-  stroke-width: .08;
+  stroke-width: .1;
 }
 
 /* Movement is what keeps this from being a painted stripe. Rays travel the
@@ -1476,31 +1477,35 @@ body.on-dark input::placeholder { color: #7a7a82; }
 .bridge-ray {
   fill: none;
   stroke: var(--ray-c, #fff);
-  stroke-width: var(--ray-w, .5);
+  stroke-width: var(--ray-w, .25);
   stroke-linecap: round;
-  stroke-dasharray: var(--ray-d, 4) calc(100 - var(--ray-d, 4));
-  stroke-dashoffset: 100;
+  /* A REPEATING pattern, not a single dash: rain is many thin streaks at
+     once, and one dash per path is a comet. The period is dash+gap and the
+     animation moves the offset by exactly that, so the loop never jumps. */
+  stroke-dasharray: var(--ray-d, 2) var(--ray-g, 10);
+  stroke-dashoffset: 0;
   opacity: 0;
-  filter: blur(var(--ray-blur, 1.2px));
+  filter: blur(var(--ray-blur, .7px));
 }
-/* Long, saturated and crisp. The two failed attempts are worth keeping in
-   mind: thin rays vanished because a 4%-long dash is a tick, not a streak,
-   and wide blurred ones vanished because they melted into the beam's own
-   glow. What reads on a white shaft is HUE — a saturated streak long enough
-   to be seen as a streak, sharp enough to have edges.
 
-   Durations are deliberately not multiples of one another. Round numbers
-   fall into step every few seconds and the span pulses as one object
-   instead of carrying traffic. */
-.ray--a { --ray-c: #4c7dff; --ray-w: .95; --ray-d: 17; --ray-t: 2.4s;  --ray-in: 1.9s; --ray-o: .85; --ray-blur: 1.2px; }
-.ray--b { --ray-c: #e0483f; --ray-w: .85; --ray-d: 13; --ray-t: 3.3s;  --ray-in: 2.2s; --ray-o: .8;  --ray-blur: 1.2px; }
-.ray--c { --ray-c: #ffffff; --ray-w: 1.2; --ray-d: 21; --ray-t: 1.9s;  --ray-in: 2.5s; --ray-o: .9;  --ray-blur: 2px; }
-.ray--d { --ray-c: #9b6cff; --ray-w: .75; --ray-d: 11; --ray-t: 2.9s;  --ray-in: 2.8s; --ray-o: .72; --ray-blur: 1.1px; }
-.ray--e { --ray-c: #ffab2e; --ray-w: .7;  --ray-d: 9;  --ray-t: 2.15s; --ray-in: 3.1s; --ray-o: .72; --ray-blur: 1px; }
-.ray--f { --ray-c: #2fd4c8; --ray-w: .65; --ray-d: 8;  --ray-t: 3.7s;  --ray-in: 3.4s; --ray-o: .66; --ray-blur: 1px; }
+/* Rain down the span. Three attempts got here and the failures are worth
+   keeping, because they failed for opposite reasons:
+     · thin and short, one dash per path — a tick, invisible
+     · wide and blurred — melted into the beam's own glow
+     · long, saturated, one per path — visible, but a comet rather than rain
+   What reads as rain is MANY thin streaks at once; what makes them visible
+   on a white shaft is hue rather than brightness.
 
-/* one class drives the whole choreography: the gates wake, the beam strikes
-   out from the blue gate to the red one, then the light starts running */
+   Periods and durations are deliberately not multiples of one another. Round
+   numbers fall into step within seconds and the shower becomes one blinking
+   object. */
+.ray--a { --ray-c: #4c7dff; --ray-w: .28; --ray-d: 2.5; --ray-g: 9;  --ray-p: 11.5; --ray-t: .32s; --ray-in: 1.9s; --ray-o: .8; }
+.ray--b { --ray-c: #e0483f; --ray-w: .24; --ray-d: 2;   --ray-g: 11; --ray-p: 13;   --ray-t: .44s; --ray-in: 2.1s; --ray-o: .74; }
+.ray--c { --ray-c: #ffffff; --ray-w: .32; --ray-d: 3;   --ray-g: 8;  --ray-p: 11;   --ray-t: .28s; --ray-in: 2.3s; --ray-o: .85; --ray-blur: 1px; }
+.ray--d { --ray-c: #9b6cff; --ray-w: .2;  --ray-d: 1.8; --ray-g: 13; --ray-p: 14.8; --ray-t: .52s; --ray-in: 2.5s; --ray-o: .7; }
+.ray--e { --ray-c: #ffab2e; --ray-w: .2;  --ray-d: 1.5; --ray-g: 10; --ray-p: 11.5; --ray-t: .38s; --ray-in: 2.7s; --ray-o: .7; }
+.ray--f { --ray-c: #2fd4c8; --ray-w: .18; --ray-d: 1.6; --ray-g: 12; --ray-p: 13.6; --ray-t: .47s; --ray-in: 2.9s; --ray-o: .64; }
+
 .face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) backwards; }
 .face--gateway.bridged .planet--v0id .orb { animation-delay: .16s; }
 .face--gateway.bridged .bridge-haze {
@@ -1514,13 +1519,6 @@ body.on-dark input::placeholder { color: #7a7a82; }
   animation:
     bfRayIn .7s ease var(--ray-in) forwards,
     bfRay var(--ray-t) linear var(--ray-in) infinite;
-}
-/* the red one runs the other way — from the red gate back to the blue,
-   which is the direction it would come from */
-.face--gateway.bridged .ray--b {
-  animation:
-    bfRayIn .7s ease var(--ray-in) forwards,
-    bfRayBack var(--ray-t) linear var(--ray-in) infinite;
 }
 
 @keyframes orbWake {
@@ -1539,8 +1537,8 @@ body.on-dark input::placeholder { color: #7a7a82; }
 }
 /* the atmosphere swells and settles, so the span is never quite still */
 @keyframes bfBreathe {
-  0%, 100% { opacity: .3; stroke-width: 4.6; }
-  50%      { opacity: .46; stroke-width: 5.4; }
+  0%, 100% { opacity: .3; stroke-width: 2.9; }
+  50%      { opacity: .44; stroke-width: 3.5; }
 }
 @keyframes bfInner {
   0%   { stroke-dashoffset: 100; opacity: 0; }
@@ -1553,10 +1551,9 @@ body.on-dark input::placeholder { color: #7a7a82; }
   100% { stroke-dashoffset: 0; opacity: .62; }
 }
 @keyframes bfRayIn { to { opacity: var(--ray-o, .6); } }
-/* one dash, one lap: the pattern's period is the whole path, so moving the
-   offset by 100 carries the streak from gate to gate exactly once */
-@keyframes bfRay     { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
-@keyframes bfRayBack { from { stroke-dashoffset: 0; }   to { stroke-dashoffset: 100; } }
+/* one period per cycle: the pattern lands exactly on itself, so the shower
+   never jumps at the loop point */
+@keyframes bfRay { from { stroke-dashoffset: var(--ray-p); } to { stroke-dashoffset: 0; } }
 
 /* ---------- 00b · the face banner ----------
    Every face except the front one now announces itself the way a system
