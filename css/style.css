@@ -441,7 +441,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 @media (min-width: 968px) {
   .keen-entry {
     --keen-target-left: 56px;
-    --keen-target-top: 190px;
+    --keen-target-top: 168px;
   }
 }
 /* Narrow screens: at 62vw the copy column is squeezed so hard it wraps for
@@ -450,17 +450,27 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   .keen-entry {
     width: min(600px, 88vw);
     --keen-target-left: 18px;
-    --keen-target-top: 186px;
+    --keen-target-top: 164px;
   }
 }
 /* A short viewport has less room between the bar and the chat dock, and the
    bar itself moves up to 72px there — so follow it up. Last, so it wins on
    screens that match both this and the width rule above. */
 @media (max-height: 620px) {
-  .keen-entry { --keen-target-top: 182px; }
+  .keen-entry { --keen-target-top: 158px; }
 }
 
-.keen-copy { flex: 1 1 auto; min-width: 0; }
+/* Out of focus by default — the headword too, not just the definition. keen
+   is a lens, so the entry for keen is the one thing on this site you can
+   only read THROUGH one. Nothing here is legible until the specimen is
+   over it. */
+.keen-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  filter: blur(3.6px);
+  opacity: .52;
+  transition: filter .4s ease, opacity .4s ease;
+}
 
 .keen-head {
   display: flex;
@@ -501,13 +511,6 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   line-height: 1.65;
   color: #3a3a3e;
   text-wrap: pretty;
-  /* Out of focus by default. keen is a lens, so the definition of keen is
-     the thing you read THROUGH it: bring the specimen over this and the
-     covered part comes into focus. The headword above stays sharp — the face
-     still has to say what it is to someone who never picks the glass up. */
-  filter: blur(3.4px);
-  opacity: .5;
-  transition: filter .4s ease, opacity .4s ease;
 }
 
 /* A second, sharp copy of the whole block, cloned at boot so the two can
@@ -522,10 +525,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
     var(--lens-t, 100%) var(--lens-r, 100%) var(--lens-b, 100%) var(--lens-l, 100%)
     round 26px);
 }
-.keen-entry--sharp .keen-def { filter: none; opacity: 1; }
-/* the headword is identical in both copies, so only the definition needs to
-   be drawn twice — hiding the rest keeps the border under it from doubling */
-.keen-entry--sharp .keen-head { visibility: hidden; }
+.keen-entry--sharp .keen-copy { filter: none; opacity: 1; }
 
 /* 05 · vision */
 

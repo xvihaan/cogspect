@@ -509,10 +509,12 @@ f.addEventListener('load', async () => {
   ok(sharpEl.querySelector('.keen-def').textContent ===
      d.querySelector('.keen-entry .keen-def').textContent,
      'the two copies say the same thing');
-  ok(/blur\(/.test(w.getComputedStyle(d.querySelector('.keen-entry .keen-def')).filter),
-     'the explanation is out of focus by default');
-  ok(w.getComputedStyle(sharpEl.querySelector('.keen-def')).filter === 'none',
+  ok(/blur\(/.test(w.getComputedStyle(d.querySelector('.keen-entry .keen-copy')).filter),
+     'the whole entry is out of focus by default, headword included');
+  ok(w.getComputedStyle(sharpEl.querySelector('.keen-copy')).filter === 'none',
      'and the copy the lens reveals is not');
+  ok(w.getComputedStyle(sharpEl.querySelector('.keen-head')).visibility === 'visible',
+     'the lens brings the headword in too, not only the definition');
   ok(/100%/.test(w.getComputedStyle(sharpEl).clipPath),
      'with the specimen away, nothing is in focus');
 
