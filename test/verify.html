@@ -316,9 +316,9 @@ f.addEventListener('load', async () => {
 
   // speaking must never be the only channel: the bubble carries the text
   // whether or not any audio was allowed to play
-  let said = null;
+  let said = null, saidAs = null;
   const realSpeak = w.speechSynthesis.speak.bind(w.speechSynthesis);
-  w.speechSynthesis.speak = (u) => { said = u.text; };
+  w.speechSynthesis.speak = (u) => { if (u.volume === 0) return; said = u.text; saidAs = u; };
   const g = d.getElementById('ghostMsg');
   g.click();                                   // clear anything showing
   await wait(600);
@@ -356,6 +356,12 @@ f.addEventListener('load', async () => {
      that everything on screen came out of the answer the voice was given. */
   ok(said && onScreen.length > 0 && strip(said).indexOf(strip(onScreen)) >= 0,
      'and what is on screen came from the answer handed to the voice');
+  /* The register. Which voice is installed is the platform's business, but
+     pitch and rate are ours, and they are what carries a default voice down
+     toward the one cpt is supposed to have: low, unhurried, briefing you. */
+  ok(saidAs && saidAs.pitch < 0.85, `cpt speaks low (pitch ${saidAs && saidAs.pitch})`);
+  ok(saidAs && saidAs.rate > 1 && saidAs.rate < 1.2,
+     `and unhurried without being slow (rate ${saidAs && saidAs.rate})`);
   ok([...g.querySelectorAll('.ghost-line')].length > 0,
      'every cpt answer arrives as typed lines, not only the greeting');
 
@@ -835,7 +841,16 @@ f.addEventListener('load', async () => {
   document.body.appendChild(f2);
   await new Promise((r) => { f2.addEventListener('load', r, {once: true}); f2.src = '../index.html'; });
   const w2 = f2.contentWindow, d2 = f2.contentDocument;
-  if (w2.speechSynthesis) { w2.speechSynthesis.speak = () => {}; w2.speechSynthesis.cancel = () => {}; }
+  /* The greeting does not speak. It is the first thing that happens on a page
+     nobody has asked anything of yet, and it is also the utterance an engine
+     is least ready for — so counting what reaches the engine while it plays
+     is the cheapest way to keep it that way. Warm-up is silent by design and
+     is exempt: it is volume 0 and carries no words. */
+  const spokenAloud = [];
+  if (w2.speechSynthesis) {
+    w2.speechSynthesis.speak = (u) => { if (u && u.volume !== 0) spokenAloud.push(u.text || ''); };
+    w2.speechSynthesis.cancel = () => {};
+  }
 
   let maxAlive = 0, sawOut = false, seen = new Set();
   for (let i = 0; i < 95; i++) {
@@ -851,6 +866,8 @@ f.addEventListener('load', async () => {
   // the longest completed line, to catch copy that has outgrown the bubble
   const longest = [...seen].reduce((a, b) => (b.length > a.length ? b : a), '');
   ok(longest.length <= 40, `no line outgrows the bubble (longest ${longest.length} chars)`);
+  ok(spokenAloud.length === 0,
+     `and the welcome says it without speaking (${spokenAloud.length} utterances)`);
 
   /* Walking into the design space while the welcome is still going must
      switch to the design space mid-sentence — the greeting is NOT dismissed

@@ -1313,9 +1313,33 @@
   let parkedSpeech = null;              // blocked by autoplay, waiting for a gesture
   let beatTimer = null, waveEnd = null;
 
+  /* The voice cpt speaks in.
+
+     A calm, low, measured male — the register of an assistant that is briefing
+     you, not selling to you. The Web Speech API gives no control over timbre,
+     only which installed voice to use plus rate and pitch, so this is a ranked
+     list of the Korean male voices that actually ship on the platforms this
+     site is likely to be opened on, best first:
+
+       Reed, Eddy, Rocko, Grandpa   macOS 13+ expressive set (Reed is the
+                                    steady one; Rocko and Grandpa are
+                                    characters, and only here as a last resort)
+       InJoon                       the Korean male voice on Windows
+       ko*male*                     anything else that says so in its name
+
+     If none of them is installed the fallback is whatever Korean voice there
+     is — Yuna on most Macs, which is female — and the pitch below at least
+     carries it down toward the same register. */
+  const MALE_KO = ['reed', 'eddy', 'injoon', 'rocko', 'grandpa'];
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
-    return all.find((v) => /^ko/i.test(v.lang)) || null;
+    const ko = all.filter((v) => /^ko/i.test(v.lang));
+    if (!ko.length) return null;
+    for (const want of MALE_KO) {
+      const hit = ko.find((v) => v.name.toLowerCase().includes(want));
+      if (hit) return hit;
+    }
+    return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0];
   }
   if (TTS) TTS.addEventListener('voiceschanged', koVoice);
 
@@ -1376,10 +1400,16 @@
     if (TTS.speaking || TTS.pending) TTS.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const v = koVoice();
-    if (v) u.voice = v;
+    // the attribute rejects anything that is not a real SpeechSynthesisVoice,
+    // and a voice list is exactly the sort of thing a test or an extension
+    // replaces — an utterance with the wrong voice is still an utterance
+    try { if (v) u.voice = v; } catch (err) { /* default voice, then */ }
     u.lang = v ? v.lang : 'ko-KR';
-    u.rate = 1.24;                       // brisk — a guide, not a narrator
-    u.pitch = 1;
+    /* Unhurried and low. The brisk 1.24 read as an announcement; a briefing
+       is delivered a little under that, and the pitch is what does most of
+       the work of moving the voice out of the default register. */
+    u.rate = 1.12;
+    u.pitch = 0.72;
     let spoke = false;
     u.onstart = () => { spoke = true; parkedSpeech = null; go(); };
     // engines that emit boundaries pulse the grid on the actual words, over
@@ -1576,7 +1606,7 @@
      appears the instant the message is queued is reliably ahead of the audio
      by a beat or two. Waiting for onstart makes them land together; the cap
      in speak() means a silent or blocked engine costs the text nothing. */
-  function typeLines(lines, spoken, source) {
+  function typeLines(lines, spoken, source, silent) {
     ghostSource = source || 'user';
     clearTimeout(ghostTimer);
     stopTyping();                        // the old line stops growing at once
@@ -1588,14 +1618,17 @@
     // this utterance's own token: a newer message taking the floor while this
     // one is still waiting on the engine must not get to write anything
     const mine = ++ghostTurn;
-    speak(full, false, () => {
+    const go = () => {
       if (mine !== ghostTurn) return;    // a newer message took the floor
       ghost.textContent = '';            // the old line holds until this moment
       ghost.classList.remove('leaving', 'pending');
       ghost.classList.add('show', 'lined');
       startWave(dur);
       render();
-    });
+    };
+    // a silent message waits for nothing: there is no engine to be in step with
+    if (silent) go(); else speak(full, false, go);
+
     function render() {
       if (reducedMotion.matches) {
         for (const t of lines.slice(-LINES_ON_SCREEN)) {
@@ -1908,9 +1941,19 @@
   ];
   const GREETING = GREETING_LINES.join(' ');
 
+  /* The greeting does not speak.
+
+     It is the first thing that happens on a page nobody asked anything of
+     yet, and a voice starting by itself over a site someone has just opened
+     is an interruption however good the timing is. It is also the utterance
+     an engine is least ready for — the one autoplay policies refuse and the
+     one that carries the whole warm-up — so the moment where text and audio
+     were hardest to keep together is now a moment with only text in it. cpt
+     speaks from here on, when it is spoken to and when a room introduces
+     itself. */
   function greet() {
     if (!ambientFree()) return;
-    typeLines(GREETING_LINES, GREETING, 'ambient');
+    typeLines(GREETING_LINES, GREETING, 'ambient', true);
   }
 
   const INTRO_LEG = 1080;
