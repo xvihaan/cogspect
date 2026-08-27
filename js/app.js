@@ -1313,11 +1313,16 @@
     waveEnd = setTimeout(stopBeat, ms);
   }
 
-  function speak(text) {
+  /* isRetry: this is the parked utterance being released by the visitor's
+     first gesture. It must not park itself again — an engine that refuses
+     twice will refuse forever, and re-parking turns every later click into
+     a replay of a greeting nobody is waiting for any more. */
+  function speak(text, isRetry) {
     if (!TTS || !voiceOn || !text) return;
     // only cancel when there is something to cancel: cancel() immediately
     // followed by speak() is a well-known Chrome stall, and paying for it on
     // every utterance is exactly the delay this is trying to remove
+    parkedSpeech = null;               // whatever was waiting is now stale
     if (TTS.speaking || TTS.pending) TTS.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const v = koVoice();
@@ -1332,12 +1337,12 @@
     u.onboundary = voiceRipple;
     u.onend = stopBeat;
     u.onerror = (e) => {
-      if (!spoke && /not-allowed|blocked/i.test(e.error || '')) parkedSpeech = text;
+      if (!spoke && !isRetry && /not-allowed|blocked/i.test(e.error || '')) parkedSpeech = text;
     };
     TTS.speak(u);
     // Chrome reports nothing at all when it silently refuses; if the engine
     // has not started by now, treat it as blocked and wait for a gesture
-    setTimeout(() => { if (!spoke && !TTS.speaking) parkedSpeech = text; }, 700);
+    setTimeout(() => { if (!spoke && !isRetry && !TTS.speaking) parkedSpeech = text; }, 700);
   }
 
   function hushVoice() {
@@ -1378,12 +1383,14 @@
       if (!parkedSpeech) return;
       const t = parkedSpeech;
       parkedSpeech = null;
-      speak(t);
+      speak(t, true);
     }, { capture: true, passive: true });
   }
 
   function dismissGhost() {
     clearTimeout(ghostTimer);
+    ghostSource = null;
+    parkedSpeech = null;               // gone from the screen, gone from the queue
     stopTyping();
     stopBeat();
     ghost.classList.remove('show', 'pending');
@@ -1456,7 +1463,7 @@
     return out.length ? out : [src];
   }
 
-  function showGhost(text, pending) {
+  function showGhost(text, pending, source) {
     if (pending) {
       // a placeholder is not something cpt is saying, so it does not type,
       // does not speak and does not move the grid
@@ -1467,7 +1474,7 @@
       ghost.classList.add('show', 'pending');
       return;
     }
-    typeLines(toLines(text), text);
+    typeLines(toLines(text), text, source);
   }
 
   /* The greeting types itself out a line at a time and keeps only the last
@@ -1484,7 +1491,19 @@
     }
   }
 
-  function typeLines(lines, spoken) {
+  /* What cpt is currently saying, and on whose behalf.
+
+     'user'    — an answer or a confirmation. Asked for, so nothing ambient
+                 may talk over it.
+     'ambient' — a greeting or a room introducing itself. Yields to the user,
+                 but a newer ambient line replaces an older one immediately:
+                 walking into the design space while the welcome is still
+                 going should switch to the design space, mid-sentence,
+                 text and voice together. */
+  let ghostSource = null;
+
+  function typeLines(lines, spoken, source) {
+    ghostSource = source || 'user';
     clearTimeout(ghostTimer);
     stopTyping();
     ghost.textContent = '';
@@ -1536,13 +1555,18 @@
     ]
   };
   const introSaid = new Set();
+  /* Ambient lines may talk over each other but never over the user. Note the
+     order: nothing is marked as said until it actually gets the floor, so a
+     room that had to wait still introduces itself next time. */
+  function ambientFree() {
+    return !overlayOpen()
+      && !(ghost.classList.contains('show') && ghostSource === 'user');
+  }
   function faceIntro(face) {
     const lines = FACE_INTRO[face];
-    if (!lines || introSaid.has(face)) return;
-    // not over an open card, and not on top of something cpt is still saying
-    if (overlayOpen() || ghost.classList.contains('show')) return;
+    if (!lines || introSaid.has(face) || !ambientFree()) return;
     introSaid.add(face);
-    typeLines(lines);
+    typeLines(lines, lines.join(' '), 'ambient');
   }
   ghost.addEventListener('click', () => { hushVoice(); dismissGhost(); });
 
@@ -1790,8 +1814,8 @@
   const GREETING = GREETING_LINES.join(' ');
 
   function greet() {
-    if (overlayOpen() || ghost.classList.contains('show')) return;
-    typeLines(GREETING_LINES, GREETING);
+    if (!ambientFree()) return;
+    typeLines(GREETING_LINES, GREETING, 'ambient');
   }
 
   const INTRO_LEG = 1080;

@@ -711,14 +711,18 @@ f.addEventListener('load', async () => {
   const longest = [...seen].reduce((a, b) => (b.length > a.length ? b : a), '');
   ok(longest.length <= 40, `no line outgrows the bubble (longest ${longest.length} chars)`);
 
-  // and the keen face introduces itself the first time it is reached
-  d2.getElementById('ghostMsg').click();
-  await wait(700);
+  /* Walking into the design space while the welcome is still going must
+     switch to the design space mid-sentence — the greeting is NOT dismissed
+     first here, on purpose. Newest ambient line wins. */
   const key2 = (k) => w2.dispatchEvent(new w2.KeyboardEvent('keydown', {key: k, bubbles: true}));
+  ok(d2.getElementById('ghostMsg').classList.contains('show'),
+     'the welcome is still going when we walk out of the room');
   key2('ArrowRight'); await wait(1000);
   key2('ArrowRight'); await wait(2400);
   const introLines = [...d2.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
-  ok(/디자인 공간/.test(introLines), `the design space says what it is (${introLines.slice(0, 34)})`);
+  ok(/디자인 공간/.test(introLines),
+     `the design space takes the floor from the welcome (${introLines.slice(0, 30)})`);
+  ok(!/안내 에이전트/.test(introLines), 'and the welcome is gone rather than queued behind it');
   // …once. Walking back in should not start the tour again.
   d2.getElementById('ghostMsg').click();
   await wait(700);
@@ -727,6 +731,29 @@ f.addEventListener('load', async () => {
   key2('ArrowRight'); await wait(2400);
   ok(!d2.getElementById('ghostMsg').classList.contains('show'),
      'and does not say it again on the way back in');
+
+  /* The other half of the rule: something the visitor ASKED for is not
+     talked over by a room introducing itself. Fresh page, because the design
+     space only introduces itself once. */
+  await new Promise((r) => { f2.addEventListener('load', r, {once: true}); f2.src = '../index.html'; });
+  const w3 = f2.contentWindow, d3 = f2.contentDocument;
+  if (w3.speechSynthesis) { w3.speechSynthesis.speak = () => {}; w3.speechSynthesis.cancel = () => {}; }
+  const rf3 = w3.fetch;
+  w3.fetch = (u, o) => (String(u).includes('/chat/') ? Promise.reject(new Error('offline')) : rf3.call(w3, u, o));
+  await wait(4200);                                   // let the welcome start
+  d3.getElementById('ghostMsg').click();
+  await wait(600);
+  d3.getElementById('chatInput').value = 'GOvision이 뭐야?';
+  d3.getElementById('chatForm').dispatchEvent(new w3.Event('submit', {bubbles: true, cancelable: true}));
+  await wait(1200);
+  const answer = [...d3.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
+  ok(answer.length > 0, 'an answer is on screen');
+  const key3 = (k) => w3.dispatchEvent(new w3.KeyboardEvent('keydown', {key: k, bubbles: true}));
+  key3('ArrowRight'); await wait(1000);
+  key3('ArrowRight'); await wait(2400);
+  const stillThere = [...d3.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
+  ok(!/디자인 공간/.test(stillThere),
+     'a room does not talk over an answer the visitor asked for');
   f2.remove();
 
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
