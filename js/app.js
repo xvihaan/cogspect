@@ -874,6 +874,49 @@
     if (map[e.key]) { e.preventDefault(); step(map[e.key]); }
   });
 
+  /* ---------- Bifröst: the rain ----------
+     Forty independent streaks down the span, each with its own colour,
+     length, speed and phase. Built here rather than written into the markup
+     because the alternative — a path carrying a repeating dash — gives every
+     streak on it the same colour AND the same speed, so a handful of paths
+     read as combs moving in lockstep rather than as weather.
+
+     Deliberately cheap per streak: one stroke, no filter. A blur on each is
+     per-element raster work every frame, and forty of those is the kind of
+     thing that made the intro drop frames. */
+
+  const RAIN_COUNT = 40;
+  /* Weighted toward white. An even mix of six saturated hues comes back out
+     as a candy stripe; white streaks between the coloured ones let the
+     colour read as glints in falling light rather than as a pattern. */
+  const RAIN_COLOURS = [
+    '#ffffff', '#ffffff', '#ffffff',
+    '#4c7dff', '#4c7dff', '#e0483f', '#e0483f', '#9b6cff', '#ffab2e', '#2fd4c8'
+  ];
+  (function buildRain() {
+    const g = document.querySelector('.bridge-rain');
+    if (!g) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < RAIN_COUNT; i++) {
+      const r = Math.random;
+      const el = document.createElementNS(NS, 'path');
+      el.setAttribute('d', 'M36 40 L66 60');
+      el.setAttribute('pathLength', '100');
+      const len = 1.1 + r() * 3.2;              // 1–4% of the span
+      el.style.setProperty('--c', RAIN_COLOURS[(r() * RAIN_COLOURS.length) | 0]);
+      el.style.setProperty('--len', len.toFixed(2));
+      el.style.setProperty('--w', (0.13 + r() * 0.24).toFixed(3));
+      el.style.setProperty('--o', (0.38 + r() * 0.47).toFixed(2));
+      // speed and phase both random: same-speed streaks drift into columns,
+      // and a shared phase makes them fall as one sheet
+      el.style.setProperty('--t', (0.5 + r() * 1.25).toFixed(2) + 's');
+      el.style.setProperty('--in', (1.9 - r() * 2.6).toFixed(2) + 's');
+      frag.appendChild(el);
+    }
+    g.appendChild(frag);
+  })();
+
   /* ---------- keen specimen: a control surface, not an ornament ----------
      The design language is demonstrated instead of described — moving the
      slab across the lattice shows the refraction doing its work. What steers

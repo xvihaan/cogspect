@@ -674,39 +674,33 @@ f.addEventListener('load', async () => {
      w.getComputedStyle(d.querySelector('.planet--b3ta')).animationDelay,
      'both gates float on the same phase, so the beam stays on its anchors');
 
-  /* The traffic on the span. Six rays, each its own colour and speed — if
-     they shared a duration they would fall into step and the whole bridge
-     would pulse as one object instead of carrying anything. */
-  const rays = [...d.querySelectorAll('.bridge-ray')];
-  ok(rays.length >= 4, `the span carries several rays (${rays.length})`);
-  const durs = rays.map((r) => w.getComputedStyle(r).animationDuration);
-  ok(new Set(durs).size === rays.length, `and no two run at the same speed (${durs.join(' ')})`);
-  const cols = rays.map((r) => w.getComputedStyle(r).stroke);
-  ok(new Set(cols).size >= 3, `carrying the gate colours between them (${new Set(cols).size} distinct)`);
-  /* Two ways of making a ray invisible were tried before this one, and the
-     assertion has to guard against both rather than against whichever was
-     most recent:
-       · too short — a 4%-long dash on the span is a tick, not a streak
-       · not coloured — on a white shaft, hue is the only thing that reads,
-         so rays that are merely brighter disappear into the beam
-     Width is deliberately NOT asserted: these are narrower than the band and
-     visible anyway, because they are saturated. */
-  /* Rain is MANY streaks at once. Each path carries a repeating pattern, so
-     the period — dash plus gap — has to stay small against the span's 100
-     units, or the shower is a handful of comets. */
-  const periods = rays.map((r) => {
-    const n = w.getComputedStyle(r).strokeDasharray.match(/[\d.]+/g) || [];
-    return n.slice(0, 2).reduce((a, b) => a + parseFloat(b), 0);
-  });
-  ok(Math.max(...periods) <= 20 && Math.min(...periods) > 0,
-     `each path carries a shower, not one streak (longest period ${Math.max(...periods)} of 100)`);
-  const coloured = rays.filter((r) => {
-    const c = w.getComputedStyle(r).stroke;
-    const m = c.match(/\d+/g);
+  /* The rain. One element per streak, because a path carrying a repeating
+     dash gives every streak on it the same colour AND the same speed — a
+     handful of those read as combs moving in lockstep rather than weather.
+     The assertions are about INDEPENDENCE: many streaks, mostly distinct
+     speeds, several colours, and each one short enough to be a streak
+     rather than a comet. */
+  const rays = [...d.querySelectorAll('.bridge-rain path')];
+  ok(rays.length >= 24, `the span carries a shower, not a few streaks (${rays.length})`);
+  const cs = rays.map((r) => w.getComputedStyle(r));
+  const durs = new Set(cs.map((c) => c.animationDuration));
+  ok(durs.size >= rays.length * 0.6,
+     `and they fall at their own speeds (${durs.size} distinct across ${rays.length})`);
+  const cols = new Set(cs.map((c) => c.stroke));
+  ok(cols.size >= 4, `carrying several colours between them (${cols.size} distinct)`);
+  const lens = cs.map((c) => parseFloat(c.strokeDasharray));
+  ok(Math.max(...lens) <= 8,
+     `each one a streak rather than a comet (longest ${Math.max(...lens).toFixed(1)} of 100)`);
+  const coloured = cs.filter((c) => {
+    const m = c.stroke.match(/\d+/g);
     return m && Math.max(+m[0], +m[1], +m[2]) - Math.min(+m[0], +m[1], +m[2]) > 40;
   });
-  ok(coloured.length >= 4,
-     `and most of them carry real colour, not just brightness (${coloured.length}/${rays.length})`);
+  ok(coloured.length >= 8,
+     `and enough of them carry real colour, not just brightness (${coloured.length}/${rays.length})`);
+  // one filter on the group, not forty: forty raster passes a frame is what
+  // made the intro drop frames in the first place
+  ok(cs.every((c) => c.filter === 'none'),
+     'no per-streak filter — the softness is one pass on the group');
 
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);

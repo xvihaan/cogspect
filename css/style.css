@@ -1474,37 +1474,25 @@ body.on-dark input::placeholder { color: #7a7a82; }
    object being carried along. Each is one dash on a 100-unit path, so there
    is exactly one of it in flight at a time, and each gets its own colour,
    width, length and speed. */
-.bridge-ray {
+/* The rain. One streak per element — see index.html for why — each with its
+   own colour, length, speed and phase, fed in as custom properties by the
+   generator.
+
+   The blur sits on the GROUP, not on each streak. Crisp streaks read as a
+   dashed line rather than as falling light, but forty individual filters is
+   forty raster passes a frame — the sort of thing that made the intro drop
+   frames. One filter over the whole group is a single pass. */
+.bridge-rain { filter: blur(.45px); }
+.bridge-rain path {
   fill: none;
-  stroke: var(--ray-c, #fff);
-  stroke-width: var(--ray-w, .25);
+  stroke: var(--c, #fff);
+  stroke-width: var(--w, .2);
   stroke-linecap: round;
-  /* A REPEATING pattern, not a single dash: rain is many thin streaks at
-     once, and one dash per path is a comet. The period is dash+gap and the
-     animation moves the offset by exactly that, so the loop never jumps. */
-  stroke-dasharray: var(--ray-d, 2) var(--ray-g, 10);
-  stroke-dashoffset: 0;
+  /* one dash, gap the rest of the span: exactly one streak per element */
+  stroke-dasharray: var(--len, 2) calc(100 - var(--len, 2));
+  stroke-dashoffset: 100;
   opacity: 0;
-  filter: blur(var(--ray-blur, .7px));
 }
-
-/* Rain down the span. Three attempts got here and the failures are worth
-   keeping, because they failed for opposite reasons:
-     · thin and short, one dash per path — a tick, invisible
-     · wide and blurred — melted into the beam's own glow
-     · long, saturated, one per path — visible, but a comet rather than rain
-   What reads as rain is MANY thin streaks at once; what makes them visible
-   on a white shaft is hue rather than brightness.
-
-   Periods and durations are deliberately not multiples of one another. Round
-   numbers fall into step within seconds and the shower becomes one blinking
-   object. */
-.ray--a { --ray-c: #4c7dff; --ray-w: .28; --ray-d: 2.5; --ray-g: 9;  --ray-p: 11.5; --ray-t: .32s; --ray-in: 1.9s; --ray-o: .8; }
-.ray--b { --ray-c: #e0483f; --ray-w: .24; --ray-d: 2;   --ray-g: 11; --ray-p: 13;   --ray-t: .44s; --ray-in: 2.1s; --ray-o: .74; }
-.ray--c { --ray-c: #ffffff; --ray-w: .32; --ray-d: 3;   --ray-g: 8;  --ray-p: 11;   --ray-t: .28s; --ray-in: 2.3s; --ray-o: .85; --ray-blur: 1px; }
-.ray--d { --ray-c: #9b6cff; --ray-w: .2;  --ray-d: 1.8; --ray-g: 13; --ray-p: 14.8; --ray-t: .52s; --ray-in: 2.5s; --ray-o: .7; }
-.ray--e { --ray-c: #ffab2e; --ray-w: .2;  --ray-d: 1.5; --ray-g: 10; --ray-p: 11.5; --ray-t: .38s; --ray-in: 2.7s; --ray-o: .7; }
-.ray--f { --ray-c: #2fd4c8; --ray-w: .18; --ray-d: 1.6; --ray-g: 12; --ray-p: 13.6; --ray-t: .47s; --ray-in: 2.9s; --ray-o: .64; }
 
 .face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) backwards; }
 .face--gateway.bridged .planet--v0id .orb { animation-delay: .16s; }
@@ -1515,10 +1503,10 @@ body.on-dark input::placeholder { color: #7a7a82; }
 .face--gateway.bridged .bridge-band { animation: bfDraw 1.15s cubic-bezier(.4, .05, .2, 1) .62s forwards; }
 .face--gateway.bridged .bridge-inner { animation: bfInner 1.15s cubic-bezier(.4, .05, .2, 1) .66s forwards; }
 .face--gateway.bridged .bridge-core { animation: bfCore 1.15s cubic-bezier(.4, .05, .2, 1) .7s forwards; }
-.face--gateway.bridged .bridge-ray {
+.face--gateway.bridged .bridge-rain path {
   animation:
-    bfRayIn .7s ease var(--ray-in) forwards,
-    bfRay var(--ray-t) linear var(--ray-in) infinite;
+    bfRayIn .5s ease var(--in) forwards,
+    bfRay var(--t) linear var(--in) infinite;
 }
 
 @keyframes orbWake {
@@ -1550,10 +1538,10 @@ body.on-dark input::placeholder { color: #7a7a82; }
   30%  { opacity: .8; }
   100% { stroke-dashoffset: 0; opacity: .62; }
 }
-@keyframes bfRayIn { to { opacity: var(--ray-o, .6); } }
-/* one period per cycle: the pattern lands exactly on itself, so the shower
-   never jumps at the loop point */
-@keyframes bfRay { from { stroke-dashoffset: var(--ray-p); } to { stroke-dashoffset: 0; } }
+@keyframes bfRayIn { to { opacity: var(--o, .6); } }
+/* gate to gate, once per cycle — the pattern's period is the whole span, so
+   the loop lands exactly on itself and the streak never jumps */
+@keyframes bfRay { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
 
 /* ---------- 00b · the face banner ----------
    Every face except the front one now announces itself the way a system
@@ -1822,12 +1810,12 @@ body.lens .face-banner {
   .face--gateway.bridged .bridge-band,
   .face--gateway.bridged .bridge-inner,
   .face--gateway.bridged .bridge-core,
-  .face--gateway.bridged .bridge-ray { animation: none; }
+  .face--gateway.bridged .bridge-rain path { animation: none; }
   .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .34; }
   .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: .92; }
   .face--gateway.bridged .bridge-inner { stroke-dashoffset: 0; opacity: .4; }
   .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .62; }
-  .face--gateway.bridged .bridge-ray { opacity: 0; }
+  .face--gateway.bridged .bridge-rain path { opacity: 0; }
   .stage.intro .glass-nav,
   .stage.intro .hud,
   .stage.intro .chat-dock,
