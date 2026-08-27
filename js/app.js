@@ -555,6 +555,7 @@
     // arriving at the portfolio shows the visitor where the six projects are,
     // then lets them settle back into the field — nothing stays lit
     if (face === 'right') revealProjects();
+    if (face === 'back') teaseSlab();
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
     // Faces pointing away are still in the DOM, so without this the Tab key
@@ -881,6 +882,44 @@
 
   const keenSlab = document.getElementById('keenSlab');
   const keenHandle = document.getElementById('keenHandle');
+
+  /* The specimen rests hidden behind the bar — it is something you pull OUT
+     of it — but nobody tries to drag a thing they cannot see. On arrival the
+     bar's subtitle turns into the instruction and the specimen dips out from
+     under it three times, then everything goes back to how it was.
+
+     It stops once the visitor has actually dragged: the teaser exists to
+     teach the gesture, and repeating it at someone who already knows is
+     nagging, not guidance. */
+  const HANDLE_HINT = keenHandle ? keenHandle.querySelector('p') : null;
+  const HINT_REST = HANDLE_HINT ? HANDLE_HINT.textContent : '';
+  let slabLearned = false;
+  const teaseAt = [];
+
+  function clearTease() {
+    teaseAt.forEach(clearTimeout);
+    teaseAt.length = 0;
+    if (keenSlab) keenSlab.classList.remove('teasing');
+    if (HANDLE_HINT) { HANDLE_HINT.textContent = HINT_REST; HANDLE_HINT.style.opacity = ''; }
+  }
+
+  function teaseSlab() {
+    if (!keenSlab || slabLearned || reducedMotion.matches) return;
+    clearTease();
+    const swap = (text, at) => {
+      teaseAt.push(setTimeout(() => { if (HANDLE_HINT) HANDLE_HINT.style.opacity = '0'; }, at));
+      teaseAt.push(setTimeout(() => {
+        if (!HANDLE_HINT) return;
+        HANDLE_HINT.textContent = text;
+        HANDLE_HINT.style.opacity = '';
+      }, at + 260));
+    };
+    swap('DRAG ME', 500);
+    teaseAt.push(setTimeout(() => keenSlab.classList.add('teasing'), 900));
+    teaseAt.push(setTimeout(() => keenSlab.classList.remove('teasing'), 900 + 780 * 3));
+    swap(HINT_REST, 900 + 780 * 3 + 200);
+  }
+
   if (keenSlab) {
     let slabDrag = null, slabX = 0, slabY = 0;
 
@@ -906,6 +945,8 @@
     function grabSlab(e, el) {
       e.preventDefault();
       e.stopPropagation();                   // the cube must not turn under it
+      slabLearned = true;                    // they know — stop demonstrating
+      clearTease();
       slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, lim: slabLimits(), el };
       el.classList.add('dragging', 'held');
       keenSlab.classList.add('lifted');

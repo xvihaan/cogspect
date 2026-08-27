@@ -406,17 +406,38 @@ f.addEventListener('load', async () => {
      'and the dictionary entry still says what it said');
   // the specimen is cut from the same block as the bar that steers it —
   // border-box matters here, a 1px border is enough to break the match
-  const kslab = d.getElementById('keenSlab').getBoundingClientRect();
+  const kslabEl = d.getElementById('keenSlab');
+  const kslab = kslabEl.getBoundingClientRect();
   ok(Math.abs(kslab.width - kb.width) < 1.5 && Math.abs(kslab.height - kb.height) < 1.5,
      `the specimen is the same block as the bar (${Math.round(kslab.width)}×${Math.round(kslab.height)})`);
 
+  /* The teaser. The specimen rests hidden behind the bar, so without this
+     nobody would know it is there — which makes the demonstration part of
+     the feature, not decoration on top of it. */
+  await wait(900);                            // it starts a beat after arrival
+  ok(kslabEl.classList.contains('teasing'), 'arriving at keen demonstrates the drag');
+  const tease = kslabEl.getAnimations().find((a) => (a.animationName || '') === 'slabTease');
+  ok(tease && tease.effect.getTiming().iterations === 3,
+     `it dips three times and stops (${tease ? tease.effect.getTiming().iterations : 'no animation'})`);
+  ok(d.getElementById('keenHandle').querySelector('p').textContent.trim() === 'DRAG ME',
+     'and the bar says what to do while it does');
+
   pin.remove();
+
+  // wait it out, then the specimen must be back exactly behind the bar
+  for (let i = 0; i < 60 && kslabEl.classList.contains('teasing'); i++) await wait(100);
+  await wait(400);
+  const barRest = d.getElementById('keenHandle').getBoundingClientRect();
+  const slabRest = kslabEl.getBoundingClientRect();
+  ok(Math.abs(slabRest.top - barRest.top) < 2 && Math.abs(slabRest.left - barRest.left) < 2,
+     'and it rests hidden exactly behind the bar, to be pulled out of it');
+  ok(d.getElementById('keenHandle').querySelector('p').textContent.trim() !== 'DRAG ME',
+     'the bar goes back to its own subtitle');
 
   /* The bar is a control: it stays put, and the specimen answers to it. Run
      unpinned — forcing the wrap to scale(1) while the app's own zoomCur is
      still mid-spring makes the drag maths disagree with what is drawn, and
      the slab looks like it escapes when it has not. */
-  await wait(300);
   const kh = d.getElementById('keenHandle'), ksl = d.getElementById('keenSlab');
   ok(!!kh && w.getComputedStyle(kh).cursor === 'grab', 'the bar reads as grabbable');
   const bar0 = kh.getBoundingClientRect(), slab0 = ksl.getBoundingClientRect();
