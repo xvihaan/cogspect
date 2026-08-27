@@ -1312,15 +1312,20 @@
     voiceBtn.setAttribute('aria-pressed', String(voiceOn));
     voiceBtn.setAttribute('aria-label', voiceOn ? '음성 안내 끄기' : '음성 안내 켜기');
   }
+  /* The single place the voice state changes. The button and the chat both
+     come through here, so a site you can talk to cannot end up disagreeing
+     with its own controls about what is switched on. */
+  function setVoice(on) {
+    voiceOn = !!on;
+    localStorage.setItem(VOICE_KEY, voiceOn ? 'on' : 'off');
+    if (!voiceOn) hushVoice();
+    paintVoiceBtn();
+    return voiceOn;
+  }
   if (voiceBtn) {
     if (!TTS) voiceBtn.hidden = true;          // nothing to toggle
     paintVoiceBtn();
-    voiceBtn.addEventListener('click', () => {
-      voiceOn = !voiceOn;
-      localStorage.setItem(VOICE_KEY, voiceOn ? 'on' : 'off');
-      if (!voiceOn) hushVoice();
-      paintVoiceBtn();
-    });
+    voiceBtn.addEventListener('click', () => setVoice(!voiceOn));
   }
 
   // first real interaction releases anything autoplay refused
@@ -1563,6 +1568,34 @@
   ];
   const CONTACT_KEYS = ['contact', 'mail', 'email', '연락', '문의', '메일', '컨택'];
 
+  /* If the site is going to be operated by talking to it, the controls have
+     to answer to the chat as well as to the mouse — otherwise the
+     conversation is a search box wearing an agent's clothes. Matched before
+     navigation and before any model round-trip: these are local switches and
+     should feel instant.
+
+     Order matters: "음소거 해제" contains "음소거", so the turning-ON list has
+     to be tested first or asking for sound back would silence it. */
+  const COMMANDS = [
+    {
+      keys: ['음소거 해제', '음소거해제', '소리 켜', '소리켜', '음성 켜', '음성켜',
+             '소리 on', '말해 줘', '말해줘', 'unmute', 'voice on', 'sound on'],
+      run: () => {
+        setVoice(true);
+        return '음성 안내를 켰습니다.';
+      }
+    },
+    {
+      keys: ['음소거', '소리 꺼', '소리꺼', '음성 꺼', '음성꺼', '조용히', '조용해',
+             '말하지 마', '말하지마', 'mute', 'voice off', 'sound off'],
+      run: () => {
+        const said = '음성 안내를 껐습니다.';
+        setVoice(false);
+        return said;
+      }
+    }
+  ];
+
   function showToast(msg) {
     clearTimeout(toastTimer);
     toast.textContent = msg;
@@ -1575,6 +1608,13 @@
     const q = chatInput.value.trim().toLowerCase();
     if (!q) return;
     chatInput.value = '';
+    const cmd = COMMANDS.find((c) => c.keys.some((k) => q.includes(k)));
+    if (cmd) {
+      // answered through the bubble rather than a toast: with the voice back
+      // on you HEAR that it worked, which is the confirmation that counts
+      showGhost(cmd.run());
+      return;
+    }
     if (CONTACT_KEYS.some((k) => q.includes(k))) {
       openContact();
       showToast('연결 채널을 열었습니다.');

@@ -173,8 +173,14 @@
   <div class="hud">
     <span class="face-indicator" id="faceIndicator">cogspect</span>
     <span class="hud-hint" id="hudHint">드래그·스크롤·키보드로 이동 가능.</span>
-    <button class="voice-toggle" id="voiceToggle" type="button" aria-pressed="true">
-      <i aria-hidden="true"></i><span>voice</span>
+    <button class="voice-toggle" id="voiceToggle" type="button" aria-pressed="true"
+            aria-label="음성 안내 끄기" title="음성 안내">
+      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path class="vt-body" d="M3.6 7.6h3L10.4 4.5v11L6.6 12.4h-3z"/>
+        <path class="vt-wave" d="M12.9 7.6a3.4 3.4 0 0 1 0 4.8"/>
+        <path class="vt-wave vt-wave--far" d="M15.1 5.6a6.4 6.4 0 0 1 0 8.8"/>
+        <path class="vt-slash" d="M13.2 7.4 17.6 12.6"/>
+      </svg>
     </button>
   </div>
 
