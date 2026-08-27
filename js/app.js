@@ -542,6 +542,8 @@
      has actually landed square carries .landed, and the bar fades in off
      that — which is why this is cleared the moment any motion starts and set
      again only in setFace(), i.e. exactly on settle. */
+  let introTimer = null;
+
   function setLanded(face) {
     for (const n in faceEls) faceEls[n].classList.toggle('landed', n === face);
   }
@@ -556,6 +558,10 @@
     // then lets them settle back into the field — nothing stays lit
     if (face === 'right') revealProjects();
     if (face === 'back') teaseSlab();
+    // a beat after the landing, alongside the teaser rather than after it —
+    // the bar says DRAG ME while cpt says what the room is for
+    clearTimeout(introTimer);
+    introTimer = setTimeout(() => faceIntro(face), 800);
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
     // Faces pointing away are still in the DOM, so without this the Tab key
@@ -1380,17 +1386,18 @@
     }
   }
 
-  function typeGreeting() {
+  function typeLines(lines) {
     clearTimeout(ghostTimer);
     stopTyping();
     ghost.textContent = '';
     ghost.classList.remove('leaving', 'pending');
     ghost.classList.add('show', 'lined');
-    const dur = Math.min(20000, 4500 + GREETING.length * 55);
+    const full = lines.join(' ');
+    const dur = Math.min(20000, 4500 + full.length * 55);
     startWave(dur);
-    speak(GREETING);
+    speak(full);
     if (reducedMotion.matches) {
-      for (const t of GREETING_LINES.slice(-LINES_ON_SCREEN)) {
+      for (const t of lines.slice(-LINES_ON_SCREEN)) {
         const el = document.createElement('span');
         el.className = 'ghost-line';
         el.textContent = t;
@@ -1401,21 +1408,40 @@
       let li = 0, ci = 0, el = null;
       typeTimer = setInterval(() => {
         if (!el) {
-          if (li >= GREETING_LINES.length) { stopTyping(); return; }
+          if (li >= lines.length) { stopTyping(); return; }
           el = document.createElement('span');
           el.className = 'ghost-line now';
           ghost.appendChild(el);
           trimLines();
           ci = 0;
         }
-        el.textContent = GREETING_LINES[li].slice(0, ++ci);
-        if (ci >= GREETING_LINES[li].length) {
+        el.textContent = lines[li].slice(0, ++ci);
+        if (ci >= lines[li].length) {
           el.classList.remove('now');
           li++; el = null;
         }
       }, TYPE_MS);
     }
     ghostTimer = setTimeout(dismissGhost, dur);
+  }
+
+  /* A face can introduce itself the first time it is reached. Once only:
+     cpt explaining the same room every time you walk back into it is a
+     tour guide who has not noticed you have been here. */
+  const FACE_INTRO = {
+    back: [
+      'cogspect가 지향하는 디자인 공간입니다.',
+      '레이어를 움직여서 탐색해 보세요.'
+    ]
+  };
+  const introSaid = new Set();
+  function faceIntro(face) {
+    const lines = FACE_INTRO[face];
+    if (!lines || introSaid.has(face)) return;
+    // not over an open card, and not on top of something cpt is still saying
+    if (overlayOpen() || ghost.classList.contains('show')) return;
+    introSaid.add(face);
+    typeLines(lines);
   }
   ghost.addEventListener('click', () => { hushVoice(); dismissGhost(); });
 
@@ -1613,7 +1639,7 @@
 
   function greet() {
     if (overlayOpen() || ghost.classList.contains('show')) return;
-    typeGreeting();
+    typeLines(GREETING_LINES);
   }
 
   const INTRO_LEG = 1080;

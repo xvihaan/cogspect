@@ -691,6 +691,28 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
     0 2px 10px rgba(5, 10, 25, .05),
     inset 0 1px 0 rgba(255, 255, 255, .28);
 }
+/* An outline that is simply absent leaves a hard silhouette anyway — the
+   fill still stops somewhere. These lay a blurred copy of the same shape
+   just outside the edge, so the boundary dissolves instead of ending, which
+   is the same thing the pixel grid and the glass do everywhere else. */
+.chat-bar::before,
+.ghost-msg::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(244, 246, 250, .5);
+  background: color-mix(in srgb, var(--fg-inv) 50%, transparent);
+  filter: blur(9px);
+  opacity: .85;
+}
+/* the bubble's own entrance blurs the whole element, halo included, so it
+   must not be doubled up on the way in */
+.ghost-msg::before { transition: opacity .45s ease; }
+.ghost-msg:not(.show)::before { opacity: 0; }
+
 /* cpt types rather than pasting: the caret is what makes that read as
    something composing an answer instead of a slow render. It rides the line
    being written, not the bubble, or it would sit on a line of its own. */
@@ -1685,12 +1707,13 @@ body.lens .face-banner {
    whole idea — it is something you pull OUT of the bar — but a thing nobody
    can see is a thing nobody will try. So on arrival it dips out from under
    the bar three times while the bar's own subtitle says what to do. */
-/* 78px, not 50: the specimen has to clear the bar's bottom edge entirely,
-   or the two never stop overlapping and the bulge that is supposed to happen
-   WHEN they touch is simply on the whole time. */
+/* 66px. It cannot go under 60: the bar is 60px tall, and a dip that does not
+   clear its bottom edge never lets the two come apart — the glass-on-glass
+   thickening that is supposed to happen WHEN they touch would simply be on
+   the whole time. 66 is as small as this gets and still separates. */
 @keyframes slabTease {
   0%   { transform: translateY(0); }
-  46%  { transform: translateY(78px); }
+  46%  { transform: translateY(66px); }
   100% { transform: translateY(0); }
 }
 .keen-slab.teasing { animation: slabTease .78s cubic-bezier(.4, .1, .3, 1) 2; }
