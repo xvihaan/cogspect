@@ -367,25 +367,29 @@ f.addEventListener('load', async () => {
   /* Which voice gets picked. The list a browser offers is a platform detail
      and this one offers none at all, so the ranking can only be tested
      against a stand-in — and `lang` is what carries the answer back, since
-     speak() copies it from whichever voice it settled on. What must hold:
-     the real Korean male voice beats the character voices however the list is
-     ordered, and Enhanced beats the plain cut of the same voice. */
+     speak() copies it from whichever voice it settled on.
+
+     The names here are the LOCALISED ones, deliberately. `say` calls this
+     voice "Minsu (Enhanced)" and Chrome in Korean calls the very same voice
+     "민수(고품질)", and matching English substrings against a Korean list
+     found nothing at all — a correctly ranked list that still produced the
+     wrong voice, which is the bug this stand-in exists to keep out. */
   const realVoices = w.speechSynthesis.getVoices.bind(w.speechSynthesis);
   const stand = (name, lang) => ({name, lang, localService: true, default: false});
   w.speechSynthesis.getVoices = () => [
-    stand('Yuna', 'ko-KR-yuna'),
-    stand('Eddy (한국어(한국))', 'ko-KR-eddy'),
-    stand('Minsu', 'ko-KR-minsu'),
-    stand('Minsu (Enhanced)', 'ko-KR-minsu-enhanced'),
+    stand('유나', 'ko-KR-yuna'),
+    stand('에디(한국어(한국))', 'ko-KR-eddy'),
+    stand('민수', 'ko-KR-minsu'),
+    stand('민수(고품질)', 'ko-KR-minsu-enhanced'),
     stand('Samantha', 'en-US')
   ];
   saidAs = null;
   ask('모델 상태');
   for (let i = 0; i < 40 && !saidAs; i++) await wait(100);
   ok(saidAs && /minsu/.test(saidAs.lang),
-     `it picks the Korean male voice over the character ones (${saidAs && saidAs.lang})`);
+     `it picks the Korean male voice over the character ones, by its Korean name (${saidAs && saidAs.lang})`);
   ok(saidAs && /enhanced/.test(saidAs.lang),
-     `and the Enhanced cut of it over the plain one (${saidAs && saidAs.lang})`);
+     `and 고품질 over the plain cut of the same voice (${saidAs && saidAs.lang})`);
   w.speechSynthesis.getVoices = realVoices;
   ok([...g.querySelectorAll('.ghost-line')].length > 0,
      'every cpt answer arrives as typed lines, not only the greeting');

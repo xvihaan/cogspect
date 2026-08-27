@@ -53,14 +53,16 @@
 </p>
 
 <script>
-// mirrors MALE_KO in js/app.js — see the comment at the top of this file
-const MALE_KO = ['minsu', 'injoon', 'eddy', 'rocko', 'reed'];
+// mirrors MALE_KO in js/app.js — see the comment at the top of this file.
+// Patterns, not strings: Chrome in Korean calls "Minsu (Enhanced)" 민수(고품질).
+const MALE_KO = [/minsu|민수/i, /injoon|인준/i, /eddy|에디/i, /rocko|로코/i, /reed|리드/i];
+const HIGH_CUT = /enhanced|premium|고품질|프리미엄/i;
 
 function pick(ko) {
   for (const want of MALE_KO) {
-    const hits = ko.filter((v) => v.name.toLowerCase().includes(want));
+    const hits = ko.filter((v) => want.test(v.name));
     if (!hits.length) continue;
-    return hits.find((v) => /enhanced|premium/i.test(v.name)) || hits[0];
+    return hits.find((v) => HIGH_CUT.test(v.name)) || hits[0];
   }
   return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0] || null;
 }
@@ -81,7 +83,7 @@ function render() {
   const all = speechSynthesis.getVoices();
   const ko = all.filter((v) => /^ko/i.test(v.lang));
   const chosen = pick(ko);
-  const hasMinsu = ko.some((v) => /minsu/i.test(v.name));
+  const hasMinsu = ko.some((v) => /minsu|민수/i.test(v.name));
 
   const verdict = document.getElementById('verdict');
   if (!ko.length) {

@@ -1334,16 +1334,30 @@
      Yuna.
 
      Within a name, Enhanced and Premium win: they are the same voice at a
-     higher sample rate, and Apple ships the plain one alongside. */
-  const MALE_KO = ['minsu', 'injoon', 'eddy', 'rocko', 'reed'];
+     higher sample rate, and Apple ships the plain one alongside.
+
+     Matched as patterns, not strings, because THE BROWSER LOCALISES THESE
+     NAMES. `say` reports "Minsu (Enhanced)"; Chrome in Korean reports the
+     same voice as "민수(고품질)". A list of English substrings matched
+     neither it nor the character voices, so the picker fell all the way
+     through to whatever came first — which is how a correctly ranked list
+     still produced the wrong voice. */
+  const MALE_KO = [
+    /minsu|민수/i,        // the Korean male voice, an optional download on macOS
+    /injoon|인준/i,       // the Korean male voice on Windows
+    /eddy|에디/i,
+    /rocko|로코/i,
+    /reed|리드/i
+  ];
+  const HIGH_CUT = /enhanced|premium|고품질|프리미엄/i;
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
     const ko = all.filter((v) => /^ko/i.test(v.lang));
     if (!ko.length) return null;
     for (const want of MALE_KO) {
-      const hits = ko.filter((v) => v.name.toLowerCase().includes(want));
+      const hits = ko.filter((v) => want.test(v.name));
       if (!hits.length) continue;
-      return hits.find((v) => /enhanced|premium/i.test(v.name)) || hits[0];
+      return hits.find((v) => HIGH_CUT.test(v.name)) || hits[0];
     }
     return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0];
   }
