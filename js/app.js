@@ -1315,22 +1315,23 @@
 
   /* The voice cpt speaks in.
 
-     A calm, low, measured male — the register of an assistant that is briefing
-     you, not selling to you. The Web Speech API gives no control over timbre,
-     only which installed voice to use plus rate and pitch, so this is a ranked
+     A young male — an engineer at the next desk, not a narrator and not an
+     elder statesman. The Web Speech API gives no control over timbre, only
+     which installed voice to use plus rate and pitch, so this is a ranked
      list of the Korean male voices that actually ship on the platforms this
-     site is likely to be opened on, best first:
+     site is likely to be opened on, youngest-sounding first:
 
-       Reed, Eddy, Rocko, Grandpa   macOS 13+ expressive set (Reed is the
-                                    steady one; Rocko and Grandpa are
-                                    characters, and only here as a last resort)
-       InJoon                       the Korean male voice on Windows
-       ko*male*                     anything else that says so in its name
+       Rocko, Eddy      macOS 13+ expressive set — Rocko is the bright, quick
+                        one, Eddy the casual one
+       InJoon           the Korean male voice on Windows
+       Reed             macOS again, calm but distinctly older; a fallback,
+                        not a first choice
 
-     If none of them is installed the fallback is whatever Korean voice there
-     is — Yuna on most Macs, which is female — and the pitch below at least
-     carries it down toward the same register. */
-  const MALE_KO = ['reed', 'eddy', 'injoon', 'rocko', 'grandpa'];
+     Grandpa is in the same set and is deliberately NOT here. If none of these
+     is installed the fallback is whatever Korean voice there is — Yuna on
+     most Macs, which is female — and the pitch below carries it down a little
+     without pretending to be someone else. */
+  const MALE_KO = ['rocko', 'eddy', 'injoon', 'reed'];
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
     const ko = all.filter((v) => /^ko/i.test(v.lang));
@@ -1405,11 +1406,13 @@
     // replaces — an utterance with the wrong voice is still an utterance
     try { if (v) u.voice = v; } catch (err) { /* default voice, then */ }
     u.lang = v ? v.lang : 'ko-KR';
-    /* Unhurried and low. The brisk 1.24 read as an announcement; a briefing
-       is delivered a little under that, and the pitch is what does most of
-       the work of moving the voice out of the default register. */
-    u.rate = 1.12;
-    u.pitch = 0.72;
+    /* Near its own pitch, deliberately. 0.72 dragged the voice so far below
+       where it actually sits that it stopped sounding like a person at all —
+       these engines resample rather than resynthesise, and the further from 1
+       you push them the more obviously they are being processed. The voice
+       does the work of being male; the pitch only takes the edge off. */
+    u.rate = 1.15;
+    u.pitch = 0.94;
     let spoke = false;
     u.onstart = () => { spoke = true; parkedSpeech = null; go(); };
     // engines that emit boundaries pulse the grid on the actual words, over

@@ -357,11 +357,13 @@ f.addEventListener('load', async () => {
   ok(said && onScreen.length > 0 && strip(said).indexOf(strip(onScreen)) >= 0,
      'and what is on screen came from the answer handed to the voice');
   /* The register. Which voice is installed is the platform's business, but
-     pitch and rate are ours, and they are what carries a default voice down
-     toward the one cpt is supposed to have: low, unhurried, briefing you. */
-  ok(saidAs && saidAs.pitch < 0.85, `cpt speaks low (pitch ${saidAs && saidAs.pitch})`);
-  ok(saidAs && saidAs.rate > 1 && saidAs.rate < 1.2,
-     `and unhurried without being slow (rate ${saidAs && saidAs.rate})`);
+     rate and pitch are ours. Pitch stays NEAR the voice's own: pushed far from
+     1 these engines resample rather than resynthesise, and it stops sounding
+     like a person — being male is the voice's job, not the pitch's. */
+  ok(saidAs && saidAs.pitch > 0.85 && saidAs.pitch < 1,
+     `cpt speaks a little under its own pitch, not far under (${saidAs && saidAs.pitch})`);
+  ok(saidAs && saidAs.rate > 1 && saidAs.rate < 1.25,
+     `and brisk without hurrying (rate ${saidAs && saidAs.rate})`);
   ok([...g.querySelectorAll('.ghost-line')].length > 0,
      'every cpt answer arrives as typed lines, not only the greeting');
 
