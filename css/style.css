@@ -1633,22 +1633,25 @@ body.lens .face-banner {
 .face-banner--handle.dragging { cursor: grabbing; }
 
 /* Two pieces of keen glass overlapping are thicker glass, so the bar bulges
-   where the specimen passes behind it: a real convex displacement on the
-   backdrop, plus the shading a bulge actually has — bright off-centre where
-   the light gathers, dimmer at the rim where the surface turns away. Both
-   are gated on the overlap, so the bar is a flat pane the rest of the time. */
+   where the specimen passes behind it.
+
+   The patch is sized and placed as the SPECIMEN, not as the overlap: a lens
+   refracts across its own whole shape, and what you see is however much of
+   it happens to be behind the bar. The bar clips it. Fitting the bulge to
+   the intersection instead made the entire bar react the moment the two so
+   much as touched, which is the opposite of how a lens sliding past looks. */
+.face-banner--handle { overflow: hidden; }
 .face-banner--handle::after {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  left: var(--ov-x, 0px);
+  top: var(--ov-y, 0px);
+  width: var(--ov-w, 0px);
+  height: var(--ov-h, 0px);
+  border-radius: 28px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity .28s ease;
-  /* A bulge on a near-white face cannot be drawn with highlight alone —
-     there is nothing behind it to brighten against. What reads is the RIM:
-     a convex surface turns away from the viewer at its edges and darkens
-     there, and carries a specular cap where it faces the light. */
+  transition: opacity .2s ease;
   background:
     /* specular cap, where the surface faces the light */
     radial-gradient(46% 112% at 50% 18%,
@@ -1671,21 +1674,15 @@ body.lens .face-banner {
       rgba(21, 22, 28, .08) 100%);
 }
 .face-banner--handle.touching::after { opacity: 1; }
+/* the refraction is part of the patch too, so it is confined the same way */
+body.lens .face-banner--handle.touching::after {
+  backdrop-filter: url(#lg-convex) saturate(150%);
+  -webkit-backdrop-filter: saturate(150%);
+}
 /* the bulge shading belongs to the GLASS, not to the copy: an absolutely
    positioned pseudo paints above static in-flow children, so without this
    the highlight washes "Design space" out to grey */
 .face-banner--handle > * { position: relative; z-index: 1; }
-body.lens .face-banner--handle.touching {
-  backdrop-filter: url(#lg-convex) blur(8px) saturate(175%);
-  -webkit-backdrop-filter: blur(8px) saturate(175%);
-}
-/* browsers without SVG displacement still get thicker glass, just no bulge */
-.face-banner--handle.touching {
-  backdrop-filter: blur(13px) saturate(180%);
-  -webkit-backdrop-filter: blur(13px) saturate(180%);
-}
-.face-banner--handle p { transition: opacity .4s ease; }
-.face-banner--handle.held p { opacity: .35; }
 
 body.lens .keen-slab {
   backdrop-filter: url(#lg-lens) blur(3px) saturate(150%);

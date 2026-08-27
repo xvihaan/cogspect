@@ -459,6 +459,24 @@ f.addEventListener('load', async () => {
   kslabEl.classList.remove('teasing');
   ok(near === true, 'stacked, the specimen is behind the bar — they touch');
   ok(far === false, 'at the bottom of the dip it clears the bar — they come apart');
+  /* The patch has to be the SPECIMEN's box, clipped by the bar — not the
+     intersection. Fitted to the intersection, the whole bar reacts the
+     moment the two so much as touch, which is what this replaced. */
+  ok(w.getComputedStyle(d.getElementById('keenHandle')).overflow === 'hidden',
+     'the bar clips the bulge, which is what confines it to the overlap');
+  /* The vars are written from tick(), which virtual time starves, so wait for
+     a frame to land rather than assuming one has. */
+  const kbar = d.getElementById('keenHandle');
+  for (let i = 0; i < 40 && !kbar.style.getPropertyValue('--ov-h'); i++) await wait(50);
+  const ovH = parseFloat(kbar.style.getPropertyValue('--ov-h'));
+  const slabH = kslabEl.getBoundingClientRect().height;
+  const barH = kbar.getBoundingClientRect().height;
+  ok(ovH > 0 && Math.abs(ovH - 60) < 2,
+     `the bulge is the specimen's own block, not the overlap (${ovH}px against a ${Math.round(slabH / (barH / 60))}px specimen)`);
+  kbar.style.setProperty('--ov-h', '42px');
+  ok(parseFloat(w.getComputedStyle(kbar, '::after').height) === 42,
+     'and the patch takes its size from that, so the bar can clip it');
+  kbar.style.removeProperty('--ov-h');
 
   /* The bar is a control: it stays put, and the specimen answers to it. Run
      unpinned — forcing the wrap to scale(1) while the app's own zoomCur is

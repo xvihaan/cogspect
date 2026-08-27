@@ -981,7 +981,7 @@
      drag is a transform — there is no single place that knows where the slab
      is. Two rect reads per frame, and only while this face is the one on
      screen. */
-  let touching = false;
+  let touching = false, ovKey = '';
   function keenTouch() {
     if (!keenSlab || !keenHandle) return;
     if (cur !== 'back') {
@@ -990,6 +990,22 @@
     }
     const a = keenSlab.getBoundingClientRect(), b = keenHandle.getBoundingClientRect();
     const hit = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+    if (hit) {
+      /* Hand the patch the SPECIMEN's own box, in the bar's coordinates — the
+         bar's overflow:hidden is what turns that into "only the part that
+         overlaps". Rects come back in screen px and the patch lives inside
+         the zoomed face, so divide back out. */
+      const z = zoomCur || 1;
+      const key = `${a.left - b.left}|${a.top - b.top}|${a.width}|${z}`;
+      if (key !== ovKey) {
+        ovKey = key;
+        const st = keenHandle.style;
+        st.setProperty('--ov-x', `${((a.left - b.left) / z).toFixed(1)}px`);
+        st.setProperty('--ov-y', `${((a.top - b.top) / z).toFixed(1)}px`);
+        st.setProperty('--ov-w', `${(a.width / z).toFixed(1)}px`);
+        st.setProperty('--ov-h', `${(a.height / z).toFixed(1)}px`);
+      }
+    }
     if (hit === touching) return;
     touching = hit;
     keenHandle.classList.toggle('touching', hit);
