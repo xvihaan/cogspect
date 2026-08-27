@@ -356,15 +356,13 @@ f.addEventListener('load', async () => {
      that everything on screen came out of the answer the voice was given. */
   ok(said && onScreen.length > 0 && strip(said).indexOf(strip(onScreen)) >= 0,
      'and what is on screen came from the answer handed to the voice');
-  /* The register. Which voice is installed is the platform's business, but
-     rate and pitch are ours. Pitch stays NEAR the voice's own in EITHER
-     direction: these engines resample rather than resynthesise, so distance
-     from 1 is audible as processing. Deepening it made it older and heavier,
-     which is the failure this bound exists to catch. */
-  ok(saidAs && saidAs.pitch > 0.95 && saidAs.pitch < 1.15,
-     `cpt speaks close to the voice's own pitch (${saidAs && saidAs.pitch})`);
-  ok(saidAs && saidAs.rate > 1 && saidAs.rate < 1.25,
-     `and brisk without hurrying (rate ${saidAs && saidAs.rate})`);
+  /* The register. Which voice is installed is the platform's business; what
+     is ours is to leave its pitch alone. These engines resample rather than
+     resynthesise, so every attempt to move it — down for gravity, up for
+     youth — was audible as processing and none of them sounded better. This
+     bound exists to catch the next such attempt. */
+  ok(saidAs && saidAs.pitch === 1, `cpt speaks at the voice's own pitch (${saidAs && saidAs.pitch})`);
+  ok(saidAs && saidAs.rate > 1.2, `and briskly (rate ${saidAs && saidAs.rate})`);
   ok([...g.querySelectorAll('.ghost-line')].length > 0,
      'every cpt answer arrives as typed lines, not only the greeting');
 
@@ -908,14 +906,6 @@ f.addEventListener('load', async () => {
   w3.fetch = (u, o) => (String(u).includes('/chat/') ? Promise.reject(new Error('offline')) : rf3.call(w3, u, o));
   const key3 = (k) => w3.dispatchEvent(new w3.KeyboardEvent('keydown', {key: k, bubbles: true}));
   const roomText = () => [...d3.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
-  /* Which voice a visitor gets should not be an accident of their OS, so the
-     lines that never change are rendered to audio/ once and shipped. Nothing
-     may DEPEND on those files: this page has none of them, and the rooms must
-     still introduce themselves out loud through the browser voice. Watch what
-     is asked for, and prove the fallback in the same pass. */
-  const wanted = [];
-  const RealAudio = w3.Audio;
-  w3.Audio = function (src) { wanted.push(String(src)); return new RealAudio(src); };
   await wait(4200);                                   // let the welcome start
 
   // the rooms that have something to say, say it; the unfinished ones stay quiet
@@ -927,10 +917,6 @@ f.addEventListener('load', async () => {
     key3(k); await wait(3500);
     ok(want.test(roomText()), `${label} introduces itself (${roomText().slice(0, 24)})`);
   }
-  ok(wanted.some((u) => /audio\/intro-right\.mp3$/.test(u)),
-     `a room reaches for its own recording first (${wanted.join(', ') || 'none'})`);
-  ok(wanted.some((u) => /audio\/intro-left\.mp3$/.test(u)),
-     'each room has its own, named after the face');
   for (const [k, label] of [['ArrowUp', 'prospect'], ['ArrowDown', 'minimalid']]) {
     d3.getElementById('ghostMsg').click();
     await wait(900);

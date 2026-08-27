@@ -257,31 +257,6 @@
 
 </div>
 
-<!-- cpt's fixed narration, in the markup rather than in the script, because
-     it is copy and because it has to be readable by something other than the
-     browser: tools/render-narration.mjs synthesises these exact strings into
-     audio/ so the voice is chosen once, by us, instead of being whatever
-     character voice the visitor's OS happens to ship. One source, so the
-     audio and the subtitles can never drift apart. -->
-<script type="application/json" id="cptLines">
-{
-  "faceIntro": {
-    "right": [
-      "AI 엔지니어 김민혁의 작업 기록입니다.",
-      "밝게 켜진 픽셀을 누르면 프로젝트가 열려요."
-    ],
-    "left": [
-      "다른 공간으로 건너가는 다리입니다.",
-      "파란 문은 b3ta, 붉은 문은 v0id로 이어져요."
-    ],
-    "back": [
-      "cogspect가 지향하는 디자인 공간입니다.",
-      "레이어를 움직여서 탐색해 보세요."
-    ]
-  }
-}
-</script>
-
 <script src="js/app.js"></script>
 </body>
 </html>

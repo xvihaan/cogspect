@@ -1403,13 +1403,14 @@
     // replaces — an utterance with the wrong voice is still an utterance
     try { if (v) u.voice = v; } catch (err) { /* default voice, then */ }
     u.lang = v ? v.lang : 'ko-KR';
-    /* A shade ABOVE its own pitch, not below. Every attempt to deepen this
-       voice made it heavier and older, which is the opposite of what it is
-       for — and these engines resample rather than resynthesise, so distance
-       from 1 in either direction is audible as processing. A touch up and a
-       touch quick is what reads as young. */
-    u.rate = 1.16;
-    u.pitch = 1.06;
+    /* Its own pitch, untouched. Three rounds of moving it — down for gravity,
+       then up for youth — each made the voice sound more processed and none
+       made it sound better: these engines resample rather than resynthesise,
+       so any distance from 1 is audible. The voice is whatever the platform's
+       male voice is, at the speed cpt has always read at: brisk, a guide
+       rather than a narrator. */
+    u.rate = 1.24;
+    u.pitch = 1;
     let spoke = false;
     u.onstart = () => { spoke = true; parkedSpeech = null; go(); };
     // engines that emit boundaries pulse the grid on the actual words, over
@@ -1430,65 +1431,8 @@
     setTimeout(() => { if (!spoke && !isRetry && !TTS.speaking) parkedSpeech = text; }, 700);
   }
 
-  /* ---------- recorded narration ----------------------------------------
-
-     Every Korean voice macOS ships is a character voice except one, and that
-     one is not the voice this site wants. Which voice a visitor gets should
-     not be an accident of their operating system, so the lines that never
-     change — the rooms introducing themselves — are synthesised once, by us,
-     with an engine we chose, and shipped as audio. tools/render-narration.mjs
-     does that from the copy in index.html's #cptLines block.
-
-     Nothing depends on those files existing. A missing recording falls back
-     to Web Speech on the spot, which is exactly what runs today, so the site
-     is never broken by a line that has not been rendered yet — or by a
-     browser that cannot play the format. */
-  const NARRATION_DIR = 'audio/';
-  let narrating = null;                  // the <audio> currently playing, if any
-
-  function stopNarration() {
-    if (!narrating) return;
-    const a = narrating;
-    narrating = null;
-    a.pause();
-    a.onplaying = a.onerror = a.onended = null;
-  }
-
-  /* Speaks `text`, preferring the recording named `key`. onGo fires the moment
-     sound actually starts — or immediately if there is going to be none — so
-     the caller can put the text on screen in step with it either way. */
-  function sayIt(text, key, onGo) {
-    stopNarration();
-    if (!voiceOn || !text) { onGo(); return; }
-    if (!key) { speak(text, false, onGo); return; }
-
-    const a = new Audio(NARRATION_DIR + key + '.mp3');
-    a.preload = 'auto';
-    narrating = a;
-    let settled = false;
-    const fallback = () => {
-      if (settled) return;
-      settled = true;
-      if (narrating === a) narrating = null;
-      speak(text, false, onGo);          // no recording, or it will not play
-    };
-    a.onplaying = () => {
-      if (settled) return;
-      settled = true;
-      onGo();
-    };
-    a.onended = () => { if (narrating === a) narrating = null; stopBeat(); };
-    a.onerror = fallback;
-    // A recording that has not started by now is not going to: a 404 reports
-    // through onerror, but a decode that never resolves reports nothing.
-    setTimeout(fallback, SPEAK_LEAD_MAX);
-    const p = a.play();
-    if (p && p.catch) p.catch(fallback);  // autoplay refused, or no such file
-  }
-
   function hushVoice() {
     if (TTS) TTS.cancel();
-    stopNarration();
     stopBeat();
     parkedSpeech = null;
   }
@@ -1663,7 +1607,7 @@
      appears the instant the message is queued is reliably ahead of the audio
      by a beat or two. Waiting for onstart makes them land together; the cap
      in speak() means a silent or blocked engine costs the text nothing. */
-  function typeLines(lines, spoken, source, silent, voiceKey) {
+  function typeLines(lines, spoken, source, silent) {
     ghostSource = source || 'user';
     clearTimeout(ghostTimer);
     stopTyping();                        // the old line stops growing at once
@@ -1684,7 +1628,7 @@
       render();
     };
     // a silent message waits for nothing: there is no engine to be in step with
-    if (silent) { stopNarration(); go(); } else sayIt(full, voiceKey, go);
+    if (silent) go(); else speak(full, false, go);
 
     function render() {
       if (reducedMotion.matches) {
@@ -1725,14 +1669,20 @@
      under LINE_MAX so nothing wraps a second time inside the bubble.
      minimalid and prospect are deliberately absent: a room with nothing
      settled to say is better silent than filling the air. */
-  /* Read from the markup, not written here: tools/render-narration.mjs
-     synthesises these same strings into audio/, and two hand-kept copies of a
-     line drift the first time one of them is edited. */
-  const FACE_INTRO = (() => {
-    const el = document.getElementById('cptLines');
-    try { return JSON.parse(el.textContent).faceIntro || {}; }
-    catch (err) { return {}; }
-  })();
+  const FACE_INTRO = {
+    right: [
+      'AI 엔지니어 김민혁의 작업 기록입니다.',
+      '밝게 켜진 픽셀을 누르면 프로젝트가 열려요.'
+    ],
+    left: [
+      '다른 공간으로 건너가는 다리입니다.',
+      '파란 문은 b3ta, 붉은 문은 v0id로 이어져요.'
+    ],
+    back: [
+      'cogspect가 지향하는 디자인 공간입니다.',
+      '레이어를 움직여서 탐색해 보세요.'
+    ]
+  };
   const introSaid = new Set();
   /* Ambient lines may talk over each other but never over the user. Note the
      order: nothing is marked as said until it actually gets the floor, so a
@@ -1745,8 +1695,7 @@
     const lines = FACE_INTRO[face];
     if (!lines || introSaid.has(face) || !ambientFree()) return;
     introSaid.add(face);
-    // 'intro-<face>' is the recording of this line, if one has been rendered
-    typeLines(lines, lines.join(' '), 'ambient', false, 'intro-' + face);
+    typeLines(lines, lines.join(' '), 'ambient');
   }
   ghost.addEventListener('click', () => { hushVoice(); dismissGhost(); });
 
