@@ -441,7 +441,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 @media (min-width: 968px) {
   .keen-entry {
     --keen-target-left: 56px;
-    --keen-target-top: 208px;
+    --keen-target-top: 190px;
   }
 }
 /* Narrow screens: at 62vw the copy column is squeezed so hard it wraps for
@@ -450,14 +450,14 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   .keen-entry {
     width: min(600px, 88vw);
     --keen-target-left: 18px;
-    --keen-target-top: 202px;
+    --keen-target-top: 186px;
   }
 }
 /* A short viewport has less room between the bar and the chat dock, and the
    bar itself moves up to 72px there — so follow it up. Last, so it wins on
    screens that match both this and the width rule above. */
 @media (max-height: 620px) {
-  .keen-entry { --keen-target-top: 196px; }
+  .keen-entry { --keen-target-top: 182px; }
 }
 
 .keen-copy { flex: 1 1 auto; min-width: 0; }
@@ -1618,9 +1618,12 @@ body.lens .face-banner {
    whole idea — it is something you pull OUT of the bar — but a thing nobody
    can see is a thing nobody will try. So on arrival it dips out from under
    the bar three times while the bar's own subtitle says what to do. */
+/* 78px, not 50: the specimen has to clear the bar's bottom edge entirely,
+   or the two never stop overlapping and the bulge that is supposed to happen
+   WHEN they touch is simply on the whole time. */
 @keyframes slabTease {
   0%   { transform: translateY(0); }
-  46%  { transform: translateY(50px); }
+  46%  { transform: translateY(78px); }
   100% { transform: translateY(0); }
 }
 .keen-slab.teasing { animation: slabTease .78s cubic-bezier(.4, .1, .3, 1) 3; }
@@ -1628,6 +1631,59 @@ body.lens .face-banner {
 /* the bar is a control here; everywhere else it stays a label */
 .face-banner--handle { cursor: grab; touch-action: none; }
 .face-banner--handle.dragging { cursor: grabbing; }
+
+/* Two pieces of keen glass overlapping are thicker glass, so the bar bulges
+   where the specimen passes behind it: a real convex displacement on the
+   backdrop, plus the shading a bulge actually has — bright off-centre where
+   the light gathers, dimmer at the rim where the surface turns away. Both
+   are gated on the overlap, so the bar is a flat pane the rest of the time. */
+.face-banner--handle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .28s ease;
+  /* A bulge on a near-white face cannot be drawn with highlight alone —
+     there is nothing behind it to brighten against. What reads is the RIM:
+     a convex surface turns away from the viewer at its edges and darkens
+     there, and carries a specular cap where it faces the light. */
+  background:
+    /* specular cap, where the surface faces the light */
+    radial-gradient(46% 112% at 50% 18%,
+      rgba(255, 255, 255, .8) 0%,
+      rgba(255, 255, 255, .22) 46%,
+      rgba(255, 255, 255, 0) 72%),
+    /* The block is 6:1, so what actually reads as curvature is the two ENDS
+       turning away — a radial rim on a shape this wide never reaches them. */
+    linear-gradient(90deg,
+      rgba(21, 22, 28, .14) 0%,
+      rgba(21, 22, 28, .05) 9%,
+      rgba(21, 22, 28, 0) 22%,
+      rgba(21, 22, 28, 0) 78%,
+      rgba(21, 22, 28, .05) 91%,
+      rgba(21, 22, 28, .14) 100%),
+    linear-gradient(180deg,
+      rgba(21, 22, 28, .06) 0%,
+      rgba(21, 22, 28, 0) 34%,
+      rgba(21, 22, 28, 0) 68%,
+      rgba(21, 22, 28, .08) 100%);
+}
+.face-banner--handle.touching::after { opacity: 1; }
+/* the bulge shading belongs to the GLASS, not to the copy: an absolutely
+   positioned pseudo paints above static in-flow children, so without this
+   the highlight washes "Design space" out to grey */
+.face-banner--handle > * { position: relative; z-index: 1; }
+body.lens .face-banner--handle.touching {
+  backdrop-filter: url(#lg-convex) blur(8px) saturate(175%);
+  -webkit-backdrop-filter: blur(8px) saturate(175%);
+}
+/* browsers without SVG displacement still get thicker glass, just no bulge */
+.face-banner--handle.touching {
+  backdrop-filter: blur(13px) saturate(180%);
+  -webkit-backdrop-filter: blur(13px) saturate(180%);
+}
 .face-banner--handle p { transition: opacity .4s ease; }
 .face-banner--handle.held p { opacity: .35; }
 

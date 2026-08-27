@@ -976,6 +976,25 @@
     window.addEventListener('pointercancel', dropSlab);
   }
 
+  /* The bar bulges where the specimen passes behind it. Polled rather than
+     computed from the animation, because the dip is a CSS keyframe and the
+     drag is a transform — there is no single place that knows where the slab
+     is. Two rect reads per frame, and only while this face is the one on
+     screen. */
+  let touching = false;
+  function keenTouch() {
+    if (!keenSlab || !keenHandle) return;
+    if (cur !== 'back') {
+      if (touching) { touching = false; keenHandle.classList.remove('touching'); }
+      return;
+    }
+    const a = keenSlab.getBoundingClientRect(), b = keenHandle.getBoundingClientRect();
+    const hit = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+    if (hit === touching) return;
+    touching = hit;
+    keenHandle.classList.toggle('touching', hit);
+  }
+
   /* ---------- pixel-grid ripples ---------- */
 
   const ripples = [];
@@ -1101,6 +1120,7 @@
     zoomWrap.style.transform = `scale(${zoomCur * (1 - kick)})`;
 
     drawGrid();
+    keenTouch();
     requestAnimationFrame(tick);
   }
 

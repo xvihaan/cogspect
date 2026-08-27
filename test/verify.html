@@ -434,6 +434,32 @@ f.addEventListener('load', async () => {
   ok(d.getElementById('keenHandle').querySelector('p').textContent.trim() !== 'DRAG ME',
      'the bar goes back to its own subtitle');
 
+  /* keen is a lens, so two pieces of it overlapping are thicker glass: the
+     bar bulges while the specimen is behind it. The class is toggled from
+     tick(), which virtual time starves, so assert the geometry it keys on —
+     the dip has to clear the bar's bottom edge or the two never come apart
+     and the effect that is supposed to happen WHEN they touch never stops. */
+  const cvx = d.getElementById('lg-convex');
+  ok(!!cvx && !!cvx.querySelector('feImage') && !!cvx.querySelector('feDisplacementMap'),
+     'the convex lens filter is defined with a displacement map');
+  const overlapAt = (ms) => {
+    const anim = kslabEl.getAnimations().find((a) => (a.animationName || '') === 'slabTease');
+    if (!anim) return null;
+    const was = anim.currentTime, played = anim.playState;
+    anim.pause(); anim.currentTime = ms;
+    kslabEl.getBoundingClientRect();
+    const A = kslabEl.getBoundingClientRect(), B = d.getElementById('keenHandle').getBoundingClientRect();
+    const hit = !(A.right <= B.left || B.right <= A.left || A.bottom <= B.top || B.bottom <= A.top);
+    anim.currentTime = was; if (played === 'running') anim.play();
+    return hit;
+  };
+  kslabEl.classList.add('teasing');
+  await wait(40);
+  const near = overlapAt(0), far = overlapAt(360);
+  kslabEl.classList.remove('teasing');
+  ok(near === true, 'stacked, the specimen is behind the bar — they touch');
+  ok(far === false, 'at the bottom of the dip it clears the bar — they come apart');
+
   /* The bar is a control: it stays put, and the specimen answers to it. Run
      unpinned — forcing the wrap to scale(1) while the app's own zoomCur is
      still mid-spring makes the drag maths disagree with what is drawn, and
