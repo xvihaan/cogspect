@@ -1509,6 +1509,30 @@ body.on-dark input::placeholder { color: #7a7a82; }
     bfRay var(--t) linear var(--in) infinite;
 }
 
+/* The gate is built once and then never taken down, so everything on it —
+   forty streaks, the atmosphere's breathing, the orbs' glow, the float —
+   went on animating on every other face too, out of sight. .landed marks the
+   face the visitor is actually looking at, so the work stops the moment they
+   turn away and resumes where it left off when they come back. It also stops
+   during the turn itself, which is the tightest frame budget there is and
+   the one moment this face is edge-on anyway.
+
+   Two things had to line up for this to take effect at all. It sits AFTER
+   the rules that set the `animation` shorthand, because the shorthand resets
+   animation-play-state to running. And it MATCHES their specificity —
+   .bridged is carried here for no other reason: a shorter selector loses to
+   the shorthand's implicit `running` however late it is declared. */
+.face--gateway.bridged .bridge-rain path,
+.face--gateway.bridged .bridge-haze,
+.face--gateway.bridged .bridge,
+.face--gateway.bridged .planet,
+.face--gateway.bridged .planet .orb::before { animation-play-state: paused; }
+.face--gateway.bridged.landed .bridge-rain path,
+.face--gateway.bridged.landed .bridge-haze,
+.face--gateway.bridged.landed .bridge,
+.face--gateway.bridged.landed .planet,
+.face--gateway.bridged.landed .planet .orb::before { animation-play-state: running; }
+
 @keyframes orbWake {
   0%   { transform: scale(.2); opacity: 0; }
   55%  { transform: scale(1.25); opacity: 1; }

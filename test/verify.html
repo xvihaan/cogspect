@@ -711,6 +711,21 @@ f.addEventListener('load', async () => {
   ok(new Set(delays).size >= rays.length * 0.5,
      `and starts staggered rather than as one sheet (${new Set(delays).size} distinct starts)`);
 
+  /* The gate is built once and never taken down, so without this every one
+     of those streaks goes on animating on every other face, out of sight.
+     Two things make the pause take effect and both are easy to undo by
+     accident: the rule has to come after the `animation` shorthand, which
+     resets play-state, and it has to match its specificity. */
+  d.getElementById('homeBtn').click();
+  await wait(1400);
+  const idle = rays.filter((r) => r.getAnimations().some((a) => a.playState === 'running'));
+  ok(idle.length === 0,
+     `the rain stops when its face is not the one on screen (${idle.length}/${rays.length} still running)`);
+  key('ArrowLeft');
+  await wait(1400);
+  const live = rays.filter((r) => r.getAnimations().some((a) => a.playState === 'running'));
+  ok(live.length === rays.length, `and picks up again on arrival (${live.length}/${rays.length})`);
+
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);
 
