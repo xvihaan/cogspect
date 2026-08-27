@@ -1315,27 +1315,35 @@
 
   /* The voice cpt speaks in.
 
-     A young, bright male — an engineer at the next desk. The Web Speech API
-     gives no control over timbre, only which installed voice to use plus rate
-     and pitch, so this is a ranked list of the Korean male voices that
-     actually ship on the platforms this site is likely to be opened on:
+     Korean on macOS ships one natural voice, Yuna, and eight of Apple's
+     character voices; the male half of that set runs from gruff to elderly
+     and none of it sounds like a person guiding you through a site. The voice
+     this wants is Minsu, which is a real Korean male voice — but it is an
+     optional download (System Settings, Spoken Content, Manage Voices), so it
+     is a preference, never an assumption. Everything below it is what to do
+     when it is not installed:
 
-       Eddy       macOS 13+ expressive set — the light, easy one
+       Minsu      the Korean male voice, downloadable on macOS
        InJoon     the Korean male voice on Windows
-       Rocko      macOS again; gruffer, and a fallback rather than a choice
-       Reed       macOS again; calm but distinctly older, last resort
+       Eddy       macOS character set — the lightest of the male ones
+       Rocko      same set, gruffer
+       Reed       same set, calm but distinctly older
 
-     Grandpa is in the same set and is deliberately NOT here. If none of these
-     is installed the fallback is whatever Korean voice there is — Yuna on
-     most Macs, which is female. */
-  const MALE_KO = ['eddy', 'injoon', 'rocko', 'reed'];
+     Grandpa is in that set too and is deliberately absent. If none of them is
+     there the fallback is whatever Korean voice exists, which on most Macs is
+     Yuna.
+
+     Within a name, Enhanced and Premium win: they are the same voice at a
+     higher sample rate, and Apple ships the plain one alongside. */
+  const MALE_KO = ['minsu', 'injoon', 'eddy', 'rocko', 'reed'];
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
     const ko = all.filter((v) => /^ko/i.test(v.lang));
     if (!ko.length) return null;
     for (const want of MALE_KO) {
-      const hit = ko.find((v) => v.name.toLowerCase().includes(want));
-      if (hit) return hit;
+      const hits = ko.filter((v) => v.name.toLowerCase().includes(want));
+      if (!hits.length) continue;
+      return hits.find((v) => /enhanced|premium/i.test(v.name)) || hits[0];
     }
     return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0];
   }

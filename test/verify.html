@@ -363,6 +363,30 @@ f.addEventListener('load', async () => {
      bound exists to catch the next such attempt. */
   ok(saidAs && saidAs.pitch === 1, `cpt speaks at the voice's own pitch (${saidAs && saidAs.pitch})`);
   ok(saidAs && saidAs.rate > 1.2, `and briskly (rate ${saidAs && saidAs.rate})`);
+
+  /* Which voice gets picked. The list a browser offers is a platform detail
+     and this one offers none at all, so the ranking can only be tested
+     against a stand-in — and `lang` is what carries the answer back, since
+     speak() copies it from whichever voice it settled on. What must hold:
+     the real Korean male voice beats the character voices however the list is
+     ordered, and Enhanced beats the plain cut of the same voice. */
+  const realVoices = w.speechSynthesis.getVoices.bind(w.speechSynthesis);
+  const stand = (name, lang) => ({name, lang, localService: true, default: false});
+  w.speechSynthesis.getVoices = () => [
+    stand('Yuna', 'ko-KR-yuna'),
+    stand('Eddy (한국어(한국))', 'ko-KR-eddy'),
+    stand('Minsu', 'ko-KR-minsu'),
+    stand('Minsu (Enhanced)', 'ko-KR-minsu-enhanced'),
+    stand('Samantha', 'en-US')
+  ];
+  saidAs = null;
+  ask('모델 상태');
+  for (let i = 0; i < 40 && !saidAs; i++) await wait(100);
+  ok(saidAs && /minsu/.test(saidAs.lang),
+     `it picks the Korean male voice over the character ones (${saidAs && saidAs.lang})`);
+  ok(saidAs && /enhanced/.test(saidAs.lang),
+     `and the Enhanced cut of it over the plain one (${saidAs && saidAs.lang})`);
+  w.speechSynthesis.getVoices = realVoices;
   ok([...g.querySelectorAll('.ghost-line')].length > 0,
      'every cpt answer arrives as typed lines, not only the greeting');
 
