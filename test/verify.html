@@ -701,6 +701,15 @@ f.addEventListener('load', async () => {
   // made the intro drop frames in the first place
   ok(cs.every((c) => c.filter === 'none'),
      'no per-streak filter — the softness is one pass on the group');
+  /* Nothing falls until the span has finished striking out. The delays once
+     ran negative, which starts an animation already in progress — the rain
+     was falling before the bridge had connected and the connection itself
+     never read. The beam lands at .62 + 1.15 = 1.77s. */
+  const delays = cs.map((c) => parseFloat(c.animationDelay));
+  ok(Math.min(...delays) >= 1.77,
+     `the rain waits for the span to connect (earliest ${Math.min(...delays)}s)`);
+  ok(new Set(delays).size >= rays.length * 0.5,
+     `and starts staggered rather than as one sheet (${new Set(delays).size} distinct starts)`);
 
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);

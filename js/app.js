@@ -908,10 +908,16 @@
       el.style.setProperty('--len', len.toFixed(2));
       el.style.setProperty('--w', (0.13 + r() * 0.24).toFixed(3));
       el.style.setProperty('--o', (0.38 + r() * 0.47).toFixed(2));
-      // speed and phase both random: same-speed streaks drift into columns,
-      // and a shared phase makes them fall as one sheet
+      // speed random: same-speed streaks drift into columns
       el.style.setProperty('--t', (0.5 + r() * 1.25).toFixed(2) + 's');
-      el.style.setProperty('--in', (1.9 - r() * 2.6).toFixed(2) + 's');
+      /* Every streak waits for the span to finish striking out. The delays
+         used to run from 1.9s down to -0.7s, and a negative delay starts an
+         animation already in progress — so the rain was falling before the
+         bridge had connected, and the connection itself never read.
+         The beam lands at .62 + 1.15 = 1.77s; the rain begins after that,
+         staggered across 1.4s so it builds from the blue gate rather than
+         arriving as one sheet. */
+      el.style.setProperty('--in', (2 + r() * 1.4).toFixed(2) + 's');
       frag.appendChild(el);
     }
     g.appendChild(frag);
