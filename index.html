@@ -112,16 +112,18 @@
         </section>
 
         <section class="face face--keen" data-face="back" aria-label="keen">
-          <div class="face-banner">
+          <!-- The bar is the control, not a label: it stays put, and dragging
+               it drives the specimen below. The site runs on an agent, so its
+               chrome should be operable rather than decorative. -->
+          <div class="face-banner face-banner--handle" id="keenHandle">
             <h2>Design space</h2>
+            <p>바를 끌어 표본을 움직여 보세요</p>
           </div>
+          <!-- the design language shown rather than described: a slab of the
+               actual glass, cut to the same block as the bar that steers it -->
+          <div class="keen-slab" id="keenSlab" role="img"
+               aria-label="keen 글래스 표본 — 위 바를 끌어 움직일 수 있습니다"></div>
           <div class="keen-entry">
-            <!-- the design language shown rather than described: a slab of
-                 the actual glass, draggable across the lattice behind it -->
-            <div class="keen-slab" id="keenSlab" role="img"
-                 aria-label="keen 글래스 표본 — 끌어서 움직일 수 있습니다">
-              <span class="keen-slab-hint">drag me</span>
-            </div>
             <div class="keen-copy">
               <div class="keen-head">
                 <h2 class="keen-title">⌜keen⌟</h2>

@@ -425,22 +425,23 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   top: 50%;
   left: 50%;
   --keen-target-left: 18px;
-  --keen-target-top: 150px;
+  --keen-target-top: 246px;
   transform:
     translateX(calc(-50vw + var(--keen-target-left)))
     translateY(calc(-50vh + var(--keen-target-top)));
-  width: min(600px, 62vw);
+  /* the specimen left the flow, so the copy no longer has to share the row
+     with it and can sit in a proper narrow column against the left edge */
+  width: min(430px, 62vw);
   display: flex;
   align-items: flex-start;
-  gap: 18px;
   text-align: left;
 }
 /* Desktop: flush under the wordmark's own left edge, and low enough to clear
    the Design space bar (which ends around y135). */
 @media (min-width: 968px) {
   .keen-entry {
-    --keen-target-left: 150px;
-    --keen-target-top: 160px;
+    --keen-target-left: 56px;
+    --keen-target-top: 252px;
   }
 }
 /* Narrow screens: at 62vw the copy column is squeezed so hard it wraps for
@@ -448,17 +449,15 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 @media (max-width: 967px) {
   .keen-entry {
     width: min(600px, 88vw);
-    gap: 14px;
     --keen-target-left: 18px;
-    --keen-target-top: 150px;
+    --keen-target-top: 244px;
   }
-  .keen-slab { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 19px; }
 }
 /* A short viewport has less room between the bar and the chat dock, and the
    bar itself moves up to 72px there — so follow it up. Last, so it wins on
    screens that match both this and the width rule above. */
 @media (max-height: 620px) {
-  .keen-entry { --keen-target-top: 126px; }
+  .keen-entry { --keen-target-top: 210px; }
 }
 
 .keen-copy { flex: 1 1 auto; min-width: 0; }
@@ -1569,14 +1568,29 @@ body.lens .face-banner {
    description of it: a glass slab the visitor can pick up and drag across
    the face, refracting whatever passes under it. */
 
+/* Same block as the bar that steers it — same width, height and radius —
+   so the pair reads as one object and its shadow, and the drag makes sense
+   before anyone is told about it. It is out of .keen-entry's flow now and
+   positioned against the SCREEN by the same corner technique the bar uses,
+   which is also why the entry could be narrowed and moved left. */
 .keen-slab {
-  flex: 0 0 96px;
-  width: 96px;
-  height: 96px;
-  border-radius: 26px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* declared as fallbacks, not as values: the responsive overrides below set
+     --slab-top, and a plain declaration here would outrank them on equal
+     specificity purely by coming later in the file */
+  transform: translate(0, 0);
+  margin-left: calc(-50vw + var(--slab-left, 50vw) - 180px);   /* 180 = half its width */
+  margin-top: calc(-50vh + var(--slab-top, 152px));
+  width: 360px;
+  height: 60px;
+  /* the bar is border-box; without this the slab's 1px border makes it
+     362×62 against the bar's 360×60, and they stop being the same block */
+  box-sizing: border-box;
+  border-radius: 28px;
   cursor: grab;
   touch-action: none;
-  position: relative;
   z-index: 3;
   will-change: transform;
   background: rgba(244, 246, 250, .26);
@@ -1589,26 +1603,43 @@ body.lens .face-banner {
     0 18px 42px rgba(5, 10, 25, .14),
     inset 0 1px 0 rgba(255, 255, 255, .34);
 }
+/* Narrow screens: the bar narrows with the viewport, so the specimen has to
+   track it or the pair stops matching. Placed after the base rule so these
+   actually win. */
+@media (max-width: 967px) {
+  .keen-slab {
+    width: min(360px, calc(100vw - 32px));
+    margin-left: calc(-50vw + var(--slab-left, 50vw) - min(180px, calc(50vw - 16px)));
+    --slab-top: 150px;
+  }
+}
+@media (max-height: 620px) {
+  .keen-slab { --slab-top: 140px; }
+}
+
+/* the bar is a control here; everywhere else it stays a label */
+.face-banner--handle { cursor: grab; touch-action: none; }
+.face-banner--handle.dragging { cursor: grabbing; }
+.face-banner--handle p { transition: opacity .4s ease; }
+.face-banner--handle.held p { opacity: .35; }
+
 body.lens .keen-slab {
   backdrop-filter: url(#lg-lens) blur(3px) saturate(150%);
   -webkit-backdrop-filter: blur(3px) saturate(150%);
 }
 .keen-slab.dragging { cursor: grabbing; }
-
-.keen-slab-hint {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 9px);
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--faint);
-  transition: opacity .4s ease;
+/* while it is being steered from the bar, the specimen lifts a little so it
+   is obvious which of the two blocks is the one that moves */
+.keen-slab {
+  transition: box-shadow .25s ease, border-color .25s ease;
 }
-.keen-slab.held .keen-slab-hint { opacity: 0; }
+.keen-slab.lifted {
+  border-color: color-mix(in srgb, var(--fg) 26%, transparent);
+  box-shadow:
+    0 26px 60px rgba(5, 10, 25, .2),
+    inset 0 1px 0 rgba(255, 255, 255, .45);
+}
+
 
 /* ---------- 01b · intro ---------- */
 

@@ -716,7 +716,7 @@
        with momentum and a snap onto the nearest resting pose. */
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .keen-slab')) return;
+    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .keen-slab, .face-banner--handle')) return;
     if (overlayOpen()) return;
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
@@ -867,13 +867,20 @@
     if (map[e.key]) { e.preventDefault(); step(map[e.key]); }
   });
 
-  /* ---------- keen specimen: the glass slab you can pick up ----------
-     The design language is demonstrated instead of described — dragging the
-     slab across the lattice shows the refraction doing its work. It moves on
-     transform only, so it never disturbs .keen-entry's measured box (the
-     block's position is a calc() tuned against that box). */
+  /* ---------- keen specimen: a control surface, not an ornament ----------
+     The design language is demonstrated instead of described — moving the
+     slab across the lattice shows the refraction doing its work. What steers
+     it is the "Design space" bar: the bar stays exactly where it is and the
+     specimen answers to it, which is the point. This is an agent-run site,
+     so its chrome should be operable rather than decorative, and a label
+     that turns out to be a control says that better than a caption would.
+
+     The slab is grabbable directly too. Discovering the bar is the reward;
+     failing to move a thing that plainly looks draggable is not a lesson
+     worth teaching. Both paths run the same drag. */
 
   const keenSlab = document.getElementById('keenSlab');
+  const keenHandle = document.getElementById('keenHandle');
   if (keenSlab) {
     let slabDrag = null, slabX = 0, slabY = 0;
 
@@ -896,16 +903,19 @@
     }
     const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
 
-    keenSlab.addEventListener('pointerdown', (e) => {
+    function grabSlab(e, el) {
       e.preventDefault();
       e.stopPropagation();                   // the cube must not turn under it
-      slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, lim: slabLimits() };
-      keenSlab.classList.add('dragging', 'held');
+      slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, lim: slabLimits(), el };
+      el.classList.add('dragging', 'held');
+      keenSlab.classList.add('lifted');
       // Capture is an enhancement, not the mechanism: it throws when there is
       // no live pointer with this id, and the move/up listeners live on the
-      // window anyway so the drag survives the pointer leaving the slab.
-      try { keenSlab.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
-    });
+      // window anyway so the drag survives the pointer leaving the element.
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+    }
+    keenSlab.addEventListener('pointerdown', (e) => grabSlab(e, keenSlab));
+    if (keenHandle) keenHandle.addEventListener('pointerdown', (e) => grabSlab(e, keenHandle));
     window.addEventListener('pointermove', (e) => {
       if (!slabDrag || e.pointerId !== slabDrag.id) return;
       // the pointer moves in screen px; the slab lives inside the zoomed face
@@ -917,8 +927,9 @@
     });
     const dropSlab = (e) => {
       if (!slabDrag || e.pointerId !== slabDrag.id) return;
+      slabDrag.el.classList.remove('dragging');
+      keenSlab.classList.remove('lifted');
       slabDrag = null;
-      keenSlab.classList.remove('dragging');
     };
     window.addEventListener('pointerup', dropSlab);
     window.addEventListener('pointercancel', dropSlab);

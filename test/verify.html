@@ -404,8 +404,38 @@ f.addEventListener('load', async () => {
      `the keen entry sits below its bar (bar ends ${Math.round(kb.bottom)}, entry starts ${Math.round(ke.top)})`);
   ok(d.querySelector('.keen-entry .keen-title').textContent.includes('keen'),
      'and the dictionary entry still says what it said');
+  // the specimen is cut from the same block as the bar that steers it —
+  // border-box matters here, a 1px border is enough to break the match
+  const kslab = d.getElementById('keenSlab').getBoundingClientRect();
+  ok(Math.abs(kslab.width - kb.width) < 1.5 && Math.abs(kslab.height - kb.height) < 1.5,
+     `the specimen is the same block as the bar (${Math.round(kslab.width)}×${Math.round(kslab.height)})`);
 
   pin.remove();
+
+  /* The bar is a control: it stays put, and the specimen answers to it. Run
+     unpinned — forcing the wrap to scale(1) while the app's own zoomCur is
+     still mid-spring makes the drag maths disagree with what is drawn, and
+     the slab looks like it escapes when it has not. */
+  await wait(300);
+  const kh = d.getElementById('keenHandle'), ksl = d.getElementById('keenSlab');
+  ok(!!kh && w.getComputedStyle(kh).cursor === 'grab', 'the bar reads as grabbable');
+  const bar0 = kh.getBoundingClientRect(), slab0 = ksl.getBoundingClientRect();
+  kh.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId: 84, clientX: bar0.left + 40, clientY: bar0.top + 20, bubbles: true}));
+  for (let i = 1; i <= 14; i++) {
+    w.dispatchEvent(new w.PointerEvent('pointermove',
+      {pointerId: 84, clientX: bar0.left + 40 + i * 6, clientY: bar0.top + 20 + i * 5, bubbles: true}));
+    await wait(8);
+  }
+  const midPose = face('front').style.transform;
+  w.dispatchEvent(new w.PointerEvent('pointerup', {pointerId: 84, bubbles: true}));
+  await wait(120);
+  const bar1 = kh.getBoundingClientRect(), slab1 = ksl.getBoundingClientRect();
+  ok(Math.hypot(bar1.left - bar0.left, bar1.top - bar0.top) < 1, 'the bar itself does not move');
+  ok(Math.hypot(slab1.left - slab0.left, slab1.top - slab0.top) > 20,
+     `the specimen follows it (${Math.round(Math.hypot(slab1.left - slab0.left, slab1.top - slab0.top))}px)`);
+  ok(midPose === face('front').style.transform, 'and the cube does not turn under the drag');
+  ok(slab1.left >= -1 && slab1.top >= -1 && slab1.right <= w.innerWidth + 1,
+     'the specimen stays on screen');
 
   // mid-turn: no face may claim the bar
   d.getElementById('homeBtn').click();
