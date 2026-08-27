@@ -692,8 +692,28 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
     inset 0 1px 0 rgba(255, 255, 255, .28);
 }
 /* cpt types rather than pasting: the caret is what makes that read as
-   something composing an answer instead of a slow render. */
-.ghost-msg.typing::after {
+   something composing an answer instead of a slow render. It rides the line
+   being written, not the bubble, or it would sit on a line of its own. */
+.ghost-line {
+  display: block;
+  overflow: hidden;
+  max-height: 5em;
+  transition:
+    opacity .55s ease,
+    filter .55s ease,
+    max-height .55s ease,
+    margin .55s ease;
+}
+.ghost-line + .ghost-line { margin-top: 3px; }
+/* the oldest line blurs out and collapses as a new one starts, so the bubble
+   holds its size however long cpt talks for */
+.ghost-line.out {
+  opacity: 0;
+  filter: blur(7px);
+  max-height: 0;
+  margin-top: 0;
+}
+.ghost-line.now::after {
   content: '';
   display: inline-block;
   width: 2px;
@@ -1265,7 +1285,8 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .cell--proj, .project-card, .contact-card, .modal-close, .tile-tip,
   .planet .orb, .ghost-msg { transition: none !important; }
   .planet, .bridge { animation: none; }
-  .ghost-msg.typing::after { animation: none; }
+  .ghost-line.now::after { animation: none; }
+  .ghost-line { transition: none; }
   .keen-slab, .keen-slab.teasing { animation: none; --slab-top: 96px; }
   .planet .orb::before { animation: none; opacity: .8; transform: scale(1); }
   .chat-bar.thinking::after { animation: none; opacity: .5; }

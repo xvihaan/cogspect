@@ -1342,34 +1342,80 @@
      character puts the last one down comfortably before the voice
      finishes, so the text never lags behind what is being said. */
   const TYPE_MS = 34;
+  const LINES_ON_SCREEN = 3;
   let typeTimer = null;
   function stopTyping() {
     clearInterval(typeTimer); typeTimer = null;
     ghost.classList.remove('typing');
+    const cur = ghost.querySelector('.ghost-line.now');
+    if (cur) cur.classList.remove('now');
   }
 
-  function showGhost(text, pending, typed) {
+  function showGhost(text, pending) {
     clearTimeout(ghostTimer);
     stopTyping();
-    ghost.classList.remove('leaving');
+    ghost.classList.remove('leaving', 'lined');
+    ghost.textContent = text;
     ghost.classList.add('show');
     ghost.classList.toggle('pending', !!pending);
-    const type = typed && !pending && !reducedMotion.matches;
-    ghost.textContent = type ? '' : text;
     if (!pending) {
       const dur = Math.min(15000, 4500 + text.length * 55);
       startWave(dur);                    // grid moves with the text…
       speak(text);                       // …and the voice starts alongside it
-      if (type) {
-        let i = 0;
-        ghost.classList.add('typing');
-        typeTimer = setInterval(() => {
-          ghost.textContent = text.slice(0, ++i);
-          if (i >= text.length) stopTyping();
-        }, TYPE_MS);
-      }
       ghostTimer = setTimeout(dismissGhost, dur);
     }
+  }
+
+  /* The greeting types itself out a line at a time and keeps only the last
+     three on screen: the oldest blurs out and collapses as a new one starts,
+     so the bubble stays the same size however long cpt talks for. An agent
+     that grows a wall of text is a log; one that holds three lines is
+     speaking. */
+  function trimLines() {
+    const alive = [...ghost.querySelectorAll('.ghost-line:not(.out)')];
+    while (alive.length > LINES_ON_SCREEN) {
+      const old = alive.shift();
+      old.classList.add('out');
+      setTimeout(() => old.remove(), 700);   // after the collapse finishes
+    }
+  }
+
+  function typeGreeting() {
+    clearTimeout(ghostTimer);
+    stopTyping();
+    ghost.textContent = '';
+    ghost.classList.remove('leaving', 'pending');
+    ghost.classList.add('show', 'lined');
+    const dur = Math.min(20000, 4500 + GREETING.length * 55);
+    startWave(dur);
+    speak(GREETING);
+    if (reducedMotion.matches) {
+      for (const t of GREETING_LINES.slice(-LINES_ON_SCREEN)) {
+        const el = document.createElement('span');
+        el.className = 'ghost-line';
+        el.textContent = t;
+        ghost.appendChild(el);
+      }
+    } else {
+      ghost.classList.add('typing');
+      let li = 0, ci = 0, el = null;
+      typeTimer = setInterval(() => {
+        if (!el) {
+          if (li >= GREETING_LINES.length) { stopTyping(); return; }
+          el = document.createElement('span');
+          el.className = 'ghost-line now';
+          ghost.appendChild(el);
+          trimLines();
+          ci = 0;
+        }
+        el.textContent = GREETING_LINES[li].slice(0, ++ci);
+        if (ci >= GREETING_LINES[li].length) {
+          el.classList.remove('now');
+          li++; el = null;
+        }
+      }, TYPE_MS);
+    }
+    ghostTimer = setTimeout(dismissGhost, dur);
   }
   ghost.addEventListener('click', () => { hushVoice(); dismissGhost(); });
 
@@ -1553,13 +1599,21 @@
      "portfolio", so cpt introduces the place once, in its own voice, right
      after the intro lands — late enough that it is not competing with the
      tumble for attention, early enough to catch someone before they leave. */
-  const GREETING = '안녕하세요, 저는 cogspect의 안내 에이전트 cpt입니다. '
-    + '이곳은 기술과 예술의 접목을 지향하는 cogspect이자, 개발자 김민혁의 포트폴리오입니다. '
-    + '작업물은 오른쪽 면에 있어요. 방향키나 드래그로 넘겨 보시고, 궁금한 건 아래에 물어보세요.';
+  /* Written as lines, not split at runtime. Where a sentence should break is
+     a typographic judgement — the second one has to give way at its comma or
+     it wraps, and no rule about full stops knows that. The joined string is
+     what the voice reads, so the two can never drift. */
+  const GREETING_LINES = [
+    '안녕하세요, 저는 cogspect의 안내 에이전트 cpt입니다.',
+    '이곳은 기술과 예술의 접목을 지향하는 cogspect이자,',
+    '개발자 김민혁의 포트폴리오입니다. 작업물은 오른쪽 면에 있어요.',
+    '방향키나 드래그로 넘겨 보시고, 궁금한 건 아래에 물어보세요.'
+  ];
+  const GREETING = GREETING_LINES.join(' ');
 
   function greet() {
     if (overlayOpen() || ghost.classList.contains('show')) return;
-    showGhost(GREETING, false, true);
+    typeGreeting();
   }
 
   const INTRO_LEG = 1080;

@@ -610,6 +610,35 @@ f.addEventListener('load', async () => {
   ok(r1.right <= w.innerWidth && r1.left >= 0 && r1.top >= 0,
      'the specimen stops at the edge of the screen');
 
+  /* ---------- the greeting, in a page of its own ------------------------
+     The greeting fires once, seconds after load, and this harness has been
+     driving the page for a minute by now — so it gets a fresh frame rather
+     than an assertion about something long gone. */
+
+  log('\n— cpt greeting —');
+  const f2 = document.createElement('iframe');
+  f2.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
+  document.body.appendChild(f2);
+  await new Promise((r) => { f2.addEventListener('load', r, {once: true}); f2.src = '../index.html'; });
+  const w2 = f2.contentWindow, d2 = f2.contentDocument;
+  if (w2.speechSynthesis) { w2.speechSynthesis.speak = () => {}; w2.speechSynthesis.cancel = () => {}; }
+
+  let maxAlive = 0, sawOut = false, seen = new Set();
+  for (let i = 0; i < 95; i++) {
+    const all = [...d2.querySelectorAll('.ghost-line')];
+    maxAlive = Math.max(maxAlive, all.filter((n) => !n.classList.contains('out')).length);
+    if (all.some((n) => n.classList.contains('out'))) sawOut = true;
+    all.forEach((n) => { if (n.textContent) seen.add(n.textContent); });
+    await wait(120);
+  }
+  ok(maxAlive > 1, `the greeting arrives as lines, not one block (${maxAlive} at once)`);
+  ok(maxAlive === 3, `never more than three on screen (peak ${maxAlive})`);
+  ok(sawOut, 'and the oldest is retired once a fourth starts');
+  // the longest completed line, to catch copy that has outgrown the bubble
+  const longest = [...seen].reduce((a, b) => (b.length > a.length ? b : a), '');
+  ok(longest.length <= 40, `no line outgrows the bubble (longest ${longest.length} chars)`);
+  f2.remove();
+
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');
 });
