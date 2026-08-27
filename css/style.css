@@ -1314,7 +1314,13 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .ghost-line.now::after { animation: none; }
   .ghost-line { transition: none; }
   .keen-slab { animation: none; --slab-top: 96px; }
-  .face-banner--handle.pressing > .handle-lens { animation: none; }
+  /* the dish still shows — it is shading, not motion — but the pill does not
+     shrink and neither does its copy */
+  .face.landed .face-banner--handle.pressing {
+    transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px)));
+  }
+  .face-banner--handle.pressing > h2,
+  .face-banner--handle.pressing > p { transform: none; }
   .planet .orb::before { animation: none; opacity: .8; transform: scale(1); }
   .chat-bar.thinking::after { animation: none; opacity: .5; }
 }
@@ -1789,64 +1795,74 @@ body.lens .face-banner {
   -webkit-backdrop-filter: blur(4px) saturate(140%);
 }
 
-/* The press bulge. A round lens blooms under the pointer and follows it —
-   the bar is a piece of glass, and this is the only thing that says so now
-   that it no longer bounces. The parent's overflow:hidden keeps it inside
-   the pill, the way a tab bar's does. */
+/* The press dish. Pressed, the WHOLE bar sinks: the face behind it bends the
+   way it would through a concave lens, its shading flips from dome to hollow —
+   light along the bottom inner wall, shadow along the top, which is what a
+   dent looks like under a light that has not moved — and the copy shrinks,
+   because minifying is what a concave lens actually does to what you see
+   through it.
+
+   A round lens under the pointer was tried first and read as nothing at all:
+   56px of gentle refraction on a surface that is already blurred is below the
+   threshold where anyone notices. The whole 360px block is not. */
+.face-banner--handle.pressing {
+  box-shadow:
+    0 4px 12px rgba(5, 10, 25, .06),
+    inset 0 5px 9px rgba(21, 22, 28, .2),
+    inset 0 1px 1px rgba(21, 22, 28, .12),
+    inset 0 -3px 4px rgba(255, 255, 255, .85);
+}
+.face.landed .face-banner--handle.pressing {
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.982);
+  transition: transform .22s cubic-bezier(.3, .9, .3, 1),
+              box-shadow .22s ease;
+}
+/* the refraction layer. It carries no paint of its own — the shading above is
+   the pill's, so it can sit right on the edges where this must not. */
 .face-banner--handle > .handle-lens {
   position: absolute;
-  /* UNDER the copy, deliberately. backdrop-filter samples only what is
-     painted behind the element, so at z-index 0 the bulge warps the face
-     showing through the glass while the label stays crisp — which is how a
-     real tab bar behaves. Painted over the type it duplicates it, and a
-     doubled title reads as a rendering fault, not as glass. */
-  z-index: 0;
-  left: var(--lx, 50%);
-  top: var(--ly, 50%);
-  /* 56 in a 60px bar: the dome has to FIT, or overflow:hidden slices its top
-     and bottom off and what is left reads as a vertical band, not a bulge. */
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
-  border-radius: 50%;
+  /* BEHIND the bar's own children (-1, not 0). backdrop-filter samples what
+     is painted below the element, and at z-index 0 the label was still in
+     that image: the dish pulled a ghosted second copy of "Design space" up
+     through itself, which reads as a rendering fault, not as glass. */
+  z-index: -1;
+  /* held off the rounded caps: the pill's own edge is in this layer's
+     backdrop, and displacing a hard curved edge tears a cusp out of it. */
+  inset: 0 36px;
+  border-radius: 26px;
   pointer-events: none;
   opacity: 0;
-  transform: scale(.5);
-  transition: opacity .3s ease, transform .3s cubic-bezier(.2, .8, .2, 1);
-  /* The bar's own blur has already smoothed the face behind it, so there is
-     little structure left for the displacement to bend — the bulge is carried
-     by its shading, the way a tab bar's is. Highlight up and left, shadow
-     down and right: one light source, so it reads as a dome. */
-  background:
-    radial-gradient(circle at 38% 28%,
-      rgba(255, 255, 255, .92) 0%,
-      rgba(255, 255, 255, .34) 34%,
-      rgba(255, 255, 255, 0) 62%),
-    radial-gradient(circle at 66% 74%,
-      rgba(21, 22, 28, .13) 0%,
-      rgba(21, 22, 28, .04) 42%,
-      rgba(21, 22, 28, 0) 70%);
-  /* The mask is the other half of the trick. Without it the filtered region
-     ends on a hard circle and the bulge reads as a sticker stuck to the bar;
-     faded out before the rim, the distortion has no edge to give itself away. */
-  -webkit-mask-image: radial-gradient(circle, #000 44%, rgba(0, 0, 0, 0) 73%);
-  mask-image: radial-gradient(circle, #000 44%, rgba(0, 0, 0, 0) 73%);
+  transition: opacity .22s ease;
+  /* The pill's own rounded edge is in this layer's backdrop, and displacing a
+     hard edge tears a cusp out of it. The mask keeps the warp in the middle
+     of the block and leaves the ends alone. */
+  -webkit-mask-image: radial-gradient(105% 150% at 50% 50%, #000 18%, rgba(0, 0, 0, 0) 64%);
+  mask-image: radial-gradient(105% 150% at 50% 50%, #000 18%, rgba(0, 0, 0, 0) 64%);
 }
 body.lens .face-banner--handle > .handle-lens {
-  backdrop-filter: url(#lg-convex) saturate(140%);
-  -webkit-backdrop-filter: saturate(140%);
+  backdrop-filter: url(#lg-dish);
+  -webkit-backdrop-filter: none;   /* Safari has no SVG filter here — shading only */
 }
-/* pressed: it overshoots its size and settles, which is what makes it read
-   as a bulge rising rather than a circle fading in */
-.face-banner--handle.pressing > .handle-lens {
-  opacity: 1;
-  transform: scale(1);
-  animation: lensPop .42s cubic-bezier(.3, 1.5, .4, 1);
+.face-banner--handle.pressing > .handle-lens { opacity: 1; }
+/* A concave lens MINIFIES what you see through it, and on a surface this
+   blurred that is the cue the eye actually reads. */
+.face-banner--handle > h2,
+.face-banner--handle > p {
+  transition: transform .22s cubic-bezier(.3, .9, .3, 1);
 }
-@keyframes lensPop {
-  0%   { transform: scale(.5); }
-  55%  { transform: scale(1.1); }
-  100% { transform: scale(1); }
+.face-banner--handle.pressing > h2,
+.face-banner--handle.pressing > p { transform: scale(.93); }
+.face-banner--handle.pressing > p { transform: scale(.93); }
+body.lens .face-banner--handle > .handle-lens {
+  backdrop-filter: url(#lg-dish);
+  -webkit-backdrop-filter: none;   /* Safari has no SVG filter here — shading only */
+}
+.face-banner--handle.pressing > .handle-lens { opacity: 1; }
+/* and the pill gives a little, so the dent has somewhere to go */
+.face.landed .face-banner--handle.pressing {
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.982);
+  transition: transform .22s cubic-bezier(.3, .9, .3, 1);
+}
 }
 /* the bulge shading belongs to the GLASS, not to the copy: an absolutely
    positioned pseudo paints above static in-flow children, so without this

@@ -976,17 +976,6 @@
     }
     const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
 
-    /* The press bulge, MUSINSA's tab bar by way of the App Store: touch the
-       glass and it swells under your finger. Fractions of the bar's own box
-       rather than pixels, so it lands correctly at any zoom. */
-    function pressAt(e) {
-      if (!keenHandle) return;
-      const r = keenHandle.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const st = keenHandle.style;
-      st.setProperty('--lx', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
-      st.setProperty('--ly', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
-    }
 
     function grabSlab(e, el) {
       e.preventDefault();
@@ -998,7 +987,8 @@
       // no live pointer with this id, and the move/up listeners live on the
       // window anyway so the drag survives the pointer leaving the element.
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
-      if (el === keenHandle) { pressAt(e); keenHandle.classList.add('pressing'); }
+      // pressed, the whole bar dishes inward — see .handle-lens
+      if (el === keenHandle) keenHandle.classList.add('pressing');
     }
     keenSlab.addEventListener('pointerdown', (e) => grabSlab(e, keenSlab));
     if (keenHandle) keenHandle.addEventListener('pointerdown', (e) => grabSlab(e, keenHandle));
@@ -1010,7 +1000,6 @@
       slabY = clamp(slabY + (e.clientY - slabDrag.y) / (zoomCur || 1), L.minY, L.maxY);
       slabDrag.x = e.clientX; slabDrag.y = e.clientY;
       keenSlab.style.transform = `translate(${slabX.toFixed(1)}px, ${slabY.toFixed(1)}px)`;
-      if (slabDrag.el === keenHandle) pressAt(e);   // the bulge rides the finger
       // answer on the same event rather than on the next frame — the glass
       // should thicken and thin as the specimen is carried, not a beat behind
       keenTouch();
