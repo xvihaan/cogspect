@@ -26,28 +26,30 @@
        the bridge svg's own viewBox units, centred on the beam's midpoint
        (51,50) and spanning the stroke's width. Two of them, sized to the two
        stroke widths, so the band and the wider haze each show the whole
-       spectrum instead of the haze clamping to the end colours. -->
+       spread instead of the haze clamping to the end colours.
+
+       White first, colour second: a full spectrum band belongs to a flag,
+       not to a site made of silver and glass. This is a shaft of white light
+       that breaks into colour only where it thins out at its edges, the way
+       light does through the edge of a prism. -->
   <linearGradient id="bfrostBand" gradientUnits="userSpaceOnUse"
                   x1="51.69" y1="48.96" x2="50.31" y2="51.04">
-    <stop offset="0" stop-color="#d8a8a4" stop-opacity="0"/>
-    <stop offset=".1" stop-color="#d8a8a4"/>
-    <stop offset=".24" stop-color="#dcbfa2"/>
-    <stop offset=".38" stop-color="#d3cfa6"/>
-    <stop offset=".52" stop-color="#a9c6b0"/>
-    <stop offset=".66" stop-color="#a2c1c6"/>
-    <stop offset=".8" stop-color="#a6b3d0"/>
-    <stop offset=".9" stop-color="#b2a6c9"/>
-    <stop offset="1" stop-color="#b2a6c9" stop-opacity="0"/>
+    <stop offset="0" stop-color="#bf5af2" stop-opacity="0"/>
+    <stop offset=".09" stop-color="#a98cff" stop-opacity=".5"/>
+    <stop offset=".2" stop-color="#cfe0ff" stop-opacity=".85"/>
+    <stop offset=".36" stop-color="#ffffff"/>
+    <stop offset=".64" stop-color="#ffffff"/>
+    <stop offset=".8" stop-color="#ffe6cf" stop-opacity=".85"/>
+    <stop offset=".91" stop-color="#ffab7a" stop-opacity=".5"/>
+    <stop offset="1" stop-color="#ff6b57" stop-opacity="0"/>
   </linearGradient>
   <linearGradient id="bfrostHaze" gradientUnits="userSpaceOnUse"
                   x1="52.89" y1="47.17" x2="49.11" y2="52.83">
-    <stop offset="0" stop-color="#d8a8a4" stop-opacity="0"/>
-    <stop offset=".18" stop-color="#dcbfa2"/>
-    <stop offset=".38" stop-color="#d3cfa6"/>
-    <stop offset=".52" stop-color="#a9c6b0"/>
-    <stop offset=".68" stop-color="#a2c1c6"/>
-    <stop offset=".84" stop-color="#a6b3d0"/>
-    <stop offset="1" stop-color="#b2a6c9" stop-opacity="0"/>
+    <stop offset="0" stop-color="#8f7bff" stop-opacity="0"/>
+    <stop offset=".22" stop-color="#b9c8ff" stop-opacity=".45"/>
+    <stop offset=".5" stop-color="#ffffff" stop-opacity=".9"/>
+    <stop offset=".78" stop-color="#ffd0b0" stop-opacity=".45"/>
+    <stop offset="1" stop-color="#ff8a6f" stop-opacity="0"/>
   </linearGradient>
   <filter id="lg-pill" x="-30%" y="-30%" width="160%" height="160%">
     <feTurbulence type="fractalNoise" baseFrequency="0.013 0.018" numOctaves="1" seed="7" result="noise"/>
@@ -88,16 +90,21 @@
             <!-- viewBox units are percentages of the square face, so the path
                  endpoints are literally the planets' own left/top values -->
             <svg class="bridge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <!-- five coincident strokes stack into one shaft of light:
-                   atmosphere, the spectrum, a hot centre, a white core, and
-                   the energy running along it -->
+              <!-- coincident strokes stack into one shaft of light: the
+                   atmosphere it throws, the body, a hot centre, a white core,
+                   then the energy running along it — a steady flow with a
+                   brighter surge over it, and two beads at opposite phases -->
               <path class="bridge-haze" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-band" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-inner" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-core" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-flow" pathLength="100" d="M36 40 L66 60"/>
-              <circle class="bridge-spark" r="0.6">
-                <animateMotion dur="3.4s" repeatCount="indefinite" path="M36 40 L66 60"/>
+              <path class="bridge-surge" pathLength="100" d="M36 40 L66 60"/>
+              <circle class="bridge-spark" r="0.5">
+                <animateMotion dur="3.1s" repeatCount="indefinite" path="M36 40 L66 60"/>
+              </circle>
+              <circle class="bridge-spark bridge-spark--trail" r="0.32">
+                <animateMotion dur="3.1s" begin="-1.35s" repeatCount="indefinite" path="M36 40 L66 60"/>
               </circle>
             </svg>
             <a class="planet planet--b3ta" href="https://b3ta.netlify.app" target="_blank" rel="noopener"

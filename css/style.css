@@ -1414,18 +1414,17 @@ body.on-dark input::placeholder { color: #7a7a82; }
 .face--matrix.reveal .cell--proj:nth-of-type(6),
 .face--matrix.reveal .cell-label:nth-of-type(6) { transition-delay: .35s; }
 
-/* ---------- 03b · Bifröst — the rainbow bridge ----------
-   Ragnarok's bridge is a shaft of light with the whole spectrum spread
-   across its width, not a coloured line. Five coincident strokes on the
-   same straight run build it: the atmosphere it throws, the spectrum band
-   itself, a hot whitened centre, a white core, and the energy running
-   along it toward the far gate.
+/* ---------- 03b · Bifröst — a shaft of light ----------
+   Ragnarok's bridge is a beam, not a coloured line, and this site is made of
+   silver and glass rather than primary colour. So the span is white light
+   that only breaks into spectrum where it thins at its edges — the way light
+   does through the edge of a prism — and the life in it comes from movement
+   rather than from saturation.
 
    Stroke widths are in viewBox units (1 unit = 1% of the square face), NOT
    px: vector-effect:non-scaling-stroke would measure the dash pattern in
-   device px instead of the pathLength="100" normalised space, which turns
-   a single full-length dash into a repeating dotted line. The trade — the
-   beam thickens with the cube — is what you want anyway. */
+   device px instead of the pathLength="100" normalised space, which turns a
+   single full-length dash into a repeating dotted line. */
 
 .bridge {
   position: absolute;
@@ -1449,12 +1448,6 @@ body.on-dark input::placeholder { color: #7a7a82; }
   stroke-dashoffset: 100;
   opacity: 0;
 }
-/* Muted, not vivid. A saturated seven-colour band on a near-white face reads
-   as a toy; the spectrum is carried by low-chroma tints instead, at partial
-   opacity, so the face shows through and the span reads as a piece of
-   prismatic GLASS rather than a painted stripe. The gradients feather to
-   transparent at both edges for the same reason — a hard edge is paint, a
-   soft one is glass. */
 .bridge-haze {
   stroke: url(#bfrostHaze);
   stroke-width: 4.6;
@@ -1462,79 +1455,109 @@ body.on-dark input::placeholder { color: #7a7a82; }
 }
 .bridge-band {
   stroke: url(#bfrostBand);
-  stroke-width: 1.35;
+  stroke-width: 1.45;
 }
-/* a light-guide has a brighter line down its middle; barely there */
+/* a light-guide has a brighter line down its middle */
 .bridge-inner {
   stroke: #fff;
-  stroke-width: .22;
+  stroke-width: .3;
   filter: blur(2px);
 }
 .bridge-core {
   stroke: #fff;
-  stroke-width: .07;
+  stroke-width: .08;
 }
-/* light running toward the far gate, once the span is up */
+
+/* Movement is what keeps this from being a painted stripe: a steady run of
+   light along the span, a brighter surge passing over it, and two beads at
+   opposite phases. All of it starts only once the span itself is up. */
 .bridge-flow {
   fill: none;
-  stroke: rgba(255, 255, 255, .8);
-  stroke-width: .7;
+  stroke: rgba(255, 255, 255, .9);
+  stroke-width: .6;
   stroke-linecap: round;
-  stroke-dasharray: 1.4 16;
+  stroke-dasharray: 1.2 14;
   opacity: 0;
-  filter: blur(1.6px);
+  filter: blur(1.4px);
 }
-/* a white bead on a white face is invisible — the glow is what carries it */
+.bridge-surge {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.05;
+  stroke-linecap: round;
+  stroke-dasharray: 5 95;
+  stroke-dashoffset: 100;
+  opacity: 0;
+  filter: blur(2.6px);
+}
+/* a white bead on a white face needs its glow to be seen at all */
 .bridge-spark {
   fill: #fff;
   opacity: 0;
-  filter: drop-shadow(0 0 5px rgba(214, 205, 232, .95)) drop-shadow(0 0 13px rgba(169, 198, 176, .6));
+  filter: drop-shadow(0 0 4px rgba(214, 205, 232, .95)) drop-shadow(0 0 12px rgba(185, 200, 255, .55));
 }
+.bridge-spark--trail { filter: drop-shadow(0 0 3px rgba(255, 208, 176, .9)); }
 
 /* one class drives the whole choreography: the gates wake, the beam strikes
    out from the blue gate to the red one, then the light starts running */
-/* `backwards`, not `both`: a forwards-filling animation keeps applying its
-   end transform after it finishes, and animation origin outranks author
-   rules — which silently killed the hover scale on this face. Backwards
-   still covers v0id's delay, then gets out of the way. */
 .face--gateway.bridged .planet .orb { animation: orbWake .8s cubic-bezier(.2, .8, .2, 1) backwards; }
 .face--gateway.bridged .planet--v0id .orb { animation-delay: .16s; }
-.face--gateway.bridged .bridge-haze { animation: bfHaze 1.25s cubic-bezier(.4, .05, .2, 1) .58s forwards; }
-.face--gateway.bridged .bridge-band { animation: bfBand 1.25s cubic-bezier(.4, .05, .2, 1) .62s forwards; }
-.face--gateway.bridged .bridge-inner { animation: bfInner 1.25s cubic-bezier(.4, .05, .2, 1) .66s forwards; }
-.face--gateway.bridged .bridge-core { animation: bfCore 1.25s cubic-bezier(.4, .05, .2, 1) .7s forwards; }
-.face--gateway.bridged .bridge-flow {
-  animation: bfFlowIn .7s ease 1.75s forwards, bfFlow 2.6s linear 1.75s infinite;
+.face--gateway.bridged .bridge-haze {
+  animation: bfHaze 1.15s cubic-bezier(.4, .05, .2, 1) .6s forwards,
+             bfBreathe 5.2s ease-in-out 1.9s infinite;
 }
-.face--gateway.bridged .bridge-spark { animation: bfSpark .5s ease 1.85s forwards; }
+.face--gateway.bridged .bridge-band { animation: bfDraw 1.15s cubic-bezier(.4, .05, .2, 1) .62s forwards; }
+.face--gateway.bridged .bridge-inner { animation: bfInner 1.15s cubic-bezier(.4, .05, .2, 1) .66s forwards; }
+.face--gateway.bridged .bridge-core { animation: bfCore 1.15s cubic-bezier(.4, .05, .2, 1) .7s forwards; }
+.face--gateway.bridged .bridge-flow {
+  animation: bfFlowIn .7s ease 1.7s forwards, bfFlow 2.6s linear 1.7s infinite;
+}
+.face--gateway.bridged .bridge-surge {
+  animation: bfSurgeIn .6s ease 2.1s forwards, bfSurge 3.4s cubic-bezier(.5, 0, .5, 1) 2.1s infinite;
+}
+.face--gateway.bridged .bridge-spark { animation: bfSpark .5s ease 2s forwards; }
 
 @keyframes orbWake {
   0%   { transform: scale(.2); opacity: 0; }
   55%  { transform: scale(1.25); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-@keyframes bfBand {
-  0%   { stroke-dashoffset: 100; opacity: .78; }
-  100% { stroke-dashoffset: 0; opacity: .78; }
+@keyframes bfDraw {
+  0%   { stroke-dashoffset: 100; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: .92; }
 }
 @keyframes bfHaze {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  40%  { opacity: .4; }
-  100% { stroke-dashoffset: 0; opacity: .32; }
+  35%  { opacity: .4; }
+  100% { stroke-dashoffset: 0; opacity: .34; }
+}
+/* the atmosphere swells and settles, so the span is never quite still */
+@keyframes bfBreathe {
+  0%, 100% { opacity: .3; stroke-width: 4.6; }
+  50%      { opacity: .46; stroke-width: 5.4; }
 }
 @keyframes bfInner {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  35%  { opacity: .34; }
-  100% { stroke-dashoffset: 0; opacity: .26; }
+  35%  { opacity: .5; }
+  100% { stroke-dashoffset: 0; opacity: .4; }
 }
 @keyframes bfCore {
   0%   { stroke-dashoffset: 100; opacity: 0; }
-  30%  { opacity: .6; }
-  100% { stroke-dashoffset: 0; opacity: .45; }
+  30%  { opacity: .8; }
+  100% { stroke-dashoffset: 0; opacity: .62; }
 }
-@keyframes bfFlowIn { to { opacity: .32; } }
-@keyframes bfFlow { to { stroke-dashoffset: -16.6; } }
-@keyframes bfSpark { to { opacity: .8; } }
+@keyframes bfFlowIn { to { opacity: .42; } }
+@keyframes bfFlow { to { stroke-dashoffset: -15.2; } }
+@keyframes bfSurgeIn { to { opacity: .75; } }
+/* one bright pass, gate to gate, then a pause before the next */
+@keyframes bfSurge {
+  0%   { stroke-dashoffset: 100; opacity: 0; }
+  12%  { opacity: .75; }
+  62%  { opacity: .75; }
+  75%  { stroke-dashoffset: -5; opacity: 0; }
+  100% { stroke-dashoffset: -5; opacity: 0; }
+}
+@keyframes bfSpark { to { opacity: .9; } }
 
 /* ---------- 00b · the face banner ----------
    Every face except the front one now announces itself the way a system
@@ -1804,12 +1827,14 @@ body.lens .face-banner {
   .face--gateway.bridged .bridge-inner,
   .face--gateway.bridged .bridge-core,
   .face--gateway.bridged .bridge-flow,
+  .face--gateway.bridged .bridge-surge,
   .face--gateway.bridged .bridge-spark { animation: none; }
-  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .32; }
-  .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: .78; }
-  .face--gateway.bridged .bridge-inner { stroke-dashoffset: 0; opacity: .26; }
-  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .45; }
-  .face--gateway.bridged .bridge-flow { opacity: .32; }
+  .face--gateway.bridged .bridge-haze { stroke-dashoffset: 0; opacity: .34; }
+  .face--gateway.bridged .bridge-band { stroke-dashoffset: 0; opacity: .92; }
+  .face--gateway.bridged .bridge-inner { stroke-dashoffset: 0; opacity: .4; }
+  .face--gateway.bridged .bridge-core { stroke-dashoffset: 0; opacity: .62; }
+  .face--gateway.bridged .bridge-flow { opacity: .3; }
+  .face--gateway.bridged .bridge-surge { opacity: 0; }
   .face--gateway.bridged .bridge-spark { opacity: .8; }
   .stage.intro .glass-nav,
   .stage.intro .hud,

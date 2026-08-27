@@ -639,10 +639,19 @@ f.addEventListener('load', async () => {
   // along it — a gradient parallel to the run is a two-tone line, not a prism
   const grad = d.getElementById('bfrostBand');
   const stops = [...grad.querySelectorAll('stop')].map((n) => n.getAttribute('stop-color'));
-  // distinct COLOURS, not distinct stops: the outermost pair are repeats of
-  // their neighbours at zero opacity, feathering the band's edges
-  const hues = new Set(stops);
-  ok(hues.size >= 6, `the beam carries a full spectrum (${hues.size} distinct colours)`);
+  /* White in the middle, colour only at the edges. A full spectrum band
+     belongs to a flag; this site is silver and glass, so the span is white
+     light that breaks into colour where it thins out. Asserting the SHAPE of
+     the gradient rather than a colour count is what keeps someone from
+     "fixing" it back into a rainbow. */
+  const mid = [...grad.querySelectorAll('stop')]
+    .filter((n) => { const o = parseFloat(n.getAttribute('offset')); return o > 0.3 && o < 0.7; })
+    .map((n) => (n.getAttribute('stop-color') || '').toLowerCase());
+  ok(mid.length > 0 && mid.every((c) => c === '#ffffff' || c === '#fff'),
+     `the beam is white through its middle (${mid.join(', ')})`);
+  const edges = stops.filter((c, i) => i < 2 || i >= stops.length - 2).map((c) => c.toLowerCase());
+  ok(edges.every((c) => c !== '#ffffff' && c !== '#fff') && new Set(edges).size >= 3,
+     `and only breaks into colour at its edges (${edges.join(', ')})`);
   const gx = +grad.getAttribute('x2') - +grad.getAttribute('x1');
   const gy = +grad.getAttribute('y2') - +grad.getAttribute('y1');
   const bx = 66 - 36, by = 60 - 40;                     // the beam's own run
