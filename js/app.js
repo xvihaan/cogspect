@@ -1315,23 +1315,20 @@
 
   /* The voice cpt speaks in.
 
-     A young male — an engineer at the next desk, not a narrator and not an
-     elder statesman. The Web Speech API gives no control over timbre, only
-     which installed voice to use plus rate and pitch, so this is a ranked
-     list of the Korean male voices that actually ship on the platforms this
-     site is likely to be opened on, youngest-sounding first:
+     A young, bright male — an engineer at the next desk. The Web Speech API
+     gives no control over timbre, only which installed voice to use plus rate
+     and pitch, so this is a ranked list of the Korean male voices that
+     actually ship on the platforms this site is likely to be opened on:
 
-       Rocko, Eddy      macOS 13+ expressive set — Rocko is the bright, quick
-                        one, Eddy the casual one
-       InJoon           the Korean male voice on Windows
-       Reed             macOS again, calm but distinctly older; a fallback,
-                        not a first choice
+       Eddy       macOS 13+ expressive set — the light, easy one
+       InJoon     the Korean male voice on Windows
+       Rocko      macOS again; gruffer, and a fallback rather than a choice
+       Reed       macOS again; calm but distinctly older, last resort
 
      Grandpa is in the same set and is deliberately NOT here. If none of these
      is installed the fallback is whatever Korean voice there is — Yuna on
-     most Macs, which is female — and the pitch below carries it down a little
-     without pretending to be someone else. */
-  const MALE_KO = ['rocko', 'eddy', 'injoon', 'reed'];
+     most Macs, which is female. */
+  const MALE_KO = ['eddy', 'injoon', 'rocko', 'reed'];
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
     const ko = all.filter((v) => /^ko/i.test(v.lang));
@@ -1406,13 +1403,13 @@
     // replaces — an utterance with the wrong voice is still an utterance
     try { if (v) u.voice = v; } catch (err) { /* default voice, then */ }
     u.lang = v ? v.lang : 'ko-KR';
-    /* Near its own pitch, deliberately. 0.72 dragged the voice so far below
-       where it actually sits that it stopped sounding like a person at all —
-       these engines resample rather than resynthesise, and the further from 1
-       you push them the more obviously they are being processed. The voice
-       does the work of being male; the pitch only takes the edge off. */
-    u.rate = 1.15;
-    u.pitch = 0.94;
+    /* A shade ABOVE its own pitch, not below. Every attempt to deepen this
+       voice made it heavier and older, which is the opposite of what it is
+       for — and these engines resample rather than resynthesise, so distance
+       from 1 in either direction is audible as processing. A touch up and a
+       touch quick is what reads as young. */
+    u.rate = 1.16;
+    u.pitch = 1.06;
     let spoke = false;
     u.onstart = () => { spoke = true; parkedSpeech = null; go(); };
     // engines that emit boundaries pulse the grid on the actual words, over
