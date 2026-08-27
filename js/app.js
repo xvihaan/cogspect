@@ -1197,6 +1197,50 @@
 
   const CHAT_ENDPOINT = localStorage.getItem('cogspect.chat.endpoint')
     || 'http://127.0.0.1:8000/api/v1/chat/generic';
+  /* Whether there is a model to talk to at all.
+
+     There are two separate reasons the deployed site never reaches one, and
+     only one of them is about the machine being off:
+
+     · 127.0.0.1 means the VISITOR's computer, not the one this was built on.
+       For anyone else there was never anything at that address.
+     · Even on the same machine, a page served over HTTPS may not fetch
+       http:// — mixed content, blocked before the request leaves.
+
+     So the deployed site answers from retrieval, and that is correct rather
+     than broken. What was wrong is that it discovered this per question, by
+     firing a request that could not succeed. It checks once now, re-checks
+     while the page is open, and when there is no model it answers locally
+     without the doomed round-trip. */
+  const MODEL = { up: false, reason: 'probing' };
+  const HEALTH_MS = 1500;
+  let probeTimer = null;
+
+  function healthURL() {
+    try { return new URL(CHAT_ENDPOINT).origin + '/healthz'; } catch (e) { return null; }
+  }
+
+  function probeModel() {
+    const url = healthURL();
+    if (!url) { MODEL.up = false; MODEL.reason = 'endpoint 주소를 읽을 수 없습니다'; return; }
+    // an https page cannot reach an http endpoint; probing anyway only fills
+    // the console with mixed-content errors on a loop
+    if (location.protocol === 'https:' && url.startsWith('http:')) {
+      MODEL.up = false;
+      MODEL.reason = 'HTTPS 페이지에서 HTTP 로컬 서버로는 연결할 수 없습니다';
+      clearInterval(probeTimer);
+      return;
+    }
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), HEALTH_MS);
+    fetch(url, { signal: ctl.signal, cache: 'no-store' })
+      .then((r) => { MODEL.up = r.ok; MODEL.reason = r.ok ? '' : `health ${r.status}`; })
+      .catch(() => { MODEL.up = false; MODEL.reason = '모델 서버가 응답하지 않습니다'; })
+      .finally(() => clearTimeout(t));
+  }
+  probeModel();
+  probeTimer = setInterval(probeModel, 60000);
+
   const SYSTEM_PROMPT = '너는 cogspect 웹사이트에 상주하는 안내 지능이다. 반드시 [컨텍스트] 안의 정보만 사용해 한국어로 답한다. 2~3문장, 목록 없이 평문으로 간결하게. 컨텍스트에 없는 내용은 지어내지 말고 모른다고 답한다.';
 
   let KNOWLEDGE = [];
@@ -1523,6 +1567,12 @@
     const fallback = projHits.length
       ? `관련 프로젝트: ${projHits.map((h) => `${h.ref.title} — ${h.ref.tagline}`).join(' · ')}`
       : (top.ref.text || top.ref.desc || '');
+    if (!MODEL.up) {
+      // nothing to ask — say the retrieved answer now rather than after a
+      // request that cannot land
+      showGhost(fallback || '관련된 내용을 찾지 못했어요.');
+      return;
+    }
     const ctl = new AbortController();
     chatAbort = ctl;
     chatForm.classList.add('thinking');     // quiet sweep while the model works
@@ -1544,7 +1594,11 @@
     })
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d) => { if (ctl === chatAbort) showGhost((d.reply || '').trim() || fallback); })
-      .catch(() => { if (ctl === chatAbort) showGhost(fallback); })
+      .catch(() => {
+        MODEL.up = false;                  // it was there a minute ago; it is not now
+        MODEL.reason = '모델 서버가 응답하지 않습니다';
+        if (ctl === chatAbort) showGhost(fallback);
+      })
       .finally(() => {
         clearTimeout(abortTimer);
         if (ctl === chatAbort) chatForm.classList.remove('thinking');
@@ -1577,6 +1631,12 @@
      Order matters: "음소거 해제" contains "음소거", so the turning-ON list has
      to be tested first or asking for sound back would silence it. */
   const COMMANDS = [
+    {
+      keys: ['모델 상태', '모델상태', '어떤 모드', '무슨 모드', 'model status', '모델 켜져', '모델 꺼져'],
+      run: () => (MODEL.up
+        ? '지금은 로컬 모델로 답하고 있어요.'
+        : `지금은 검색 기반으로 답하고 있어요. ${MODEL.reason}`)
+    },
     {
       keys: ['음소거 해제', '음소거해제', '소리 켜', '소리켜', '음성 켜', '음성켜',
              '소리 on', '말해 줘', '말해줘', 'unmute', 'voice on', 'sound on'],

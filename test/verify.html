@@ -334,6 +334,17 @@ f.addEventListener('load', async () => {
   ok(g.classList.contains('show') && g.textContent.trim().length > 0,
      'an answer always reaches the bubble');
   ok(said && said === g.textContent, 'and the same text is handed to the voice');
+
+  /* Whether there is a model to talk to is discovered, not assumed. The
+     request above was rejected, which is what a model server going away
+     looks like from here — the site has to notice and say so rather than
+     keep claiming a capability it no longer has. */
+  g.click();
+  await wait(600);
+  ask('모델 상태');
+  await wait(500);
+  ok(/검색 기반/.test(g.textContent),
+     `after a failed request it reports the mode it is actually in (${g.textContent.slice(0, 40)})`);
   w.speechSynthesis.speak = realSpeak;
 
   /* ---------- set pieces ---------------------------------------------- */
