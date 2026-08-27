@@ -1304,6 +1304,10 @@
      to a steady beat for the utterance's duration. */
 
   const TTS = window.speechSynthesis;
+  /* How long the text will wait for a voice that may never come. Long enough
+     for a warmed engine to start, short enough that a muted or blocked one
+     does not read as a dead bubble. */
+  const SPEAK_LEAD_MAX = 550;
   const VOICE_KEY = 'cogspect.voice';
   let voiceOn = localStorage.getItem(VOICE_KEY) !== 'off';
   let parkedSpeech = null;              // blocked by autoplay, waiting for a gesture
@@ -1314,6 +1318,28 @@
     return all.find((v) => /^ko/i.test(v.lang)) || null;
   }
   if (TTS) TTS.addEventListener('voiceschanged', koVoice);
+
+  /* Warm-up. The FIRST utterance an engine ever speaks carries its whole
+     setup cost — building the voice list, opening the audio graph — and that
+     first utterance is always the greeting, the one moment where the text and
+     the voice most obviously have to agree. A silent utterance at boot pays
+     that cost while nobody is listening, so the greeting itself starts on
+     time. Repeated on the visitor's first gesture too, since a page-load
+     utterance is exactly what an autoplay policy refuses. */
+  let warmed = false;
+  function warmVoice() {
+    if (warmed || !TTS) return;
+    warmed = true;
+    try {
+      TTS.getVoices();
+      const u = new SpeechSynthesisUtterance('\u00a0');
+      u.volume = 0;
+      u.rate = 2;
+      u.lang = 'ko-KR';
+      TTS.speak(u);
+    } catch (err) { /* an engine that refuses this cannot be helped anyway */ }
+  }
+  if (TTS) warmVoice();
 
   /* The wave is the message's own pulse, not the engine's. Driving it off
      onstart meant waiting on speech warm-up — which is hundreds of ms on the
@@ -1335,8 +1361,14 @@
      first gesture. It must not park itself again — an engine that refuses
      twice will refuse forever, and re-parking turns every later click into
      a replay of a greeting nobody is waiting for any more. */
-  function speak(text, isRetry) {
-    if (!TTS || !voiceOn || !text) return;
+  /* onGo: called the moment the utterance actually begins, so the caller can
+     put the text on screen in step with it — or, if the engine never starts
+     (muted, blocked, or simply absent), on the fallback timer below. Exactly
+     once, whichever comes first. */
+  function speak(text, isRetry, onGo) {
+    const go = (() => { let done = false;
+      return () => { if (done) return; done = true; if (onGo) onGo(); }; })();
+    if (!TTS || !voiceOn || !text) { go(); return; }
     // only cancel when there is something to cancel: cancel() immediately
     // followed by speak() is a well-known Chrome stall, and paying for it on
     // every utterance is exactly the delay this is trying to remove
@@ -1349,15 +1381,20 @@
     u.rate = 1.24;                       // brisk — a guide, not a narrator
     u.pitch = 1;
     let spoke = false;
-    u.onstart = () => { spoke = true; parkedSpeech = null; };
+    u.onstart = () => { spoke = true; parkedSpeech = null; go(); };
     // engines that emit boundaries pulse the grid on the actual words, over
     // the steady beat startWave() is already running
     u.onboundary = voiceRipple;
     u.onend = stopBeat;
     u.onerror = (e) => {
       if (!spoke && !isRetry && /not-allowed|blocked/i.test(e.error || '')) parkedSpeech = text;
+      go();                              // never hold the text hostage to the audio
     };
     TTS.speak(u);
+    // The text must never wait longer than this for a voice that may not be
+    // coming. Long enough for a warmed engine to start, short enough that a
+    // silent one does not read as a dead bubble.
+    setTimeout(go, SPEAK_LEAD_MAX);
     // Chrome reports nothing at all when it silently refuses; if the engine
     // has not started by now, treat it as blocked and wait for a gesture
     setTimeout(() => { if (!spoke && !isRetry && !TTS.speaking) parkedSpeech = text; }, 700);
@@ -1527,48 +1564,67 @@
                  going should switch to the design space, mid-sentence,
                  text and voice together. */
   let ghostSource = null;
+  /* Bumped by every message that takes the floor. A message waiting on the
+     engine checks it before writing: if a newer one has arrived meanwhile,
+     the older voice is already cancelled and its text must not appear. */
+  let ghostTurn = 0;
 
+  /* The text does not go up until the voice is actually speaking it.
+
+     The engine's start latency is real and variable — warm-up above removes
+     most of it, but not all, and not on every browser — so a bubble that
+     appears the instant the message is queued is reliably ahead of the audio
+     by a beat or two. Waiting for onstart makes them land together; the cap
+     in speak() means a silent or blocked engine costs the text nothing. */
   function typeLines(lines, spoken, source) {
     ghostSource = source || 'user';
     clearTimeout(ghostTimer);
-    stopTyping();
-    ghost.textContent = '';
-    ghost.classList.remove('leaving', 'pending');
-    ghost.classList.add('show', 'lined');
+    stopTyping();                        // the old line stops growing at once
     // what is READ is the original text, not the lines joined back up: the
     // splitter drops the whitespace it broke on, and the voice should not
     // inherit that
     const full = spoken || lines.join(' ');
     const dur = Math.min(20000, 4500 + full.length * 55);
-    startWave(dur);
-    speak(full);
-    if (reducedMotion.matches) {
-      for (const t of lines.slice(-LINES_ON_SCREEN)) {
-        const el = document.createElement('span');
-        el.className = 'ghost-line';
-        el.textContent = t;
-        ghost.appendChild(el);
-      }
-    } else {
-      ghost.classList.add('typing');
-      let li = 0, ci = 0, el = null;
-      typeTimer = setInterval(() => {
-        if (!el) {
-          if (li >= lines.length) { stopTyping(); return; }
-          el = document.createElement('span');
-          el.className = 'ghost-line now';
+    // this utterance's own token: a newer message taking the floor while this
+    // one is still waiting on the engine must not get to write anything
+    const mine = ++ghostTurn;
+    speak(full, false, () => {
+      if (mine !== ghostTurn) return;    // a newer message took the floor
+      ghost.textContent = '';            // the old line holds until this moment
+      ghost.classList.remove('leaving', 'pending');
+      ghost.classList.add('show', 'lined');
+      startWave(dur);
+      render();
+    });
+    function render() {
+      if (reducedMotion.matches) {
+        for (const t of lines.slice(-LINES_ON_SCREEN)) {
+          const el = document.createElement('span');
+          el.className = 'ghost-line';
+          el.textContent = t;
           ghost.appendChild(el);
-          trimLines();
-          ci = 0;
         }
-        el.textContent = lines[li].slice(0, ++ci);
-        if (ci >= lines[li].length) {
-          el.classList.remove('now');
-          li++; el = null;
-        }
-      }, TYPE_MS);
+      } else {
+        ghost.classList.add('typing');
+        let li = 0, ci = 0, el = null;
+        typeTimer = setInterval(() => {
+          if (!el) {
+            if (li >= lines.length) { stopTyping(); return; }
+            el = document.createElement('span');
+            el.className = 'ghost-line now';
+            ghost.appendChild(el);
+            trimLines();
+            ci = 0;
+          }
+          el.textContent = lines[li].slice(0, ++ci);
+          if (ci >= lines[li].length) {
+            el.classList.remove('now');
+            li++; el = null;
+          }
+        }, TYPE_MS);
+      }
+      ghostTimer = setTimeout(dismissGhost, dur);
     }
-    ghostTimer = setTimeout(dismissGhost, dur);
   }
 
   /* A face can introduce itself the first time it is reached. Once only:

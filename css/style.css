@@ -1805,7 +1805,15 @@ body.lens .face-banner {
    A round lens under the pointer was tried first and read as nothing at all:
    56px of gentle refraction on a surface that is already blurred is below the
    threshold where anyone notices. The whole 360px block is not. */
+/* Pressed, the glass thins. 9px of blur has already destroyed every edge
+   behind the bar, and a lens with nothing to bend is a lens you cannot see —
+   the whole point of the dish is that the dot lattice behind it visibly
+   curves. Letting the backdrop sharpen while it is held is what makes the
+   refraction readable rather than theoretical. */
 .face-banner--handle.pressing {
+  backdrop-filter: blur(1.5px) saturate(165%);
+  -webkit-backdrop-filter: blur(1.5px) saturate(165%);
+  transition: backdrop-filter .22s ease, box-shadow .22s ease;
   box-shadow:
     0 4px 12px rgba(5, 10, 25, .06),
     inset 0 5px 9px rgba(21, 22, 28, .2),
@@ -1816,6 +1824,9 @@ body.lens .face-banner {
   transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.982);
   transition: transform .22s cubic-bezier(.3, .9, .3, 1),
               box-shadow .22s ease;
+}
+body.lens .face-banner--handle.pressing {
+  backdrop-filter: url(#lg-lens) blur(1.5px) saturate(170%);
 }
 /* the refraction layer. It carries no paint of its own — the shading above is
    the pill's, so it can sit right on the edges where this must not. */

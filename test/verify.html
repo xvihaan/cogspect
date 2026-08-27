@@ -329,7 +329,18 @@ f.addEventListener('load', async () => {
                                                    : realFetch.call(w, u, o));
   d.getElementById('chatInput').value = 'cogspect가 뭐야?';
   d.getElementById('chatForm').dispatchEvent(new w.Event('submit', {bubbles: true, cancelable: true}));
+  /* Text and voice arrive together. The bubble holds until the utterance
+     actually starts — engine start latency is real and variable, so a bubble
+     that appears the instant the message is queued is reliably ahead of the
+     audio. Here there is no audio at all, so what is being checked is the
+     other half: that a silent engine costs the text only the cap, never the
+     whole message. */
+  await wait(220);
+  const early = [...d.querySelectorAll('#ghostMsg .ghost-line')].length;
+  ok(early === 0, `nothing is typed before the voice starts (${early} lines)`);
   await wait(1400);
+  ok([...d.querySelectorAll('#ghostMsg .ghost-line')].length > 0,
+     'and a silent engine still releases it, well inside a second');
   w.fetch = realFetch;
   ok(g.classList.contains('show') && g.textContent.trim().length > 0,
      'an answer always reaches the bubble');
@@ -355,7 +366,7 @@ f.addEventListener('load', async () => {
   g.click();
   await wait(600);
   ask('모델 상태');
-  await wait(500);
+  await wait(1200);   // +550: the bubble now waits for the voice to start
   ok(/검색 기반/.test(g.textContent),
      `after a failed request it reports the mode it is actually in (${g.textContent.slice(0, 40)})`);
   w.speechSynthesis.speak = realSpeak;
@@ -533,6 +544,16 @@ f.addEventListener('load', async () => {
      dish can be held off the edges where the light has to reach. */
   ok(/inset/.test(w.getComputedStyle(khl).boxShadow),
      'and the pill lights itself from the inside like a dent');
+  /* The glass thins while it is held. 9px of blur destroys every edge behind
+     the bar, and a lens with nothing to bend is a lens nobody can see — the
+     dot lattice has to come back into focus for the warp to read at all. */
+  const blurOf = (el) => {
+    const m = /blur\(([\d.]+)px\)/.exec(w.getComputedStyle(el).backdropFilter || '');
+    return m ? Number(m[1]) : null;
+  };
+  const heldBlur = blurOf(khl);
+  ok(heldBlur !== null && heldBlur < 4,
+     `and its glass thins so there is something left to refract (${heldBlur}px)`);
 
   /* Move by a fraction of the BAR's own screen width, not by a fixed 120px.
      The face is zoomed, so 120 screen px can be 340 face px — enough to carry
@@ -838,7 +859,7 @@ f.addEventListener('load', async () => {
   ok(d2.getElementById('ghostMsg').classList.contains('show'),
      'the welcome is still going when we walk out of the room');
   key2('ArrowRight'); await wait(1000);
-  key2('ArrowRight'); await wait(2400);
+  key2('ArrowRight'); await wait(3100);
   const introLines = [...d2.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
   ok(/디자인 공간/.test(introLines),
      `the design space takes the floor from the welcome (${introLines.slice(0, 30)})`);
@@ -875,7 +896,7 @@ f.addEventListener('load', async () => {
     d3.getElementById('ghostMsg').click();
     await wait(700);
     d3.getElementById('homeBtn').click(); await wait(1500);
-    key3(k); await wait(2800);
+    key3(k); await wait(3500);
     ok(want.test(roomText()), `${label} introduces itself (${roomText().slice(0, 24)})`);
   }
   for (const [k, label] of [['ArrowUp', 'prospect'], ['ArrowDown', 'minimalid']]) {
