@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>cogspect — 이 브라우저가 가진 음성</title>
+<!--
+  What voice cpt speaks in is decided from speechSynthesis.getVoices(), and
+  that list is the browser's, not the system's: a voice downloaded in System
+  Settings does not appear until the browser is restarted, and browsers do not
+  all expose the same set. Guessing at it from the outside cost several rounds
+  of picking the wrong voice, so here it is, first-hand.
+
+  MALE_KO below mirrors js/app.js. It is duplicated on purpose: this page has
+  to keep working when app.js is mid-edit, and the ranking itself is covered by
+  test/verify.html.
+-->
+<style>
+  :root { --fg: #15161c; --dim: #6b6f7a; --line: #e3e5ea; }
+  body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+         color: var(--fg); margin: 0; padding: 32px 24px 64px; max-width: 720px;
+         margin-inline: auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.sub { color: var(--dim); margin: 0 0 24px; }
+  .verdict { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+             margin-bottom: 24px; }
+  .verdict b { font-size: 17px; }
+  .good { color: #1a7f4b; }
+  .bad { color: #c0392b; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { display: flex; align-items: center; gap: 12px; padding: 9px 0;
+       border-bottom: 1px solid var(--line); }
+  li.pick { background: #f4f7ff; margin-inline: -10px; padding-inline: 10px;
+            border-radius: 8px; }
+  .nm { flex: 1; }
+  .tag { color: var(--dim); font-size: 12.5px; }
+  button { font: inherit; font-size: 13px; border: 1px solid var(--line);
+           background: #fff; border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+  button:hover { border-color: #b9bdc7; }
+  code { background: #f2f3f6; padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+  .note { margin-top: 28px; color: var(--dim); font-size: 13.5px; }
+</style>
+</head><body>
+
+<h1>이 브라우저가 가진 한국어 음성</h1>
+<p class="sub">cpt가 어떤 목소리로 말할지는 이 목록에서 정해집니다.</p>
+
+<div class="verdict" id="verdict">읽는 중…</div>
+<ul id="list"></ul>
+
+<p class="note">
+  방금 시스템 설정에서 음성을 받았는데 아래에 안 보인다면, 브라우저를 <b>완전히
+  종료했다가</b> 다시 여세요. 새로고침만으로는 목록이 갱신되지 않습니다
+  (<code>⌘Q</code> 후 재실행).
+</p>
+
+<script>
+// mirrors MALE_KO in js/app.js — see the comment at the top of this file
+const MALE_KO = ['minsu', 'injoon', 'eddy', 'rocko', 'reed'];
+
+function pick(ko) {
+  for (const want of MALE_KO) {
+    const hits = ko.filter((v) => v.name.toLowerCase().includes(want));
+    if (!hits.length) continue;
+    return hits.find((v) => /enhanced|premium/i.test(v.name)) || hits[0];
+  }
+  return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0] || null;
+}
+
+const SAMPLE = 'cogspect가 지향하는 디자인 공간입니다. 레이어를 움직여서 탐색해 보세요.';
+
+function say(voice) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(SAMPLE);
+  try { if (voice) u.voice = voice; } catch (err) { /* default, then */ }
+  u.lang = voice ? voice.lang : 'ko-KR';
+  u.rate = 1.24;                       // the same as the site
+  u.pitch = 1;
+  speechSynthesis.speak(u);
+}
+
+function render() {
+  const all = speechSynthesis.getVoices();
+  const ko = all.filter((v) => /^ko/i.test(v.lang));
+  const chosen = pick(ko);
+  const hasMinsu = ko.some((v) => /minsu/i.test(v.name));
+
+  const verdict = document.getElementById('verdict');
+  if (!ko.length) {
+    verdict.innerHTML = '<b class="bad">한국어 음성이 하나도 없습니다.</b><br>' +
+      '이 브라우저는 한국어를 읽을 수 없어, 영어 음성이 한국어를 발음하게 됩니다 — ' +
+      '“외국인 목소리”로 들리는 게 이 경우입니다.';
+  } else if (hasMinsu) {
+    verdict.innerHTML = '<b class="good">Minsu가 보입니다.</b> cpt는 <b>' +
+      chosen.name + '</b> 으로 말합니다. 아래 재생 버튼으로 확인해 보세요.';
+  } else {
+    verdict.innerHTML = '<b class="bad">Minsu가 이 목록에 없습니다.</b><br>' +
+      '지금은 <b>' + chosen.name + '</b> 으로 말하고 있습니다 — ' +
+      'Apple 캐릭터 음성이라 한국어가 어색하게 들립니다. ' +
+      '브라우저를 완전히 종료했다 다시 열어보세요.';
+  }
+
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  for (const v of ko) {
+    const li = document.createElement('li');
+    if (chosen && v.name === chosen.name) li.className = 'pick';
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.innerHTML = '<b>' + v.name + '</b> <span class="tag">' + v.lang +
+      (v.localService ? '' : ' · 네트워크') +
+      (chosen && v.name === chosen.name ? ' · cpt가 쓰는 음성' : '') + '</span>';
+    const b = document.createElement('button');
+    b.textContent = '재생';
+    b.onclick = () => say(v);
+    li.append(nm, b);
+    list.append(li);
+  }
+}
+
+speechSynthesis.addEventListener('voiceschanged', render);
+render();
+setTimeout(render, 800);               // Chrome fills the list a beat late
+</script>
+</body></html>
