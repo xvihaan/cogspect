@@ -731,24 +731,53 @@ f.addEventListener('load', async () => {
   key2('ArrowRight'); await wait(2400);
   ok(!d2.getElementById('ghostMsg').classList.contains('show'),
      'and does not say it again on the way back in');
+  await wait(700);
+  ok(d2.querySelectorAll('.ghost-line').length === 0,
+     'a dismissed answer is emptied, not just hidden — invisible text is still text');
 
-  /* The other half of the rule: something the visitor ASKED for is not
-     talked over by a room introducing itself. Fresh page, because the design
-     space only introduces itself once. */
+  /* A fresh page for the rest. Reaching keen above took two turns, and the
+     first of them lands on the portfolio — which introduced itself in
+     passing and is now marked as said. Correct behaviour, but it means the
+     room checks have to start from a page that has not been walked through.
+     Each room below is ONE turn from the front face for the same reason. */
   await new Promise((r) => { f2.addEventListener('load', r, {once: true}); f2.src = '../index.html'; });
   const w3 = f2.contentWindow, d3 = f2.contentDocument;
   if (w3.speechSynthesis) { w3.speechSynthesis.speak = () => {}; w3.speechSynthesis.cancel = () => {}; }
   const rf3 = w3.fetch;
   w3.fetch = (u, o) => (String(u).includes('/chat/') ? Promise.reject(new Error('offline')) : rf3.call(w3, u, o));
+  const key3 = (k) => w3.dispatchEvent(new w3.KeyboardEvent('keydown', {key: k, bubbles: true}));
+  const roomText = () => [...d3.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
   await wait(4200);                                   // let the welcome start
+
+  // the rooms that have something to say, say it; the unfinished ones stay quiet
+  for (const [k, want, label] of [['ArrowRight', /작업 기록/, 'portfolio'],
+                                  ['ArrowLeft', /건너가는 다리/, 'Bifröst']]) {
+    d3.getElementById('ghostMsg').click();
+    await wait(700);
+    d3.getElementById('homeBtn').click(); await wait(1500);
+    key3(k); await wait(2800);
+    ok(want.test(roomText()), `${label} introduces itself (${roomText().slice(0, 24)})`);
+  }
+  for (const [k, label] of [['ArrowUp', 'prospect'], ['ArrowDown', 'minimalid']]) {
+    d3.getElementById('ghostMsg').click();
+    await wait(900);
+    d3.getElementById('homeBtn').click(); await wait(1500);
+    key3(k); await wait(2800);
+    ok(!d3.getElementById('ghostMsg').classList.contains('show'),
+       `${label} stays quiet — nothing settled to say yet`);
+  }
+
+  /* The other half of the priority rule: something the visitor ASKED for is
+     not talked over by a room introducing itself. keen has not been reached
+     on this page, so it is the one room still holding an introduction. */
   d3.getElementById('ghostMsg').click();
-  await wait(600);
+  await wait(700);
+  d3.getElementById('homeBtn').click(); await wait(1500);
   d3.getElementById('chatInput').value = 'GOvision이 뭐야?';
   d3.getElementById('chatForm').dispatchEvent(new w3.Event('submit', {bubbles: true, cancelable: true}));
   await wait(1200);
   const answer = [...d3.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
   ok(answer.length > 0, 'an answer is on screen');
-  const key3 = (k) => w3.dispatchEvent(new w3.KeyboardEvent('keydown', {key: k, bubbles: true}));
   key3('ArrowRight'); await wait(1000);
   key3('ArrowRight'); await wait(2400);
   const stillThere = [...d3.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');

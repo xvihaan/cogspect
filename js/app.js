@@ -1395,7 +1395,15 @@
     stopBeat();
     ghost.classList.remove('show', 'pending');
     ghost.classList.add('leaving');
-    setTimeout(() => ghost.classList.remove('leaving'), 500);
+    setTimeout(() => {
+      ghost.classList.remove('leaving');
+      // and empty it once it has finished leaving: the lines are invisible by
+      // then but still in the document, where a screen reader would find them
+      if (!ghost.classList.contains('show')) {
+        ghost.textContent = '';
+        ghost.classList.remove('lined');
+      }
+    }, 500);
     clearMarks();
   }
   /* cpt types the greeting out rather than pasting it. An agent that
@@ -1548,7 +1556,20 @@
   /* A face can introduce itself the first time it is reached. Once only:
      cpt explaining the same room every time you walk back into it is a
      tour guide who has not noticed you have been here. */
+  /* Line breaks are authored, not split at runtime — these are fixed copy,
+     and where a sentence should give way is a typographic judgement. Kept
+     under LINE_MAX so nothing wraps a second time inside the bubble.
+     minimalid and prospect are deliberately absent: a room with nothing
+     settled to say is better silent than filling the air. */
   const FACE_INTRO = {
+    right: [
+      'AI 엔지니어 김민혁의 작업 기록입니다.',
+      '밝게 켜진 픽셀을 누르면 프로젝트가 열려요.'
+    ],
+    left: [
+      '다른 공간으로 건너가는 다리입니다.',
+      '파란 문은 b3ta, 붉은 문은 v0id로 이어져요.'
+    ],
     back: [
       'cogspect가 지향하는 디자인 공간입니다.',
       '레이어를 움직여서 탐색해 보세요.'
