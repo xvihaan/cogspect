@@ -500,6 +500,40 @@ f.addEventListener('load', async () => {
      'and the patch takes its size from that, so the bar can clip it');
   kh.style.removeProperty('--ov-h');
 
+  /* Inverted lens: the explanation is out of focus, and the specimen is what
+     brings it in. Two copies of the block, cloned at boot so they cannot
+     drift apart, with the sharp one clipped to wherever the specimen is. */
+  const sharpEl = d.querySelector('.keen-entry--sharp');
+  ok(!!sharpEl && sharpEl.getAttribute('aria-hidden') === 'true',
+     'a sharp copy exists, and it is hidden from screen readers');
+  ok(sharpEl.querySelector('.keen-def').textContent ===
+     d.querySelector('.keen-entry .keen-def').textContent,
+     'the two copies say the same thing');
+  ok(/blur\(/.test(w.getComputedStyle(d.querySelector('.keen-entry .keen-def')).filter),
+     'the explanation is out of focus by default');
+  ok(w.getComputedStyle(sharpEl.querySelector('.keen-def')).filter === 'none',
+     'and the copy the lens reveals is not');
+  ok(/100%/.test(w.getComputedStyle(sharpEl).clipPath),
+     'with the specimen away, nothing is in focus');
+
+  // carry the specimen onto the definition and the window must open
+  const entryBox = d.querySelector('.keen-entry').getBoundingClientRect();
+  const slabNow = ksl.getBoundingClientRect();
+  const wantX = entryBox.left + 30 - slabNow.left;
+  const wantY = entryBox.top + entryBox.height * 0.72 - slabNow.top;
+  const bh = kh.getBoundingClientRect();
+  kh.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId: 88, clientX: bh.left + 40, clientY: bh.top + 20, bubbles: true}));
+  for (let i = 1; i <= 12; i++) {
+    w.dispatchEvent(new w.PointerEvent('pointermove', {pointerId: 88,
+      clientX: bh.left + 40 + (wantX * i) / 12, clientY: bh.top + 20 + (wantY * i) / 12, bubbles: true}));
+    await wait(8);
+  }
+  w.dispatchEvent(new w.PointerEvent('pointerup', {pointerId: 88, bubbles: true}));
+  await wait(80);
+  const clip = w.getComputedStyle(sharpEl).clipPath;
+  ok(!/100%/.test(clip) && /inset\(/.test(clip),
+     `laid over the explanation, that band comes into focus (${clip})`);
+
   // mid-turn: no face may claim the bar
   d.getElementById('homeBtn').click();
   await wait(1100);

@@ -501,7 +501,31 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   line-height: 1.65;
   color: #3a3a3e;
   text-wrap: pretty;
+  /* Out of focus by default. keen is a lens, so the definition of keen is
+     the thing you read THROUGH it: bring the specimen over this and the
+     covered part comes into focus. The headword above stays sharp — the face
+     still has to say what it is to someone who never picks the glass up. */
+  filter: blur(3.4px);
+  opacity: .5;
+  transition: filter .4s ease, opacity .4s ease;
 }
+
+/* A second, sharp copy of the whole block, cloned at boot so the two can
+   never say different things, drawn above the glass and clipped to wherever
+   the specimen happens to be. The blurred original still shows underneath at
+   half opacity, which reads as the glow around type seen through glass
+   rather than as a smudge. */
+.keen-entry--sharp {
+  z-index: 4;
+  pointer-events: none;
+  clip-path: inset(
+    var(--lens-t, 100%) var(--lens-r, 100%) var(--lens-b, 100%) var(--lens-l, 100%)
+    round 26px);
+}
+.keen-entry--sharp .keen-def { filter: none; opacity: 1; }
+/* the headword is identical in both copies, so only the definition needs to
+   be drawn twice — hiding the rest keeps the border under it from doubling */
+.keen-entry--sharp .keen-head { visibility: hidden; }
 
 /* 05 · vision */
 
@@ -1598,8 +1622,12 @@ body.lens .face-banner {
   background: color-mix(in srgb, var(--fg-inv) 26%, transparent);
   border: 1px solid rgba(21, 22, 28, .16);
   border: 1px solid color-mix(in srgb, var(--fg) 16%, transparent);
-  backdrop-filter: blur(5px) saturate(150%);
-  -webkit-backdrop-filter: blur(5px) saturate(150%);
+  /* No blur, and no displacement either. This pane's job is now to make
+     what is under it CLEAR — a lens that frosts the one sharp line it
+     passes over is arguing against itself. Its glassiness comes from the
+     fill, the rim and the shadow instead. */
+  backdrop-filter: saturate(150%) brightness(1.02);
+  -webkit-backdrop-filter: saturate(150%) brightness(1.02);
   box-shadow:
     0 18px 42px rgba(5, 10, 25, .14),
     inset 0 1px 0 rgba(255, 255, 255, .34);
@@ -1677,10 +1705,6 @@ body.lens .face-banner {
    the highlight washes "Design space" out to grey */
 .face-banner--handle > * { position: relative; z-index: 1; }
 
-body.lens .keen-slab {
-  backdrop-filter: url(#lg-lens) blur(3px) saturate(150%);
-  -webkit-backdrop-filter: blur(3px) saturate(150%);
-}
 .keen-slab.dragging { cursor: grabbing; }
 /* while it is being steered from the bar, the specimen lifts a little so it
    is obvious which of the two blocks is the one that moves */

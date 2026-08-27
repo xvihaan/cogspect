@@ -891,6 +891,18 @@
      It stops once the visitor has actually dragged: the teaser exists to
      teach the gesture, and repeating it at someone who already knows is
      nagging, not guidance. */
+  /* The sharp copy is cloned rather than written twice: two hand-maintained
+     copies of the same paragraph drift the first time one of them is edited. */
+  const keenEntry = document.querySelector('.keen-entry');
+  let keenSharp = null;
+  if (keenEntry) {
+    keenSharp = keenEntry.cloneNode(true);
+    keenSharp.classList.add('keen-entry--sharp');
+    keenSharp.setAttribute('aria-hidden', 'true');
+    keenSharp.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+    keenEntry.parentNode.insertBefore(keenSharp, keenEntry.nextSibling);
+  }
+
   const HANDLE_HINT = keenHandle ? keenHandle.querySelector('p') : null;
   const HINT_REST = HANDLE_HINT ? HANDLE_HINT.textContent : '';
   let slabLearned = false;
@@ -1009,9 +1021,37 @@
         st.setProperty('--ov-h', `${(a.height / z).toFixed(1)}px`);
       }
     }
+    keenLens();
     if (hit === touching) return;
     touching = hit;
     keenHandle.classList.toggle('touching', hit);
+  }
+
+  /* The window the sharp copy shows through, as clip-path insets from the
+     entry's own edges. Clamped at zero: a specimen hanging off one side
+     should open the window to that edge, not past it. */
+  let lensKey = '';
+  function keenLens() {
+    if (!keenSharp || !keenEntry || !keenSlab) return;
+    const a = keenSlab.getBoundingClientRect(), e = keenEntry.getBoundingClientRect();
+    const over = !(a.right <= e.left || e.right <= a.left || a.bottom <= e.top || e.bottom <= a.top);
+    const key = over ? `${a.left - e.left}|${a.top - e.top}|${a.width}|${e.width}` : 'off';
+    if (key === lensKey) return;
+    lensKey = key;
+    const st = keenSharp.style;
+    if (!over) {
+      st.setProperty('--lens-t', '100%');
+      st.setProperty('--lens-r', '100%');
+      st.setProperty('--lens-b', '100%');
+      st.setProperty('--lens-l', '100%');
+      return;
+    }
+    const px = (v) => `${Math.max(0, v).toFixed(1)}px`;
+    const z = (e.height && keenEntry.offsetHeight) ? e.height / keenEntry.offsetHeight : 1;
+    st.setProperty('--lens-t', px((a.top - e.top) / z));
+    st.setProperty('--lens-r', px((e.right - a.right) / z));
+    st.setProperty('--lens-b', px((e.bottom - a.bottom) / z));
+    st.setProperty('--lens-l', px((a.left - e.left) / z));
   }
 
   /* ---------- pixel-grid ripples ---------- */
