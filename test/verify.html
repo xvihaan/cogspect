@@ -333,7 +333,20 @@ f.addEventListener('load', async () => {
   w.fetch = realFetch;
   ok(g.classList.contains('show') && g.textContent.trim().length > 0,
      'an answer always reaches the bubble');
-  ok(said && said === g.textContent, 'and the same text is handed to the voice');
+  /* The bubble holds the answer as separate lines now, so its textContent is
+     the copy with the break points' whitespace removed — compare what SURVIVES
+     the split, not the characters. The point of the assertion is unchanged:
+     the voice must be reading the same answer the reader is looking at. */
+  const strip = (t) => String(t).replace(/\s+/g, '');
+  for (let i = 0; i < 60 && g.classList.contains('typing'); i++) await wait(100);
+  const onScreen = [...g.querySelectorAll('.ghost-line')].map((n) => n.textContent).join('');
+  /* Not equality: the bubble holds three lines, so a long answer has already
+     retired its opening by the time it finishes typing. What must hold is
+     that everything on screen came out of the answer the voice was given. */
+  ok(said && onScreen.length > 0 && strip(said).indexOf(strip(onScreen)) >= 0,
+     'and what is on screen came from the answer handed to the voice');
+  ok([...g.querySelectorAll('.ghost-line')].length > 0,
+     'every cpt answer arrives as typed lines, not only the greeting');
 
   /* Whether there is a model to talk to is discovered, not assumed. The
      request above was rejected, which is what a model server going away

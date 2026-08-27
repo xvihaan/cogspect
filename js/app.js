@@ -1406,19 +1406,68 @@
     if (cur) cur.classList.remove('now');
   }
 
-  function showGhost(text, pending) {
-    clearTimeout(ghostTimer);
-    stopTyping();
-    ghost.classList.remove('leaving', 'lined');
-    ghost.textContent = text;
-    ghost.classList.add('show');
-    ghost.classList.toggle('pending', !!pending);
-    if (!pending) {
-      const dur = Math.min(15000, 4500 + text.length * 55);
-      startWave(dur);                    // grid moves with the text…
-      speak(text);                       // …and the voice starts alongside it
-      ghostTimer = setTimeout(dismissGhost, dur);
+  /* Break an answer where a reader would. Sentences first; a sentence too
+     long for the bubble gives way at a comma, and failing that at a space,
+     in the back half of what will fit — a break at the very start of a line
+     leaves a stub, and one past the limit does not help.
+
+     Written without a lookbehind on purpose: a regex Safari cannot parse is
+     a syntax error, and a syntax error in this file takes the whole site
+     down, not just the chat. */
+  const LINE_MAX = 36;
+  function toLines(text, max = LINE_MAX) {
+    const src = String(text || '').trim();
+    if (!src) return [];
+    const sentences = [];
+    let buf = '';
+    for (const ch of src) {
+      buf += ch;
+      if ('.!?。'.indexOf(ch) >= 0) { sentences.push(buf.trim()); buf = ''; }
     }
+    if (buf.trim()) sentences.push(buf.trim());
+
+    const out = [];
+    for (let part of sentences) {
+      while (part.length > max) {
+        /* Break as near the MIDDLE as the limit allows when one more line
+           will finish the sentence, and as late as possible otherwise.
+           Breaking greedily on a 44-character sentence leaves "…통합" and
+           then "웹 플랫폼입니다." on its own — a line with two words on it
+           reads as a mistake even when it is the arithmetic working. */
+        const target = part.length <= max * 2 ? part.length / 2 : max;
+        let cut = -1;
+        for (const re of [/[,，·]\s*/g, /\s+/g]) {
+          let m, best = -1, bestGap = Infinity;
+          re.lastIndex = 0;
+          while ((m = re.exec(part))) {
+            const end = m.index + m[0].length;
+            if (end > max || m.index < max * 0.25) continue;
+            const gap = Math.abs(end - target);
+            if (gap < bestGap) { bestGap = gap; best = end; }
+          }
+          if (best > 0) { cut = best; break; }
+        }
+        if (cut < 0) cut = max;                 // no break point: cut cleanly
+        out.push(part.slice(0, cut).trim());
+        part = part.slice(cut).trim();
+      }
+      if (part) out.push(part);
+    }
+    return out.length ? out : [src];
+  }
+
+  function showGhost(text, pending) {
+    if (pending) {
+      // a placeholder is not something cpt is saying, so it does not type,
+      // does not speak and does not move the grid
+      clearTimeout(ghostTimer);
+      stopTyping();
+      ghost.classList.remove('leaving', 'lined');
+      ghost.textContent = text;
+      ghost.classList.add('show', 'pending');
+      return;
+    }
+    typeLines(toLines(text), text);
   }
 
   /* The greeting types itself out a line at a time and keeps only the last
@@ -1435,13 +1484,16 @@
     }
   }
 
-  function typeLines(lines) {
+  function typeLines(lines, spoken) {
     clearTimeout(ghostTimer);
     stopTyping();
     ghost.textContent = '';
     ghost.classList.remove('leaving', 'pending');
     ghost.classList.add('show', 'lined');
-    const full = lines.join(' ');
+    // what is READ is the original text, not the lines joined back up: the
+    // splitter drops the whitespace it broke on, and the voice should not
+    // inherit that
+    const full = spoken || lines.join(' ');
     const dur = Math.min(20000, 4500 + full.length * 55);
     startWave(dur);
     speak(full);
@@ -1739,7 +1791,7 @@
 
   function greet() {
     if (overlayOpen() || ghost.classList.contains('show')) return;
-    typeLines(GREETING_LINES);
+    typeLines(GREETING_LINES, GREETING);
   }
 
   const INTRO_LEG = 1080;
