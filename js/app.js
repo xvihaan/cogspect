@@ -965,6 +965,9 @@
       slabY = clamp(slabY + (e.clientY - slabDrag.y) / (zoomCur || 1), L.minY, L.maxY);
       slabDrag.x = e.clientX; slabDrag.y = e.clientY;
       keenSlab.style.transform = `translate(${slabX.toFixed(1)}px, ${slabY.toFixed(1)}px)`;
+      // answer on the same event rather than on the next frame — the glass
+      // should thicken and thin as the specimen is carried, not a beat behind
+      keenTouch();
     });
     const dropSlab = (e) => {
       if (!slabDrag || e.pointerId !== slabDrag.id) return;

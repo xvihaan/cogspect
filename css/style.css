@@ -1632,14 +1632,22 @@ body.lens .face-banner {
 .face-banner--handle { cursor: grab; touch-action: none; }
 .face-banner--handle.dragging { cursor: grabbing; }
 
-/* Two pieces of keen glass overlapping are thicker glass, so the bar bulges
-   where the specimen passes behind it.
+/* Two pieces of keen glass overlapping are simply more glass. The patch is
+   another pane of exactly the material the specimen is made of — same fill,
+   same rim, same frost — so where the specimen is behind the bar you are
+   looking through two panes and it reads as thicker.
 
-   The patch is sized and placed as the SPECIMEN, not as the overlap: a lens
-   refracts across its own whole shape, and what you see is however much of
-   it happens to be behind the bar. The bar clips it. Fitting the bulge to
-   the intersection instead made the entire bar react the moment the two so
-   much as touched, which is the opposite of how a lens sliding past looks. */
+   It was a convex lens for a while: a real displacement map, a specular cap,
+   ends darkening as the surface turned away. It was wrong. Warping a 6:1
+   block that has type on it does not read as a bulge, it reads as the whole
+   bar going soft — out of focus rather than curved. Glass on glass says the
+   same thing without pretending the bar is a magnifier.
+
+   The patch is sized and placed as the SPECIMEN, in the bar's coordinates,
+   and the bar clips it: overflow:hidden is what turns "the specimen's whole
+   block" into "however much of it is behind the bar". Fitting it to the
+   intersection instead makes the entire bar react the moment the two so much
+   as touch, which is not how a pane sliding past looks. */
 .face-banner--handle { overflow: hidden; }
 .face-banner--handle::after {
   content: '';
@@ -1648,36 +1656,21 @@ body.lens .face-banner {
   top: var(--ov-y, 0px);
   width: var(--ov-w, 0px);
   height: var(--ov-h, 0px);
+  box-sizing: border-box;
   border-radius: 28px;
   pointer-events: none;
   opacity: 0;
   transition: opacity .2s ease;
-  background:
-    /* specular cap, where the surface faces the light */
-    radial-gradient(46% 112% at 50% 18%,
-      rgba(255, 255, 255, .8) 0%,
-      rgba(255, 255, 255, .22) 46%,
-      rgba(255, 255, 255, 0) 72%),
-    /* The block is 6:1, so what actually reads as curvature is the two ENDS
-       turning away — a radial rim on a shape this wide never reaches them. */
-    linear-gradient(90deg,
-      rgba(21, 22, 28, .14) 0%,
-      rgba(21, 22, 28, .05) 9%,
-      rgba(21, 22, 28, 0) 22%,
-      rgba(21, 22, 28, 0) 78%,
-      rgba(21, 22, 28, .05) 91%,
-      rgba(21, 22, 28, .14) 100%),
-    linear-gradient(180deg,
-      rgba(21, 22, 28, .06) 0%,
-      rgba(21, 22, 28, 0) 34%,
-      rgba(21, 22, 28, 0) 68%,
-      rgba(21, 22, 28, .08) 100%);
+  background: rgba(244, 246, 250, .24);
+  background: color-mix(in srgb, var(--fg-inv) 24%, transparent);
+  border: 1px solid rgba(21, 22, 28, .12);
+  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32);
 }
-.face-banner--handle.touching::after { opacity: 1; }
-/* the refraction is part of the patch too, so it is confined the same way */
-body.lens .face-banner--handle.touching::after {
-  backdrop-filter: url(#lg-convex) saturate(150%);
-  -webkit-backdrop-filter: saturate(150%);
+.face-banner--handle.touching::after {
+  opacity: 1;
+  backdrop-filter: blur(4px) saturate(140%);
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
 }
 /* the bulge shading belongs to the GLASS, not to the copy: an absolutely
    positioned pseudo paints above static in-flow children, so without this
