@@ -639,19 +639,17 @@ f.addEventListener('load', async () => {
   // along it — a gradient parallel to the run is a two-tone line, not a prism
   const grad = d.getElementById('bfrostBand');
   const stops = [...grad.querySelectorAll('stop')].map((n) => n.getAttribute('stop-color'));
-  /* White in the middle, colour only at the edges. A full spectrum band
-     belongs to a flag; this site is silver and glass, so the span is white
-     light that breaks into colour where it thins out. Asserting the SHAPE of
-     the gradient rather than a colour count is what keeps someone from
-     "fixing" it back into a rainbow. */
-  const mid = [...grad.querySelectorAll('stop')]
-    .filter((n) => { const o = parseFloat(n.getAttribute('offset')); return o > 0.3 && o < 0.7; })
-    .map((n) => (n.getAttribute('stop-color') || '').toLowerCase());
-  ok(mid.length > 0 && mid.every((c) => c === '#ffffff' || c === '#fff'),
-     `the beam is white through its middle (${mid.join(', ')})`);
-  const edges = stops.filter((c, i) => i < 2 || i >= stops.length - 2).map((c) => c.toLowerCase());
-  ok(edges.every((c) => c !== '#ffffff' && c !== '#fff') && new Set(edges).size >= 3,
-     `and only breaks into colour at its edges (${edges.join(', ')})`);
+  /* The shaft carries NO hue. Every colour on this bridge comes from the rays
+     travelling along it, so the span is white until something passes through
+     it — the gradient is an alpha ramp, nothing else. This is the assertion
+     that stops it drifting back into a painted rainbow. */
+  const white = (c) => ['#ffffff', '#fff', 'white'].indexOf(String(c).toLowerCase()) >= 0;
+  ok(stops.length > 0 && stops.every(white),
+     `the shaft itself is white, with no colour in it (${[...new Set(stops)].join(', ')})`);
+  const alphas = [...grad.querySelectorAll('stop')]
+    .map((n) => parseFloat(n.getAttribute('stop-opacity') || '1'));
+  ok(Math.min(...alphas) === 0 && Math.max(...alphas) === 1,
+     'and it is shaped by alpha alone, feathering to nothing at its edges');
   const gx = +grad.getAttribute('x2') - +grad.getAttribute('x1');
   const gy = +grad.getAttribute('y2') - +grad.getAttribute('y1');
   const bx = 66 - 36, by = 60 - 40;                     // the beam's own run
@@ -675,10 +673,24 @@ f.addEventListener('load', async () => {
   ok(new Set(durs).size === rays.length, `and no two run at the same speed (${durs.join(' ')})`);
   const cols = rays.map((r) => w.getComputedStyle(r).stroke);
   ok(new Set(cols).size >= 3, `carrying the gate colours between them (${new Set(cols).size} distinct)`);
-  // a ray narrower than the beam it rides on cannot be seen at all
-  const bandW = parseFloat(w.getComputedStyle(beam).strokeWidth);
-  const widest = Math.max(...rays.map((r) => parseFloat(w.getComputedStyle(r).strokeWidth)));
-  ok(widest > bandW, `and they overspill the band rather than hide inside it (${widest} > ${bandW})`);
+  /* Two ways of making a ray invisible were tried before this one, and the
+     assertion has to guard against both rather than against whichever was
+     most recent:
+       · too short — a 4%-long dash on the span is a tick, not a streak
+       · not coloured — on a white shaft, hue is the only thing that reads,
+         so rays that are merely brighter disappear into the beam
+     Width is deliberately NOT asserted: these are narrower than the band and
+     visible anyway, because they are saturated. */
+  const dashes = rays.map((r) => parseFloat(w.getComputedStyle(r).strokeDasharray));
+  ok(Math.min(...dashes) >= 6,
+     `each ray is long enough to read as a streak (shortest ${Math.min(...dashes)} of 100)`);
+  const coloured = rays.filter((r) => {
+    const c = w.getComputedStyle(r).stroke;
+    const m = c.match(/\d+/g);
+    return m && Math.max(+m[0], +m[1], +m[2]) - Math.min(+m[0], +m[1], +m[2]) > 40;
+  });
+  ok(coloured.length >= 4,
+     `and most of them carry real colour, not just brightness (${coloured.length}/${rays.length})`);
 
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);

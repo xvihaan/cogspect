@@ -1483,19 +1483,21 @@ body.on-dark input::placeholder { color: #7a7a82; }
   opacity: 0;
   filter: blur(var(--ray-blur, 1.2px));
 }
-/* Durations are prime-ish against each other on purpose: 2.3 / 3.1 / 2.7 …
-   Round numbers would sync up every few seconds and the span would pulse as
-   one object instead of carrying traffic. */
-/* Wider than the band (1.45), not thinner. A ray narrower than the beam it
-   rides on is invisible: white on white, and the coloured ones vanish into
-   the fringes. Overspilling the band is what makes a ray read as a swell of
-   light travelling THROUGH the span rather than a hairline drawn on it. */
-.ray--a { --ray-c: #ffffff; --ray-w: 2.2; --ray-d: 9; --ray-t: 2.3s;  --ray-in: 1.9s; --ray-o: .5;  --ray-blur: 5px; }
-.ray--b { --ray-c: #6f9dff; --ray-w: 1.9; --ray-d: 7; --ray-t: 3.1s;  --ray-in: 2.4s; --ray-o: .5;  --ray-blur: 4px; }
-.ray--c { --ray-c: #ff7d6a; --ray-w: 1.7; --ray-d: 6; --ray-t: 2.75s; --ray-in: 2.9s; --ray-o: .46; --ray-blur: 4px; }
-.ray--d { --ray-c: #ffffff; --ray-w: 1.0; --ray-d: 4; --ray-t: 1.8s;  --ray-in: 2.6s; --ray-o: .62; --ray-blur: 2.2px; }
-.ray--e { --ray-c: #b79bff; --ray-w: 1.5; --ray-d: 8; --ray-t: 3.9s;  --ray-in: 3.1s; --ray-o: .38; --ray-blur: 4.5px; }
-.ray--f { --ray-c: #ffc48a; --ray-w: 1.3; --ray-d: 5; --ray-t: 2.45s; --ray-in: 3.6s; --ray-o: .44; --ray-blur: 3px; }
+/* Long, saturated and crisp. The two failed attempts are worth keeping in
+   mind: thin rays vanished because a 4%-long dash is a tick, not a streak,
+   and wide blurred ones vanished because they melted into the beam's own
+   glow. What reads on a white shaft is HUE — a saturated streak long enough
+   to be seen as a streak, sharp enough to have edges.
+
+   Durations are deliberately not multiples of one another. Round numbers
+   fall into step every few seconds and the span pulses as one object
+   instead of carrying traffic. */
+.ray--a { --ray-c: #4c7dff; --ray-w: .95; --ray-d: 17; --ray-t: 2.4s;  --ray-in: 1.9s; --ray-o: .85; --ray-blur: 1.2px; }
+.ray--b { --ray-c: #e0483f; --ray-w: .85; --ray-d: 13; --ray-t: 3.3s;  --ray-in: 2.2s; --ray-o: .8;  --ray-blur: 1.2px; }
+.ray--c { --ray-c: #ffffff; --ray-w: 1.2; --ray-d: 21; --ray-t: 1.9s;  --ray-in: 2.5s; --ray-o: .9;  --ray-blur: 2px; }
+.ray--d { --ray-c: #9b6cff; --ray-w: .75; --ray-d: 11; --ray-t: 2.9s;  --ray-in: 2.8s; --ray-o: .72; --ray-blur: 1.1px; }
+.ray--e { --ray-c: #ffab2e; --ray-w: .7;  --ray-d: 9;  --ray-t: 2.15s; --ray-in: 3.1s; --ray-o: .72; --ray-blur: 1px; }
+.ray--f { --ray-c: #2fd4c8; --ray-w: .65; --ray-d: 8;  --ray-t: 3.7s;  --ray-in: 3.4s; --ray-o: .66; --ray-blur: 1px; }
 
 /* one class drives the whole choreography: the gates wake, the beam strikes
    out from the blue gate to the red one, then the light starts running */
@@ -1513,8 +1515,9 @@ body.on-dark input::placeholder { color: #7a7a82; }
     bfRayIn .7s ease var(--ray-in) forwards,
     bfRay var(--ray-t) linear var(--ray-in) infinite;
 }
-/* one of them runs the other way, from the red gate back to the blue */
-.face--gateway.bridged .ray--c {
+/* the red one runs the other way — from the red gate back to the blue,
+   which is the direction it would come from */
+.face--gateway.bridged .ray--b {
   animation:
     bfRayIn .7s ease var(--ray-in) forwards,
     bfRayBack var(--ray-t) linear var(--ray-in) infinite;
