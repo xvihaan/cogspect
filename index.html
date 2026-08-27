@@ -91,21 +91,23 @@
                  endpoints are literally the planets' own left/top values -->
             <svg class="bridge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <!-- coincident strokes stack into one shaft of light: the
-                   atmosphere it throws, the body, a hot centre, a white core,
-                   then the energy running along it — a steady flow with a
-                   brighter surge over it, and two beads at opposite phases -->
+                   atmosphere it throws, the body, a hot centre, a white core -->
               <path class="bridge-haze" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-band" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-inner" pathLength="100" d="M36 40 L66 60"/>
               <path class="bridge-core" pathLength="100" d="M36 40 L66 60"/>
-              <path class="bridge-flow" pathLength="100" d="M36 40 L66 60"/>
-              <path class="bridge-surge" pathLength="100" d="M36 40 L66 60"/>
-              <circle class="bridge-spark" r="0.5">
-                <animateMotion dur="3.1s" repeatCount="indefinite" path="M36 40 L66 60"/>
-              </circle>
-              <circle class="bridge-spark bridge-spark--trail" r="0.32">
-                <animateMotion dur="3.1s" begin="-1.35s" repeatCount="indefinite" path="M36 40 L66 60"/>
-              </circle>
+              <!-- Rays. Not beads: a streak reads as light travelling, a dot
+                   reads as an object being carried. Each carries a little of
+                   the gate colours, each runs at its own speed, and one runs
+                   the other way — a bridge has traffic both ways. The speeds
+                   are deliberately not multiples of one another, or they fall
+                   into step and the whole span pulses as one thing. -->
+              <path class="bridge-ray ray--a" pathLength="100" d="M36 40 L66 60"/>
+              <path class="bridge-ray ray--b" pathLength="100" d="M36 40 L66 60"/>
+              <path class="bridge-ray ray--c" pathLength="100" d="M36 40 L66 60"/>
+              <path class="bridge-ray ray--d" pathLength="100" d="M36 40 L66 60"/>
+              <path class="bridge-ray ray--e" pathLength="100" d="M36 40 L66 60"/>
+              <path class="bridge-ray ray--f" pathLength="100" d="M36 40 L66 60"/>
             </svg>
             <a class="planet planet--b3ta" href="https://b3ta.netlify.app" target="_blank" rel="noopener"
                data-tip="b3ta | Spatial Intelligence ↗" aria-label="b3ta — 인텔리전스로 이동">

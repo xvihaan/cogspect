@@ -666,6 +666,20 @@ f.addEventListener('load', async () => {
      w.getComputedStyle(d.querySelector('.planet--b3ta')).animationDelay,
      'both gates float on the same phase, so the beam stays on its anchors');
 
+  /* The traffic on the span. Six rays, each its own colour and speed — if
+     they shared a duration they would fall into step and the whole bridge
+     would pulse as one object instead of carrying anything. */
+  const rays = [...d.querySelectorAll('.bridge-ray')];
+  ok(rays.length >= 4, `the span carries several rays (${rays.length})`);
+  const durs = rays.map((r) => w.getComputedStyle(r).animationDuration);
+  ok(new Set(durs).size === rays.length, `and no two run at the same speed (${durs.join(' ')})`);
+  const cols = rays.map((r) => w.getComputedStyle(r).stroke);
+  ok(new Set(cols).size >= 3, `carrying the gate colours between them (${new Set(cols).size} distinct)`);
+  // a ray narrower than the beam it rides on cannot be seen at all
+  const bandW = parseFloat(w.getComputedStyle(beam).strokeWidth);
+  const widest = Math.max(...rays.map((r) => parseFloat(w.getComputedStyle(r).strokeWidth)));
+  ok(widest > bandW, `and they overspill the band rather than hide inside it (${widest} > ${bandW})`);
+
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);
 
