@@ -1313,7 +1313,8 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .planet, .bridge { animation: none; }
   .ghost-line.now::after { animation: none; }
   .ghost-line { transition: none; }
-  .keen-slab, .keen-slab.teasing { animation: none; --slab-top: 96px; }
+  .keen-slab { animation: none; --slab-top: 96px; }
+  .face-banner--handle.pressing > .handle-lens { animation: none; }
   .planet .orb::before { animation: none; opacity: .8; transform: scale(1); }
   .chat-bar.thinking::after { animation: none; opacity: .5; }
 }
@@ -1742,16 +1743,6 @@ body.lens .face-banner {
    whole idea — it is something you pull OUT of the bar — but a thing nobody
    can see is a thing nobody will try. So on arrival it dips out from under
    the bar three times while the bar's own subtitle says what to do. */
-/* 66px. It cannot go under 60: the bar is 60px tall, and a dip that does not
-   clear its bottom edge never lets the two come apart — the glass-on-glass
-   thickening that is supposed to happen WHEN they touch would simply be on
-   the whole time. 66 is as small as this gets and still separates. */
-@keyframes slabTease {
-  0%   { transform: translateY(0); }
-  46%  { transform: translateY(66px); }
-  100% { transform: translateY(0); }
-}
-.keen-slab.teasing { animation: slabTease .78s cubic-bezier(.4, .1, .3, 1) 2; }
 
 /* the bar is a control here; everywhere else it stays a label */
 .face-banner--handle { cursor: grab; touch-action: none; }
@@ -1796,6 +1787,66 @@ body.lens .face-banner {
   opacity: 1;
   backdrop-filter: blur(4px) saturate(140%);
   -webkit-backdrop-filter: blur(4px) saturate(140%);
+}
+
+/* The press bulge. A round lens blooms under the pointer and follows it —
+   the bar is a piece of glass, and this is the only thing that says so now
+   that it no longer bounces. The parent's overflow:hidden keeps it inside
+   the pill, the way a tab bar's does. */
+.face-banner--handle > .handle-lens {
+  position: absolute;
+  /* UNDER the copy, deliberately. backdrop-filter samples only what is
+     painted behind the element, so at z-index 0 the bulge warps the face
+     showing through the glass while the label stays crisp — which is how a
+     real tab bar behaves. Painted over the type it duplicates it, and a
+     doubled title reads as a rendering fault, not as glass. */
+  z-index: 0;
+  left: var(--lx, 50%);
+  top: var(--ly, 50%);
+  /* 56 in a 60px bar: the dome has to FIT, or overflow:hidden slices its top
+     and bottom off and what is left reads as a vertical band, not a bulge. */
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(.5);
+  transition: opacity .3s ease, transform .3s cubic-bezier(.2, .8, .2, 1);
+  /* The bar's own blur has already smoothed the face behind it, so there is
+     little structure left for the displacement to bend — the bulge is carried
+     by its shading, the way a tab bar's is. Highlight up and left, shadow
+     down and right: one light source, so it reads as a dome. */
+  background:
+    radial-gradient(circle at 38% 28%,
+      rgba(255, 255, 255, .92) 0%,
+      rgba(255, 255, 255, .34) 34%,
+      rgba(255, 255, 255, 0) 62%),
+    radial-gradient(circle at 66% 74%,
+      rgba(21, 22, 28, .13) 0%,
+      rgba(21, 22, 28, .04) 42%,
+      rgba(21, 22, 28, 0) 70%);
+  /* The mask is the other half of the trick. Without it the filtered region
+     ends on a hard circle and the bulge reads as a sticker stuck to the bar;
+     faded out before the rim, the distortion has no edge to give itself away. */
+  -webkit-mask-image: radial-gradient(circle, #000 44%, rgba(0, 0, 0, 0) 73%);
+  mask-image: radial-gradient(circle, #000 44%, rgba(0, 0, 0, 0) 73%);
+}
+body.lens .face-banner--handle > .handle-lens {
+  backdrop-filter: url(#lg-convex) saturate(140%);
+  -webkit-backdrop-filter: saturate(140%);
+}
+/* pressed: it overshoots its size and settles, which is what makes it read
+   as a bulge rising rather than a circle fading in */
+.face-banner--handle.pressing > .handle-lens {
+  opacity: 1;
+  transform: scale(1);
+  animation: lensPop .42s cubic-bezier(.3, 1.5, .4, 1);
+}
+@keyframes lensPop {
+  0%   { transform: scale(.5); }
+  55%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 /* the bulge shading belongs to the GLASS, not to the copy: an absolutely
    positioned pseudo paints above static in-flow children, so without this

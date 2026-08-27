@@ -557,7 +557,6 @@
     // arriving at the portfolio shows the visitor where the six projects are,
     // then lets them settle back into the field — nothing stays lit
     if (face === 'right') revealProjects();
-    if (face === 'back') teaseSlab();
     // a beat after the landing, alongside the teaser rather than after it —
     // the bar says DRAG ME while cpt says what the room is for
     clearTimeout(introTimer);
@@ -938,14 +937,11 @@
   const keenSlab = document.getElementById('keenSlab');
   const keenHandle = document.getElementById('keenHandle');
 
-  /* The specimen rests hidden behind the bar — it is something you pull OUT
-     of it — but nobody tries to drag a thing they cannot see. On arrival the
-     bar's subtitle turns into the instruction and the specimen dips out from
-     under it three times, then everything goes back to how it was.
+  /* The bar used to dip the specimen out from under itself twice on arrival,
+     to teach the drag. The room introduces itself in words now, so the dance
+     was saying the same thing twice — and the press bulge below says the
+     rest without a caption. */
 
-     It stops once the visitor has actually dragged: the teaser exists to
-     teach the gesture, and repeating it at someone who already knows is
-     nagging, not guidance. */
   /* The sharp copy is cloned rather than written twice: two hand-maintained
      copies of the same paragraph drift the first time one of them is edited. */
   const keenEntry = document.querySelector('.keen-entry');
@@ -956,35 +952,6 @@
     keenSharp.setAttribute('aria-hidden', 'true');
     keenSharp.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
     keenEntry.parentNode.insertBefore(keenSharp, keenEntry.nextSibling);
-  }
-
-  const HANDLE_HINT = keenHandle ? keenHandle.querySelector('p') : null;
-  const HINT_REST = HANDLE_HINT ? HANDLE_HINT.textContent : '';
-  let slabLearned = false;
-  const teaseAt = [];
-
-  function clearTease() {
-    teaseAt.forEach(clearTimeout);
-    teaseAt.length = 0;
-    if (keenSlab) keenSlab.classList.remove('teasing');
-    if (HANDLE_HINT) { HANDLE_HINT.textContent = HINT_REST; HANDLE_HINT.style.opacity = ''; }
-  }
-
-  function teaseSlab() {
-    if (!keenSlab || slabLearned || reducedMotion.matches) return;
-    clearTease();
-    const swap = (text, at) => {
-      teaseAt.push(setTimeout(() => { if (HANDLE_HINT) HANDLE_HINT.style.opacity = '0'; }, at));
-      teaseAt.push(setTimeout(() => {
-        if (!HANDLE_HINT) return;
-        HANDLE_HINT.textContent = text;
-        HANDLE_HINT.style.opacity = '';
-      }, at + 260));
-    };
-    swap('DRAG ME', 500);
-    teaseAt.push(setTimeout(() => keenSlab.classList.add('teasing'), 900));
-    teaseAt.push(setTimeout(() => keenSlab.classList.remove('teasing'), 900 + 780 * 3));
-    swap(HINT_REST, 900 + 780 * 3 + 200);
   }
 
   if (keenSlab) {
@@ -1009,11 +976,21 @@
     }
     const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
 
+    /* The press bulge, MUSINSA's tab bar by way of the App Store: touch the
+       glass and it swells under your finger. Fractions of the bar's own box
+       rather than pixels, so it lands correctly at any zoom. */
+    function pressAt(e) {
+      if (!keenHandle) return;
+      const r = keenHandle.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const st = keenHandle.style;
+      st.setProperty('--lx', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
+      st.setProperty('--ly', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
+    }
+
     function grabSlab(e, el) {
       e.preventDefault();
       e.stopPropagation();                   // the cube must not turn under it
-      slabLearned = true;                    // they know — stop demonstrating
-      clearTease();
       slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, lim: slabLimits(), el };
       el.classList.add('dragging', 'held');
       keenSlab.classList.add('lifted');
@@ -1021,6 +998,7 @@
       // no live pointer with this id, and the move/up listeners live on the
       // window anyway so the drag survives the pointer leaving the element.
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+      if (el === keenHandle) { pressAt(e); keenHandle.classList.add('pressing'); }
     }
     keenSlab.addEventListener('pointerdown', (e) => grabSlab(e, keenSlab));
     if (keenHandle) keenHandle.addEventListener('pointerdown', (e) => grabSlab(e, keenHandle));
@@ -1032,6 +1010,7 @@
       slabY = clamp(slabY + (e.clientY - slabDrag.y) / (zoomCur || 1), L.minY, L.maxY);
       slabDrag.x = e.clientX; slabDrag.y = e.clientY;
       keenSlab.style.transform = `translate(${slabX.toFixed(1)}px, ${slabY.toFixed(1)}px)`;
+      if (slabDrag.el === keenHandle) pressAt(e);   // the bulge rides the finger
       // answer on the same event rather than on the next frame — the glass
       // should thicken and thin as the specimen is carried, not a beat behind
       keenTouch();
@@ -1039,6 +1018,7 @@
     const dropSlab = (e) => {
       if (!slabDrag || e.pointerId !== slabDrag.id) return;
       slabDrag.el.classList.remove('dragging');
+      if (keenHandle) keenHandle.classList.remove('pressing');
       keenSlab.classList.remove('lifted');
       slabDrag = null;
     };

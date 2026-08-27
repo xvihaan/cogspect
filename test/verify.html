@@ -478,56 +478,91 @@ f.addEventListener('load', async () => {
   ok(Math.abs(kslab.width - kb.width) < 1.5 && Math.abs(kslab.height - kb.height) < 1.5,
      `the specimen is the same block as the bar (${Math.round(kslab.width)}×${Math.round(kslab.height)})`);
 
-  /* The teaser. The specimen rests hidden behind the bar, so without this
-     nobody would know it is there — which makes the demonstration part of
-     the feature, not decoration on top of it. */
-  await wait(900);                            // it starts a beat after arrival
-  ok(kslabEl.classList.contains('teasing'), 'arriving at keen demonstrates the drag');
-  const tease = kslabEl.getAnimations().find((a) => (a.animationName || '') === 'slabTease');
-  ok(tease && tease.effect.getTiming().iterations === 2,
-     `it dips twice and stops (${tease ? tease.effect.getTiming().iterations : 'no animation'})`);
-  ok(d.getElementById('keenHandle').querySelector('p').textContent.trim() === 'DRAG ME',
-     'and the bar says what to do while it does');
+  /* The press bulge. The specimen rests hidden behind the bar, so the bar
+     has to say by itself that it is a live piece of glass — it used to do
+     that by dipping the specimen out twice, which the room now explains in
+     words instead. What is left is the thing you feel under your finger. */
+  const khl = d.getElementById('keenHandle');
+  const bulge = khl.querySelector('.handle-lens');
+  ok(!!bulge, 'the bar carries a press lens');
+  ok(!!d.getElementById('lg-convex'),
+     'the convex displacement map is back for it — a round lens reads as glass where a 6:1 bar read as defocus');
+  /* `.face-banner--handle > *` puts every child in flow at z-index 1. A lens
+     that loses that fight is not a bulge, it is a paragraph. */
+  const lcs = w.getComputedStyle(bulge);
+  ok(lcs.position === 'absolute', `the lens is out of the flow (${lcs.position})`);
+  /* Under the copy: backdrop-filter samples only what is painted behind, so
+     this is what keeps the label crisp while the face behind it bulges. */
+  ok(Number(lcs.zIndex) === 0, `and sits under the copy (z ${lcs.zIndex})`);
+  ok(Number(lcs.opacity) === 0, 'and invisible until it is pressed');
+  ok(lcs.pointerEvents === 'none', 'and never eats the drag it is decorating');
 
+  /* Unpinned from here on. Forcing #zoomWrap to scale(1) while the app's own
+     zoomCur is still mid-spring makes the drag maths disagree with what is
+     drawn, and everything measured through the drag comes out scaled. */
   pin.remove();
-
-  // wait it out, then the specimen must be back exactly behind the bar
-  for (let i = 0; i < 60 && kslabEl.classList.contains('teasing'); i++) await wait(100);
   await wait(400);
-  const barRest = d.getElementById('keenHandle').getBoundingClientRect();
+
+  const barBox = khl.getBoundingClientRect();
+  const pressPt = { x: barBox.left + barBox.width * 0.25, y: barBox.top + barBox.height * 0.5 };
+  khl.dispatchEvent(new w.PointerEvent('pointerdown', {
+    pointerId: 41, clientX: pressPt.x, clientY: pressPt.y, bubbles: true, cancelable: true
+  }));
+  await wait(60);
+  ok(khl.classList.contains('pressing'), 'pressing the bar raises the bulge');
+  /* Virtual time does not advance transitions, so the computed opacity sits
+     at its start value forever; kill the transition and read the target. */
+  const lensStill = d.createElement('style');
+  lensStill.textContent = '.handle-lens { transition: none !important; }';
+  d.head.appendChild(lensStill);
+  ok(Number(w.getComputedStyle(bulge).opacity) > 0.5, 'and it is actually visible');
+  lensStill.remove();
+  /* It has to land UNDER the finger, not in the middle of the bar. Measured
+     as a fraction of the bar's own box so the zoom spring cannot skew it. */
+  const lensCx = () => {
+    const L = bulge.getBoundingClientRect(), B = khl.getBoundingClientRect();
+    return (L.left + L.width / 2 - B.left) / B.width;
+  };
+  ok(Math.abs(lensCx() - 0.25) < 0.06, `the bulge sits under the pointer (${lensCx().toFixed(2)} of the bar)`);
+  const lensOn = kslabEl.getBoundingClientRect().left;
+  w.dispatchEvent(new w.PointerEvent('pointermove', {
+    pointerId: 41, clientX: pressPt.x + 120, clientY: pressPt.y, bubbles: true
+  }));
+  await wait(60);
+  ok(Math.abs(lensCx() - 0.25) > 0.08, `and rides the finger as it drags (${lensCx().toFixed(2)})`);
+  ok(kslabEl.getBoundingClientRect().left - lensOn > 40,
+     'while the bar is still steering the specimen');
+  w.dispatchEvent(new w.PointerEvent('pointerup', { pointerId: 41, bubbles: true }));
+  await wait(60);
+  ok(!khl.classList.contains('pressing'), 'and it sinks back when the finger lifts');
+
+  // put the specimen back before the geometry checks below
+  kslabEl.style.transform = '';
+  await wait(60);
+
+
+  const barRest = khl.getBoundingClientRect();
   const slabRest = kslabEl.getBoundingClientRect();
   ok(Math.abs(slabRest.top - barRest.top) < 2 && Math.abs(slabRest.left - barRest.left) < 2,
      'and it rests hidden exactly behind the bar, to be pulled out of it');
-  ok(d.getElementById('keenHandle').querySelector('p').textContent.trim() !== 'DRAG ME',
-     'the bar goes back to its own subtitle');
 
   /* Two pieces of keen glass overlapping are simply more glass. The class is
      toggled from tick(), which virtual time starves, so assert the geometry
-     it keys on — the dip has to clear the bar's bottom edge or the two never
-     come apart and the effect that happens WHEN they touch never stops. */
-  ok(!d.getElementById('lg-convex'),
-     'the convex lens is gone — warping a bar with type on it read as out of focus');
-  const overlapAt = (ms) => {
-    const anim = kslabEl.getAnimations().find((a) => (a.animationName || '') === 'slabTease');
-    if (!anim) return null;
-    const was = anim.currentTime, played = anim.playState;
-    anim.pause(); anim.currentTime = ms;
-    kslabEl.getBoundingClientRect();
-    const A = kslabEl.getBoundingClientRect(), B = d.getElementById('keenHandle').getBoundingClientRect();
-    const hit = !(A.right <= B.left || B.right <= A.left || A.bottom <= B.top || B.bottom <= A.top);
-    anim.currentTime = was; if (played === 'running') anim.play();
-    return hit;
+     it keys on: stacked they must touch, carried away they must come apart,
+     or the effect that happens WHEN they touch never stops. */
+  const overlaps = () => {
+    const A = kslabEl.getBoundingClientRect(), B = khl.getBoundingClientRect();
+    return !(A.right <= B.left || B.right <= A.left || A.bottom <= B.top || B.bottom <= A.top);
   };
-  kslabEl.classList.add('teasing');
-  await wait(40);
-  const near = overlapAt(0), far = overlapAt(360);
-  kslabEl.classList.remove('teasing');
-  ok(near === true, 'stacked, the specimen is behind the bar — they touch');
-  ok(far === false, 'at the bottom of the dip it clears the bar — they come apart');
+  ok(overlaps() === true, 'stacked, the specimen is behind the bar — they touch');
+  kslabEl.style.transform = 'translate(0px, 140px)';
+  kslabEl.getBoundingClientRect();
+  ok(overlaps() === false, 'carried clear of the bar, they come apart');
+  kslabEl.style.transform = '';
   /* The patch has to be the SPECIMEN's box, clipped by the bar — not the
      intersection. Fitted to the intersection, the whole bar reacts the
      moment the two so much as touch, which is what this replaced. */
-  ok(w.getComputedStyle(d.getElementById('keenHandle')).overflow === 'hidden',
+  ok(w.getComputedStyle(khl).overflow === 'hidden',
      'the bar clips the bulge, which is what confines it to the overlap');
 
   /* The bar is a control: it stays put, and the specimen answers to it. Run
