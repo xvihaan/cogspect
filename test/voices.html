@@ -53,18 +53,22 @@
 </p>
 
 <script>
-// mirrors MALE_KO in js/app.js — see the comment at the top of this file.
+// mirrors koVoice() in js/app.js — see the comment at the top of this file.
 // Patterns, not strings: Chrome in Korean calls "Minsu (Enhanced)" 민수(고품질).
-const MALE_KO = [/minsu|민수/i, /injoon|인준/i, /eddy|에디/i, /rocko|로코/i, /reed|리드/i];
-const HIGH_CUT = /enhanced|premium|고품질|프리미엄/i;
+const KO_VOICES = [/minsu|민수/i, /injoon|인준/i, /yuna|유나/i, /heami|해미/i,
+                   /sunhi|선희/i, /google/i];
+const CHARACTER_KO =
+  /eddy|에디|rocko|로코|reed|리드|grandpa|할아버지|grandma|할머니|flo|플로|sandy|샌디|shelley|셸리/i;
+const HIGH_CUT = /enhanced|premium|고품질|프리미엄|natural|neural/i;
 
 function pick(ko) {
-  for (const want of MALE_KO) {
+  const best = (pool) => pool.find((v) => HIGH_CUT.test(v.name)) || pool[0] || null;
+  for (const want of KO_VOICES) {
     const hits = ko.filter((v) => want.test(v.name));
-    if (!hits.length) continue;
-    return hits.find((v) => HIGH_CUT.test(v.name)) || hits[0];
+    if (hits.length) return best(hits);
   }
-  return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0] || null;
+  const plain = ko.filter((v) => !CHARACTER_KO.test(v.name));
+  return best(plain.length ? plain : ko);
 }
 
 const SAMPLE = 'cogspect가 지향하는 디자인 공간입니다. 레이어를 움직여서 탐색해 보세요.';
@@ -93,11 +97,15 @@ function render() {
   } else if (hasMinsu) {
     verdict.innerHTML = '<b class="good">Minsu가 보입니다.</b> cpt는 <b>' +
       chosen.name + '</b> 으로 말합니다. 아래 재생 버튼으로 확인해 보세요.';
+  } else if (!CHARACTER_KO.test(chosen.name)) {
+    verdict.innerHTML = '<b>Minsu는 없지만</b> 이 기기의 표준 한국어 음성 <b>' +
+      chosen.name + '</b> 이(가) 있습니다. 한국어용으로 녹음된 음성이라 발음은 자연스럽습니다.<br>' +
+      '남성 음성을 원하시면 시스템 설정 ▸ 손쉬운 사용 ▸ 말하기 콘텐츠 ▸ 음성 관리에서 ' +
+      '민수를 받은 뒤, 브라우저를 완전히 종료했다 다시 여세요.';
   } else {
-    verdict.innerHTML = '<b class="bad">Minsu가 이 목록에 없습니다.</b><br>' +
-      '지금은 <b>' + chosen.name + '</b> 으로 말하고 있습니다 — ' +
-      'Apple 캐릭터 음성이라 한국어가 어색하게 들립니다. ' +
-      '브라우저를 완전히 종료했다 다시 열어보세요.';
+    verdict.innerHTML = '<b class="bad">자연스러운 한국어 음성이 없습니다.</b><br>' +
+      '지금은 <b>' + chosen.name + '</b> — Apple 캐릭터 음성이라 한국어를 ' +
+      '외국어 읽듯 발음합니다. 음성 관리에서 민수나 유나를 받아주세요.';
   }
 
   const list = document.getElementById('list');

@@ -390,6 +390,38 @@ f.addEventListener('load', async () => {
      `it picks the Korean male voice over the character ones, by its Korean name (${saidAs && saidAs.lang})`);
   ok(saidAs && /enhanced/.test(saidAs.lang),
      `and 고품질 over the plain cut of the same voice (${saidAs && saidAs.lang})`);
+
+  /* What most visitors get. Minsu is an optional download, so the common case
+     is a machine without it — and there the choice is between the platform's
+     own Korean voice and Apple's character set, which reads Korean as if
+     sounding out a foreign language. The natural one wins even though it is
+     female: no platform ships a natural Korean male voice by default, and
+     recorded-for-Korean is the property that matters. */
+  const pickWith = async (voices) => {
+    w.speechSynthesis.getVoices = () => voices;
+    saidAs = null;
+    ask('모델 상태');
+    for (let i = 0; i < 40 && !saidAs; i++) await wait(100);
+    return saidAs && saidAs.lang;
+  };
+  const noMinsu = [
+    stand('에디(한국어(한국))', 'ko-KR-eddy'),
+    stand('로코(한국어(한국))', 'ko-KR-rocko'),
+    stand('유나', 'ko-KR-yuna'),
+    stand('Samantha', 'en-US')
+  ];
+  ok(await pickWith(noMinsu) === 'ko-KR-yuna',
+     'without Minsu it takes the platform’s own Korean voice, not a character one');
+  /* And when the character voices are all there is, one of them is still the
+     answer: an English voice pronouncing Korean is the worse failure, and the
+     one visitors described as a foreigner reading off a card. */
+  const onlyCharacters = [
+    stand('에디(한국어(한국))', 'ko-KR-eddy'),
+    stand('할아버지(한국어(한국))', 'ko-KR-grandpa'),
+    stand('Samantha', 'en-US')
+  ];
+  ok(/^ko-KR/.test(await pickWith(onlyCharacters) || ''),
+     'and if they are all there is, it still speaks Korean rather than falling back to English');
   w.speechSynthesis.getVoices = realVoices;
   ok([...g.querySelectorAll('.ghost-line')].length > 0,
      'every cpt answer arrives as typed lines, not only the greeting');

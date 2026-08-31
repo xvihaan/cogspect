@@ -1315,51 +1315,61 @@
 
   /* The voice cpt speaks in.
 
-     Korean on macOS ships one natural voice, Yuna, and eight of Apple's
-     character voices; the male half of that set runs from gruff to elderly
-     and none of it sounds like a person guiding you through a site. The voice
-     this wants is Minsu, which is a real Korean male voice — but it is an
-     optional download (System Settings, Spoken Content, Manage Voices), so it
-     is a preference, never an assumption. Everything below it is what to do
-     when it is not installed:
+     Ranked, because there is no single right answer: which voices exist is
+     the visitor's platform's business, and the good one is an optional
+     download.
 
-       Minsu      the Korean male voice, downloadable on macOS
-       InJoon     the Korean male voice on Windows
-       Eddy       macOS character set — the lightest of the male ones
-       Rocko      same set, gruffer
-       Reed       same set, calm but distinctly older
+       민수 / Minsu     a real Korean male voice, and the one this wants.
+                        macOS only, and only after System Settings ▸ Spoken
+                        Content ▸ Manage Voices — so a preference, never an
+                        assumption.
+       인준 / InJoon    the Korean male voice on Windows, and Edge's neural
+                        one. The only male voice anywhere that is standard.
+       유나 / Yuna      macOS and iOS ship it. Female, and the natural voice.
+       해미 / Heami     the same role on Windows.
+       선희 / SunHi     Edge's neural Korean voice.
+       Google           Chrome on Android and ChromeOS.
 
-     Grandpa is in that set too and is deliberately absent. If none of them is
-     there the fallback is whatever Korean voice exists, which on most Macs is
-     Yuna.
+     Below Minsu and InJoon everything is female, and that is not a choice
+     being made here: no platform ships a natural Korean male voice by
+     default. What these have in common is that they were recorded FOR
+     Korean, which is the property that matters.
 
-     Within a name, Enhanced and Premium win: they are the same voice at a
-     higher sample rate, and Apple ships the plain one alongside.
+     Apple's character voices — Eddy, Rocko, Reed and the rest — are excluded
+     from all of that. They read Korean as if sounding out a foreign language,
+     which is what four rounds of picking among them kept producing. They
+     remain the last resort ahead of nothing, since a stylised Korean voice
+     still beats an English one pronouncing Korean.
 
-     Matched as patterns, not strings, because THE BROWSER LOCALISES THESE
-     NAMES. `say` reports "Minsu (Enhanced)"; Chrome in Korean reports the
-     same voice as "민수(고품질)". A list of English substrings matched
-     neither it nor the character voices, so the picker fell all the way
-     through to whatever came first — which is how a correctly ranked list
-     still produced the wrong voice. */
-  const MALE_KO = [
-    /minsu|민수/i,        // the Korean male voice, an optional download on macOS
-    /injoon|인준/i,       // the Korean male voice on Windows
-    /eddy|에디/i,
-    /rocko|로코/i,
-    /reed|리드/i
+     Matched as patterns, not strings: THE BROWSER LOCALISES THESE NAMES.
+     `say` reports "Minsu (Enhanced)"; Chrome in Korean reports the same voice
+     as "민수(고품질)". English substrings matched neither, so the picker fell
+     through to whatever came first — a correctly ranked list producing the
+     wrong voice. */
+  const KO_VOICES = [
+    /minsu|민수/i,
+    /injoon|인준/i,
+    /yuna|유나/i,
+    /heami|해미/i,
+    /sunhi|선희/i,
+    /google/i
   ];
-  const HIGH_CUT = /enhanced|premium|고품질|프리미엄/i;
+  const CHARACTER_KO =
+    /eddy|에디|rocko|로코|reed|리드|grandpa|할아버지|grandma|할머니|flo|플로|sandy|샌디|shelley|셸리/i;
+  const HIGH_CUT = /enhanced|premium|고품질|프리미엄|natural|neural/i;
   function koVoice() {
     const all = TTS ? TTS.getVoices() : [];
     const ko = all.filter((v) => /^ko/i.test(v.lang));
     if (!ko.length) return null;
-    for (const want of MALE_KO) {
+    const best = (pool) => pool.find((v) => HIGH_CUT.test(v.name)) || pool[0];
+    for (const want of KO_VOICES) {
       const hits = ko.filter((v) => want.test(v.name));
-      if (!hits.length) continue;
-      return hits.find((v) => HIGH_CUT.test(v.name)) || hits[0];
+      if (hits.length) return best(hits);
     }
-    return ko.find((v) => /male|남성/i.test(v.name) && !/female/i.test(v.name)) || ko[0];
+    // an unlisted voice still beats a character one; a character one still
+    // beats no Korean voice at all, which is an English voice reading Korean
+    const plain = ko.filter((v) => !CHARACTER_KO.test(v.name));
+    return best(plain.length ? plain : ko);
   }
   if (TTS) TTS.addEventListener('voiceschanged', koVoice);
 
