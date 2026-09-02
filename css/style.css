@@ -99,6 +99,30 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   box-shadow: inset 0 0 120px rgba(220, 222, 230, .35), 0 0 0 1px rgba(255, 255, 255, .6);
 }
 
+/* A face shows nothing until it has landed square.
+
+   Turning the cube used to sweep every room past the camera edge-on: the
+   portfolio grid, the bridge, the keen entry, all legible in passing. That
+   spoils each face before you arrive at it, and it makes the motion busy —
+   the object stops reading as an object and starts reading as six screens on
+   a spinning frame. Blank while it moves, the cube is a clean solid, and
+   arriving somewhere is an event rather than a continuation.
+
+   .landed is exactly "this face is settled and square" — see setLanded() —
+   so this needs no state of its own. The banner is excluded because it
+   already fades on the same class with its own timing; letting both rules
+   drive it would double the transition. */
+.face > *:not(.face-banner) {
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.face.landed > *:not(.face-banner) {
+  opacity: 1;
+  /* a beat after the pose settles, so the content arrives on a face that has
+     already stopped rather than catching up with it */
+  transition-delay: .08s;
+}
+
 .face--front {
   background:
     radial-gradient(60% 50% at 30% 25%, rgba(236, 238, 242, .9) 0%, rgba(251, 251, 252, 0) 70%),
@@ -630,34 +654,21 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 
 /* bottom-left HUD */
 
+/* Kept in the document and out of the picture. See the comment on .hud in
+   index.html: the label is for screen readers, which need telling that the
+   room changed, and for nobody else. Clipped rather than display:none — a
+   hidden element is not announced. */
 .hud {
   position: fixed;
-  left: 36px;
-  bottom: 34px;
-  z-index: 60;
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  user-select: none;
-  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
-.face-indicator {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: var(--faint);
-  transition: color .45s ease, opacity .3s;
-}
-.hud-hint {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: #b6b6bc;
-  transition: opacity .8s ease, color .45s ease;
-}
-.hud-hint.hidden { opacity: 0; }
 
 /* ephemeral AI answer bubble — materialises, lingers, dissolves */
 
@@ -1320,8 +1331,6 @@ body.lens .project-card {
 
 body.on-dark { --fg: #e9ebf3; --fg-inv: #14151b; }   /* flips every keen surface */
 body.on-dark .wordmark { color: #f5f5f3; }
-body.on-dark .face-indicator { color: #8a8a92; }
-body.on-dark .hud-hint { color: #55555c; }
 body.on-dark .chat-bar input { color: #f5f5f3; }
 body.on-dark input::placeholder { color: #7a7a82; }
 

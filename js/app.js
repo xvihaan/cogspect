@@ -143,7 +143,6 @@
   const cube = document.getElementById('cube');
   const grid = document.getElementById('grid');
   const indicator = document.getElementById('faceIndicator');
-  const hint = document.getElementById('hudHint');
   const overlay = document.getElementById('contactOverlay');
   const toast = document.getElementById('toast');
   const chatForm = document.getElementById('chatForm');
@@ -161,7 +160,6 @@
   const faceEls = {};
   const twist = { front: 0, back: 0, right: 0, left: 0, top: 0, bottom: 0 };
   let settleTimer = 0, chainTimer = 0, toastTimer = 0, pulseTimer = 0, snapTimer = 0;
-  let hintDismissed = false;
 
   // zoom spring: zoomTarget is the user's level, rotHold clamps it down
   // to ROT_ZOOM while the cube is in motion.
@@ -626,15 +624,9 @@
     settleTimer = setTimeout(() => settle(next), SETTLE_MS);
   }
 
-  function dismissHint() {
-    if (hintDismissed) return;
-    hintDismissed = true;
-    hint.classList.add('hidden');
-  }
 
   function step(dir) {
     if (phase !== 'idle') return;
-    dismissHint();
     commit(dir);
   }
 
@@ -753,7 +745,6 @@
       const tx = e.clientX - drag.sx, ty = e.clientY - drag.sy;
       if (Math.max(Math.abs(tx), Math.abs(ty)) < SWIPE_MIN) return;
       drag.turned = true;
-      dismissHint();
       // the surface follows the pointer: drag left and the right face arrives
       step(Math.abs(tx) > Math.abs(ty)
         ? (tx < 0 ? 'right' : 'left')
@@ -766,7 +757,6 @@
       if (drag.acc > 6) {
         drag.moved = true;
         rotHold = true;
-        dismissHint();
       } else return;
     }
     const k = 90 / (Math.min(window.innerWidth, window.innerHeight) * 0.45);
@@ -854,7 +844,6 @@
     const prev = zoomTarget;
     zoomTarget = Math.min(1, Math.max(MIN_ZOOM, zoomTarget - dy * gain));
     if (zoomTarget !== prev) {
-      dismissHint();
       if (phase === 'roll' && zoomTarget > 0.6) beginSnap();
       const detent = Math.round((zoomTarget - MIN_ZOOM) / 0.13);
       if (detent !== lastDetent) { lastDetent = detent; haptic(70); }
@@ -2129,12 +2118,16 @@
     rotHold = false;                 // release the zoom clamp — springs in to 1
     phase = 'idle';
     applyCube(animate !== false);
+    setLanded(cur);                  // square again: the room may show itself
     // a beat after the cube settles, not on top of it
     setTimeout(greet, 900);
   }
 
   function runIntro() {
     phase = 'intro';                 // pointerdown/step both bail on a non-idle phase
+    // boot set .landed on the front face; the tumble is motion like any other
+    // and must not carry the front room's copy around with it
+    clearLanded();
     rotHold = true;                  // holds the cube back at ROT_ZOOM: an object, not a wall
     zoomCur = 0.2;                   // ...and it grows into that on the way in
     stage.classList.add('intro');

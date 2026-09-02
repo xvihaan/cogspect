@@ -194,10 +194,18 @@
     <button class="glass-btn" id="contactBtn" type="button">contact</button>
   </nav>
 
-  <!-- bottom-left HUD: current face + hint -->
+  <!-- Which face you are on. Not drawn: the cube says where you are better
+       than a caption does, and the caption was the only thing on the page
+       spelling out what each side is before you turn to it. It stays in the
+       document because a site whose pages change without a navigation has to
+       announce that somehow, and role=status is how — so a screen reader is
+       told the room changed even though nothing is visible here.
+
+       The movement hint that used to sit beside it is gone entirely: cpt
+       explains the controls in the welcome, and saying it twice on a page
+       this quiet is once too many. -->
   <div class="hud">
-    <span class="face-indicator" id="faceIndicator">cogspect</span>
-    <span class="hud-hint" id="hudHint">드래그·스크롤·키보드로 이동 가능.</span>
+    <span class="face-indicator" id="faceIndicator" role="status">cogspect</span>
   </div>
 
   <!-- ephemeral AI answer (b3ta intelligence) -->

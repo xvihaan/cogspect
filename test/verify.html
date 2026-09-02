@@ -548,6 +548,34 @@ f.addEventListener('load', async () => {
     ok(w.getComputedStyle(d.querySelector(sel)).opacity === '1', `intro restored ${sel}`);
   }
 
+  /* A face shows nothing until it has landed square. Turning the cube used to
+     sweep every room past the camera edge-on — the portfolio grid, the bridge,
+     the keen entry, all legible in passing — which spoils each face before you
+     arrive at it and makes the motion read as six screens on a spinning frame
+     rather than as one object.
+
+     Virtual time does not advance transitions, so a computed opacity sits at
+     its start value forever and EVERYTHING measures as hidden, pass or fail.
+     Kill the transition and read the target each state resolves to. */
+  const contentStill = d.createElement('style');
+  contentStill.textContent = '.face > * { transition: none !important; }';
+  d.head.appendChild(contentStill);
+  const drawn = () => [...d.querySelectorAll('.face > *')]
+    .filter((n) => Number(w.getComputedStyle(n).opacity) > 0.02);
+  const bodyOf = (n) => [...n.parentElement.children].indexOf(n) >= 0 && n.parentElement.dataset.face;
+
+  ok(drawn().length > 0, 'the face you are on shows its room');
+  key('ArrowRight');
+  await wait(120);                              // mid-turn, well before it settles
+  ok(drawn().length === 0, `nothing is drawn while the cube turns (${drawn().length} showing)`);
+  await wait(1500);
+  const here = drawn();
+  ok(here.length > 0 && here.every((n) => bodyOf(n) === 'right'),
+     `and the room appears once it lands, only that room (${here.map(bodyOf).join(',')})`);
+  key('ArrowLeft');
+  await wait(1500);
+  contentStill.remove();
+
   // The lattice belongs to the cursor. An earlier pass painted it
   // permanently and that is exactly what must not come back.
   const bgOf = (sel, pseudo) => w.getComputedStyle(d.querySelector(sel), pseudo).backgroundImage;
