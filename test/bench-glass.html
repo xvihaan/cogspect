@@ -28,13 +28,37 @@
   Read `bogus` first. If it says 60fps, throw the whole run away.
 -->
 <style>
-  html,body{margin:0}
-  iframe{width:1280px;height:800px;border:0;display:block}
-  pre{font:12px/1.5 ui-monospace,Menlo,monospace;padding:10px}
+  html,body{margin:0;background:#0e0f13;color:#e8eaf0;
+            font:13px/1.6 -apple-system,BlinkMacSystemFont,system-ui,sans-serif}
+  /* The readout is the point of this page, so it is ON TOP of the site rather
+     than 800px below it — the first version put it under the iframe, where a
+     four-second measurement looked exactly like a blank page that had hung. */
+  #panel{position:fixed;inset:12px auto auto 12px;z-index:9;width:360px;
+         background:rgba(14,15,19,.92);border:1px solid #2a2c36;border-radius:14px;
+         padding:14px 16px;backdrop-filter:blur(6px)}
+  h1{margin:0 0 2px;font-size:14px}
+  .sub{color:#8d92a2;font-size:11.5px;margin:0 0 10px}
+  #bar{height:4px;border-radius:99px;background:#2a2c36;overflow:hidden;margin:10px 0 8px}
+  #fill{height:100%;width:0;background:#5b8cff;transition:width .3s linear}
+  pre{font:11.5px/1.5 ui-monospace,Menlo,monospace;margin:0;white-space:pre-wrap}
+  .warn{color:#ffb454;margin-top:10px;font-size:11.5px}
+  .modes{margin-top:10px;font-size:11.5px}
+  .modes a{color:#5b8cff;text-decoration:none;margin-right:9px}
+  .modes a.on{color:#fff;text-decoration:underline}
+  iframe{width:100vw;height:100vh;border:0;display:block}
 </style>
 </head><body>
 <iframe id="f" src="../index.html"></iframe>
-<pre id="out">measuring…</pre>
+<div id="panel">
+  <h1>glass cost — <span id="mode"></span></h1>
+  <p class="sub">포인터를 keen 바 위에서 4초간 흔들며 실제 프레임 시간을 잽니다.</p>
+  <div id="bar"><div id="fill"></div></div>
+  <pre id="out">준비 중…</pre>
+  <p class="warn" id="warn"></p>
+  <p class="modes">
+    <a href="?mode=bogus">bogus</a><a href="?mode=keen">keen</a><a href="?mode=all">all</a><a href="?mode=heavy">heavy</a>
+  </p>
+</div>
 <script>
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const MODE = new URLSearchParams(location.search).get('mode') || 'keen';
@@ -78,11 +102,20 @@ const SPREAD = {
   `
 };
 
+document.getElementById('mode').textContent = MODE;
+for (const a of document.querySelectorAll('.modes a')) {
+  if (a.getAttribute('href') === '?mode=' + MODE) a.className = 'on';
+}
+const say = (t) => { out.textContent = t; };
+const progress = (p) => { document.getElementById('fill').style.width = (p * 100) + '%'; };
+
 f.addEventListener('load', async () => {
   const w = f.contentWindow, d = f.contentDocument;
+  say('인트로가 끝나기를 기다리는 중…'); progress(.1);
   await wait(2600);
   // land on keen, where the real bar lives
   const key = (k) => w.dispatchEvent(new w.KeyboardEvent('keydown', {key: k, bubbles: true}));
+  say('keen 면으로 이동 중…'); progress(.3);
   key('ArrowRight'); await wait(1200);
   key('ArrowRight'); await wait(2200);
 
@@ -119,8 +152,13 @@ f.addEventListener('load', async () => {
   requestAnimationFrame(drive);
   requestAnimationFrame(tick);
 
-  await wait(SECONDS * 1000);
+  say('측정 중…'); 
+  for (let i = 0; i < SECONDS * 10; i++) {
+    await wait(100);
+    progress(.4 + .6 * (i / (SECONDS * 10)));
+  }
   stop = true;
+  progress(1);
 
   frames.splice(0, 5);                    // the first frames carry the setup
   frames.sort((a, b) => a - b);
@@ -160,6 +198,18 @@ f.addEventListener('load', async () => {
     '  total filtered area      ' + (area / 1e6).toFixed(2) + ' Mpx',
     '  ' + glassy.map((n) => '.' + (String(n.className).split(' ')[0] || n.tagName)).join(' ')
   ].join('\n');
+  /* The verdict, in the output itself. A headless run of this file reports a
+     synthetic 60fps whatever is on the page — proven by `bogus`, which should
+     destroy any frame budget and does not — so a green result is only worth
+     anything if the control was red. */
+  const bad = over(20);
+  document.getElementById('warn').textContent = MODE === 'bogus'
+    ? (bad > 5
+        ? '✓ 대조군이 정상적으로 느립니다 — 이 브라우저에서는 측정이 유효합니다.'
+        : '✗ 대조군이 안 느립니다. 이 실행은 프레임을 재고 있지 않으니 버리세요.')
+    : (bad > 5
+        ? '이 모드에서 프레임이 흘렀습니다. 먼저 bogus로 측정이 유효한지 확인하세요.'
+        : '매끄럽습니다. 단, bogus가 느리게 나오는 것을 먼저 확인하세요.');
   document.title = 'DONE ' + MODE;
   // Chrome's --dump-dom fires at load, seconds before this has anything to
   // say, so the result is reported rather than scraped. See benchserver.py.

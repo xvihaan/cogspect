@@ -911,6 +911,81 @@
     g.appendChild(frag);
   })();
 
+  /* ---------- liquid glass: the surfaces answer to where you are ---------
+
+     A real piece of glass reads as glass because its highlight is SOMEWHERE
+     and where it is depends on your angle to it. Nothing here can know the
+     viewer's angle, but the pointer is the closest thing to one, so every
+     glass surface is lit from it: the highlight sits under the cursor when
+     you are over a surface, and swings out past its far edge as you leave —
+     the way a reflection slides off something you walk past.
+
+     --near is the same pointer's distance to that surface, 1 on it and 0
+     beyond REACH, and every material property reads from it. One number per
+     surface, so each answers as a whole rather than as six properties each
+     deciding for themselves.
+
+     Cost: one rect read and four custom-property writes per surface per
+     frame, coalesced onto rAF. Custom properties on an element that is
+     already composited do not relayout anything, and the blur radius —
+     the one property here that would re-filter the backdrop — is deliberately
+     constant. See the .liquid block in the stylesheet. */
+  const REACH = 220;                   // px beyond a surface before it stops caring
+  const liquidEls = [...document.querySelectorAll(
+    '.face-banner, .glass-nav, .chat-bar, .ghost-msg, .toast')];
+  for (const el of liquidEls) {
+    el.classList.add('liquid');
+    // the specular needs a layer of its own so it can sit under the copy;
+    // injected rather than written into the markup five times over
+    if (!el.querySelector(':scope > .liquid-lens')) {
+      const lens = document.createElement('span');
+      lens.className = 'liquid-lens';
+      lens.setAttribute('aria-hidden', 'true');
+      el.appendChild(lens);
+    }
+  }
+
+  let glassRaf = 0, glassAt = null;
+  function paintGlass() {
+    glassRaf = 0;
+    if (!glassAt) return;
+    for (const el of liquidEls) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;          // not on screen right now
+      const dx = Math.max(r.left - glassAt.x, 0, glassAt.x - r.right);
+      const dy = Math.max(r.top - glassAt.y, 0, glassAt.y - r.bottom);
+      const near = 1 - Math.min(1, Math.hypot(dx, dy) / REACH);
+      const st = el.style;
+      if (near <= 0) {
+        // nothing to light: clear it and skip the rest of the arithmetic
+        if (st.getPropertyValue('--near') !== '0') st.setProperty('--near', '0');
+        continue;
+      }
+      // the light keeps going past the ends, so walking away slides the
+      // reflection off rather than parking it at the edge
+      const gx = Math.max(-25, Math.min(125, ((glassAt.x - r.left) / r.width) * 100));
+      const gy = Math.max(-60, Math.min(160, ((glassAt.y - r.top) / r.height) * 100));
+      st.setProperty('--near', near.toFixed(3));
+      st.setProperty('--gx', gx.toFixed(1) + '%');
+      st.setProperty('--gy', gy.toFixed(1) + '%');
+      // the same light as a direction, for the rim arcs: bright on the side it
+      // comes from, shaded opposite, both swinging round as you move
+      st.setProperty('--sx', (((50 - gx) / 50) * 6).toFixed(2) + 'px');
+      st.setProperty('--sy', (((50 - gy) / 50) * 3.5).toFixed(2) + 'px');
+    }
+  }
+  window.addEventListener('pointermove', (e) => {
+    glassAt = { x: e.clientX, y: e.clientY };
+    if (!glassRaf) glassRaf = requestAnimationFrame(paintGlass);
+  }, { passive: true });
+  window.addEventListener('pointerleave', () => {
+    // leaving the window is not a pointer position, so it cannot be computed
+    // from one — the surfaces have to be told, or they stay lit where the last
+    // move left them
+    glassAt = null;
+    for (const el of liquidEls) el.style.setProperty('--near', '0');
+  });
+
   /* ---------- keen specimen: a control surface, not an ornament ----------
      The design language is demonstrated instead of described — moving the
      slab across the lattice shows the refraction doing its work. What steers
@@ -965,54 +1040,6 @@
     }
     const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
 
-    /* The bead answers to where you are.
-
-       A real piece of glass reads as glass because its highlight is SOMEWHERE
-       and where it is depends on your angle to it. Nothing here can know the
-       viewer's angle, but the pointer is the closest thing to one, so the
-       specular is aimed from it: over the bar, the highlight sits under the
-       cursor; away from it, it swings out to the far side, the way a
-       reflection slides off a surface you walk past.
-
-       --near is the same pointer's distance, 1 on the bar and 0 beyond REACH,
-       and every material property reads from it — fill, blur, rim light, the
-       cast underneath. One number, so the whole surface answers together
-       instead of six properties each deciding for themselves. */
-    const REACH = 220;                   // px beyond the bar before it stops caring
-    let glassRaf = 0, glassAt = null;
-
-    function paintGlass() {
-      glassRaf = 0;
-      if (!keenHandle || !glassAt) return;
-      const r = keenHandle.getBoundingClientRect();
-      if (!r.width) return;
-      // distance from the pointer to the bar's box, zero when inside it
-      const dx = Math.max(r.left - glassAt.x, 0, glassAt.x - r.right);
-      const dy = Math.max(r.top - glassAt.y, 0, glassAt.y - r.bottom);
-      const near = 1 - Math.min(1, Math.hypot(dx, dy) / REACH);
-      // the highlight tracks the pointer across the bar and keeps going past
-      // its ends, so walking away slides the reflection off rather than
-      // parking it at the edge
-      const gx = clamp(((glassAt.x - r.left) / r.width) * 100, -25, 125);
-      const gy = clamp(((glassAt.y - r.top) / r.height) * 100, -60, 160);
-      const st = keenHandle.style;
-      st.setProperty('--near', near.toFixed(3));
-      st.setProperty('--gx', gx.toFixed(1) + '%');
-      st.setProperty('--gy', gy.toFixed(1) + '%');
-      // the same light as a direction, for the rim arcs: bright on the side it
-      // comes from, shaded opposite, both swinging round the pill as you move
-      st.setProperty('--sx', (((50 - gx) / 50) * 6).toFixed(2) + 'px');
-      st.setProperty('--sy', (((50 - gy) / 50) * 3.5).toFixed(2) + 'px');
-    }
-    window.addEventListener('pointermove', (e) => {
-      if (cur !== 'back') return;        // only the room this bar belongs to
-      glassAt = { x: e.clientX, y: e.clientY };
-      // one read and one write per frame: this runs on every pointer event
-      if (!glassRaf) glassRaf = requestAnimationFrame(paintGlass);
-    }, { passive: true });
-    window.addEventListener('pointerleave', () => {
-      if (keenHandle) keenHandle.style.setProperty('--near', '0');
-    });
 
 
     function grabSlab(e, el) {
@@ -1025,7 +1052,7 @@
       // no live pointer with this id, and the move/up listeners live on the
       // window anyway so the drag survives the pointer leaving the element.
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
-      // pressed, the whole bar dishes inward — see .handle-lens
+      // pressed, the bead squeezes and its glass thins — see .liquid
       if (el === keenHandle) keenHandle.classList.add('pressing');
     }
     keenSlab.addEventListener('pointerdown', (e) => grabSlab(e, keenSlab));
@@ -1682,7 +1709,7 @@
       // and empty it once it has finished leaving: the lines are invisible by
       // then but still in the document, where a screen reader would find them
       if (!ghost.classList.contains('show')) {
-        ghost.textContent = '';
+        ghostWipe();
         ghost.classList.remove('lined');
       }
     }, 500);
@@ -1753,6 +1780,18 @@
     return out.length ? out : [src];
   }
 
+  /* The bubble empties itself constantly — between answers, when it is
+     dismissed, when a newer message takes the floor — and it used to do that
+     with textContent = '', which also deletes the glass layer the liquid
+     material puts inside every surface. Clear the CONTENT and leave the
+     material alone. */
+  function ghostWipe() {
+    for (const n of [...ghost.childNodes]) {
+      if (n.nodeType === 1 && n.classList.contains('liquid-lens')) continue;
+      n.remove();
+    }
+  }
+
   function showGhost(text, pending, source) {
     if (pending) {
       // a placeholder is not something cpt is saying, so it does not type,
@@ -1760,7 +1799,8 @@
       clearTimeout(ghostTimer);
       stopTyping();
       ghost.classList.remove('leaving', 'lined');
-      ghost.textContent = text;
+      ghostWipe();
+      ghost.append(text);
       ghost.classList.add('show', 'pending');
       return;
     }
@@ -1817,7 +1857,7 @@
     const mine = ++ghostTurn;
     const go = () => {
       if (mine !== ghostTurn) return;    // a newer message took the floor
-      ghost.textContent = '';            // the old line holds until this moment
+      ghostWipe();                       // the old line holds until this moment
       ghost.classList.remove('leaving', 'pending');
       ghost.classList.add('show', 'lined');
       startWave(dur);

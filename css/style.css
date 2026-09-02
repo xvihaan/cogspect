@@ -1825,69 +1825,70 @@ body.lens .face-banner {
   -webkit-backdrop-filter: blur(4px) saturate(140%);
 }
 
-/* ---------- the keen island: a bead of liquid glass ----------------------
+/* ---------- liquid glass ------------------------------------------------
 
-   Three properties, and each one is a thing the surface DOES rather than a
-   look it has:
+   The material every keen surface is made of. Three properties, and each one
+   is something the surface DOES rather than a look it has:
 
-   · liquid and glass. A droplet is nearly flat in the middle and does all its
-     bending at the rim, so #lg-drop is weighted there — the copy stays put
-     and the face behind the edges curls. Over that sits a specular streak
-     that moves with the pointer, which is the whole reason a real piece of
-     glass reads as glass: the highlight is somewhere, and where it is depends
+   · liquid and glass. #lg-drop is convex and weighted to the rim, because a
+     droplet is nearly flat in the middle and does all its bending at the edge
+     — so the copy stays put and the face behind the edges curls. Over that
+     sits a specular that moves with the pointer, which is the whole reason
+     glass reads as glass: the highlight is SOMEWHERE, and where it is depends
      on where you are.
-   · translucent, without hiding anything. The fill went 15% → 7%: what keeps
-     the copy legible is the blur and the rim light, not paint. The face is
-     visible straight through it.
-   · organic. It recedes when nothing is near it and materialises as you
-     approach, and pressing it flattens the bead the way pressing a drop of
-     water does — which is also why the backdrop sharpens: squeezed glass is
-     thinner glass. --near is the pointer's distance to the bar, 0 far, 1 on
-     it; everything below reads from it, so the whole surface answers to one
-     number. */
-.face-banner--handle {
+   · translucent, without hiding anything. The fill is a whisper of the ink
+     token rather than a coat of the white one — a bead is very slightly
+     DARKER than the paper under it everywhere except its highlight, which is
+     Fresnel and also the only reason glass on white is visible at all. What
+     keeps copy legible is the blur and the rim, not paint.
+   · organic. --near is the pointer's distance to this surface, 1 on it and 0
+     past REACH, and every property reads from that one number, so the whole
+     thing recedes and materialises together instead of six properties each
+     deciding for themselves.
+
+   The blur radius is deliberately NOT among them. Fill, border, shadow and
+   the highlight's opacity are paints on a layer that already exists and cost
+   about nothing per frame; a blur radius re-runs the filter over the backdrop,
+   and --near changes on every pointer move. Holding it constant is what makes
+   this affordable on chrome that is on screen the whole time. It still moves
+   on press — one transition, not sixty a second. */
+.liquid {
   --near: 0;
-  --gx: 30%;              /* where the light is, as a fraction of the bar */
+  --gx: 30%;              /* where the light is, as a fraction of the surface */
   --gy: 24%;
   --sx: 5px;              /* ...and as a direction, for the rim arcs */
   --sy: 3px;
-  /* A bead is very slightly DARKER than the paper under it everywhere except
-     its highlight — Fresnel, and the reason glass on white reads at all. The
-     fill is a whisper of the ink token rather than more of the white one. */
+  --lift: 10px;           /* how far this one floats: bigger surfaces cast more */
+  /* No `position` here, deliberately. Every host already has one — the
+     banners are absolute, the nav and the bubble fixed, the toast absolute —
+     and setting it would have quietly dropped the five banners back into
+     their face's flex column, which is where they came from before layout()
+     started placing them against the screen. */
   background: color-mix(in srgb, var(--fg) 3.5%, transparent);
-  /* On a plain face the outline is most of the shape, so it carries more than
-     the old 15% did, and it firms up as you approach. */
-  border-color: color-mix(in srgb, var(--fg) calc(11% + var(--near) * 10%), transparent);
-  /* The blur radius is deliberately NOT part of --near. Everything else here
-     is a paint on a layer that already exists — fill, border, shadow, the
-     highlight's opacity — and costs about nothing to change per frame. A blur
-     radius is not: changing it re-runs the filter over the backdrop, and
-     --near changes on every pointer move. Holding it constant is what makes
-     this cheap enough to put on chrome that is on screen the whole time. It
-     still moves on press, but that is one transition, not sixty a second. */
-  backdrop-filter: blur(7px) saturate(160%);
-  -webkit-backdrop-filter: blur(7px) saturate(160%);
+  border: 1px solid color-mix(in srgb, var(--fg) calc(9% + var(--near) * 9%), transparent);
   box-shadow:
-    /* the cast, which tightens as it lifts toward you */
-    0 calc(8px + var(--near) * 8px) calc(20px + var(--near) * 18px)
-      rgba(5, 10, 25, calc(.05 + var(--near) * .06)),
-    /* the top of a bead catches the sky */
-    inset 0 1px 0 rgba(255, 255, 255, calc(.32 + var(--near) * .38)),
-    /* and light pools along its underside before it leaves */
-    inset 0 -6px 12px -6px rgba(255, 255, 255, calc(.2 + var(--near) * .35)),
-    inset 0 -1px 0 rgba(255, 255, 255, .16);
+    0 calc(var(--lift) * .8 + var(--near) * var(--lift) * .8)
+      calc(var(--lift) * 2 + var(--near) * var(--lift) * 1.8)
+      rgba(5, 10, 25, calc(.05 + var(--near) * .05)),
+    inset 0 1px 0 rgba(255, 255, 255, calc(.3 + var(--near) * .36)),
+    inset 0 -6px 12px -6px rgba(255, 255, 255, calc(.18 + var(--near) * .32)),
+    inset 0 -1px 0 rgba(255, 255, 255, .14);
   transition:
     background .35s ease, border-color .35s ease, box-shadow .35s ease,
     backdrop-filter .35s ease, transform .28s cubic-bezier(.3, .9, .3, 1);
 }
-body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(7px) saturate(160%); }
 
-/* The specular. A real highlight is a shape on the surface, not a gradient
-   across the whole box: this is a narrow band with a hot core, positioned at
-   --gx/--gy, and it strengthens as the pointer nears. It sits UNDER the copy
-   — backdrop-filter samples only what is painted behind an element, and a
-   highlight painted over type washes the type out. */
-.face-banner--handle > .handle-lens {
+/* The specular, on its own layer so it can sit UNDER the copy: a highlight
+   painted over type washes the type out, and backdrop-filter samples only what
+   is painted behind an element anyway.
+
+   White on white is nothing, which is how the first attempt at this
+   disappeared. A bead on paper is not read from its highlight alone — it is
+   read from the PAIR: a hot rim on the lit side and a soft shaded one
+   opposite. That contrast is the whole picture, so it is drawn here rather
+   than hoped for from the refraction, which has no texture to bend on a plain
+   face. */
+.liquid > .liquid-lens {
   position: absolute;
   z-index: 0;
   inset: 0;
@@ -1895,45 +1896,66 @@ body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(7px) satura
   pointer-events: none;
   opacity: calc(.4 + var(--near) * .6);
   transition: opacity .35s ease;
-  /* White on white is nothing, which is how the first attempt at this
-     disappeared. A drop of water on paper is not read from its highlight
-     alone — it is read from the PAIR: a hot rim on the lit side and a soft
-     shaded one opposite, with the body very slightly darker than the paper
-     between them. That contrast is the whole picture, so it is drawn here
-     rather than hoped for from the refraction, which has no texture to bend
-     on a plain face. */
   background:
-    /* The hot spot. Small, and high on the body: a bead's highlight sits near
-       the top of the curve, not in the middle of the shape. */
+    /* the hot spot — small, and high on the body, where a bead's highlight is */
     radial-gradient(13% 46% at var(--gx) calc(var(--gy) - 4%),
       rgba(255, 255, 255, .98) 0%,
       rgba(255, 255, 255, .4) 40%,
       rgba(255, 255, 255, 0) 100%),
-    /* a restrained wash around it — enough to say the surface is lit, little
+    /* a restrained wash around it: enough to say the surface is lit, little
        enough that the face still shows through */
     radial-gradient(52% 110% at var(--gx) calc(var(--gy) - 8%),
       rgba(255, 255, 255, .3) 0%,
       rgba(255, 255, 255, .06) 44%,
       rgba(255, 255, 255, 0) 74%),
     /* the shaded side — the half of the pair that makes the other half
-       visible at all, and the reason this reads on white */
+       visible, and the reason this reads on white at all */
     radial-gradient(64% 128% at calc(100% - var(--gx)) calc(100% - var(--gy)),
       rgba(21, 22, 28, .085) 0%,
       rgba(21, 22, 28, .028) 44%,
       rgba(21, 22, 28, 0) 76%);
-  /* The rim is where a droplet is most itself: a bright arc on the lit side
-     and a soft dark one opposite. --sx/--sy are the light's direction in px,
-     set from the same pointer, so the pair swings around the pill as you move
-     rather than sitting on a fixed edge. */
+  /* The rim is where a droplet is most itself: a bright arc on the lit side, a
+     soft dark one opposite. --sx/--sy are the light's direction in px, from
+     the same pointer, so the pair swings around the shape as you move rather
+     than sitting on a fixed edge. */
   box-shadow:
-    inset var(--sx, 5px) var(--sy, 3px) 6px -3px rgba(255, 255, 255, .95),
-    inset calc(var(--sx, 5px) * -1) calc(var(--sy, 3px) * -1) 7px -4px rgba(21, 22, 28, .16);
+    inset var(--sx) var(--sy) 6px -3px rgba(255, 255, 255, .95),
+    inset calc(var(--sx) * -1) calc(var(--sy) * -1) 7px -4px rgba(21, 22, 28, .16);
 }
+/* the shading belongs to the GLASS, not to the copy: an absolutely positioned
+   layer paints above static in-flow children unless they are lifted too */
+.liquid > *:not(.liquid-lens) { position: relative; z-index: 1; }
+
+
+/* ---------- what is made of it ------------------------------------------
+
+   Every glass surface on the page, so the language is one material rather
+   than a family resemblance. Each keeps the blur radius it was tuned to — the
+   nav is over a busy cube and wants little, the answer bubble is over
+   whatever the room is and wants more — because blur is the one property
+   here that is about legibility rather than about looking like glass. */
+body.lens .glass-nav  { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%); }
+body.lens .chat-bar   { backdrop-filter: url(#lg-drop) blur(4px) saturate(150%); }
+body.lens .ghost-msg  { backdrop-filter: url(#lg-drop) blur(7px) saturate(150%); }
+body.lens .toast      { backdrop-filter: url(#lg-drop) blur(6px) saturate(145%); }
+.glass-nav { --lift: 9px; }
+.chat-bar  { --lift: 14px; }
+.ghost-msg { --lift: 13px; }
+.toast     { --lift: 11px; }
+/* .chat-bar and .ghost-msg carry a blurred halo on ::before instead of an
+   outline — that stays, and the rim arcs sit inside it rather than replacing
+   it. See the note on .chat-bar. */
+.chat-bar, .ghost-msg { border: 0; }
+
+/* ---------- the keen island, which is all of the above plus a squeeze ---- */
+
+.face-banner--handle { --lift: 12px; }
+body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(7px) saturate(160%); }
 
 /* Pressed, the bead is squeezed: it spreads, it flattens, and the glass gets
-   thinner — which is why the backdrop comes into focus. That sharpening is
-   the action this face is built on and it is unchanged; what changed is the
-   reason it looks true. */
+   thinner — which is why the backdrop comes into focus. That sharpening is the
+   action this face is built on and it is unchanged; what changed is the reason
+   it looks true. */
 .face-banner--handle.pressing {
   backdrop-filter: blur(1.5px) saturate(165%);
   -webkit-backdrop-filter: blur(1.5px) saturate(165%);
@@ -1954,11 +1976,6 @@ body.lens .face-banner--handle.pressing {
 .face-banner--handle > p { transition: transform .22s cubic-bezier(.3, .9, .3, 1); }
 .face-banner--handle.pressing > h2,
 .face-banner--handle.pressing > p { transform: scale(.965); }
-
-/* the shading belongs to the GLASS, not to the copy: an absolutely positioned
-   pseudo paints above static in-flow children, so without this the highlight
-   washes "Design space" out to grey */
-.face-banner--handle > * { position: relative; z-index: 1; }
 
 .keen-slab.dragging { cursor: grabbing; }
 /* while it is being steered from the bar, the specimen lifts a little so it

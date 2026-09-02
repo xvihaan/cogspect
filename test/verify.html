@@ -686,7 +686,16 @@ f.addEventListener('load', async () => {
      dipping the specimen out twice, which the room now explains in words.
      What is left is what the whole block does when you push it. */
   const khl = d.getElementById('keenHandle');
-  const bulge = khl.querySelector('.handle-lens');
+  /* One material, not a family resemblance. Every glass surface on the page
+     carries it, each with its own glass layer to light — and the answer
+     bubble is the one that had to be defended, because it empties itself
+     between messages and used to take the layer with it. */
+  for (const sel of ['.glass-nav', '.chat-bar', '.ghost-msg', '.toast', '.face-banner']) {
+    const el = d.querySelector(sel);
+    ok(el.classList.contains('liquid'), `${sel} is made of the same glass`);
+    ok(!!el.querySelector(':scope > .liquid-lens'), `${sel} has a layer to light`);
+  }
+  const bulge = khl.querySelector('.liquid-lens');
   ok(!!bulge, 'the bar carries a glass layer of its own');
   ok(!!d.getElementById('lg-drop'),
      'and a convex droplet map, so the rim bends and the middle stays still');
@@ -784,7 +793,7 @@ f.addEventListener('load', async () => {
      their start forever; kill the transitions and read the targets. */
   const lensStill = d.createElement('style');
   lensStill.textContent =
-    '.handle-lens, .face-banner--handle, .face-banner--handle > h2 { transition: none !important; }';
+    '.liquid-lens, .liquid, .face-banner--handle > h2 { transition: none !important; }';
   d.head.appendChild(lensStill);
   /* Squeezed, a drop of water spreads and flattens. The copy goes with it —
      type sitting still on a surface that moved reads as a decal. */
@@ -1136,6 +1145,11 @@ f.addEventListener('load', async () => {
   await wait(700);
   ok(d2.querySelectorAll('.ghost-line').length === 0,
      'a dismissed answer is emptied, not just hidden — invisible text is still text');
+  /* ...and empties the CONTENT only. The bubble is made of the same liquid
+     glass as everything else, which means it carries a layer to light, and
+     the old textContent = '' deleted that along with the words. */
+  ok(!!d2.getElementById('ghostMsg').querySelector(':scope > .liquid-lens'),
+     'and emptying it does not take its glass with it');
 
   /* A fresh page for the rest. Reaching keen above took two turns, and the
      first of them lands on the portfolio — which introduced itself in
