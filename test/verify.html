@@ -695,6 +695,17 @@ f.addEventListener('load', async () => {
     ok(el.classList.contains('liquid'), `${sel} is made of the same glass`);
     ok(!!el.querySelector(':scope > .liquid-lens'), `${sel} has a layer to light`);
   }
+  /* The two cpt surfaces are the ones you look THROUGH the most — the answer
+     sits over whatever room you are in — and their own fill is only 3.5%, so
+     what actually decides how opaque they read is the blurred halo behind
+     them. It used to be a 50% white plate, which is a plate with a soft edge
+     rather than glass. Below about 12% the copy starts competing with the
+     busier faces, so this is bounded from both sides. */
+  for (const sel of ['.ghost-msg', '.chat-bar']) {
+    const halo = parseFloat(w.getComputedStyle(d.querySelector(sel), '::before')
+      .getPropertyValue('--halo'));
+    ok(halo > 8 && halo < 32, `${sel} is see-through, not a white plate (halo ${halo}%)`);
+  }
   const bulge = khl.querySelector('.liquid-lens');
   ok(!!bulge, 'the bar carries a glass layer of its own');
   ok(!!d.getElementById('lg-drop'),

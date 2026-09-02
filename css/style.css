@@ -714,10 +714,19 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
+  /* --halo is how much of this plate there is, and it is most of how opaque
+     the two cpt surfaces read: their own fill is 3.5%, so what you are
+     looking through is mainly this. At 50% it was a white plate with a soft
+     edge; at 22% the room behind it is actually visible and the halo still
+     does the job it is for, which is stopping the shape from ending on a hard
+     silhouette. Below about 12% the copy starts competing with whatever is
+     behind it on the busier faces. */
+  --halo: 22%;
+  --halo-a: .72;
   background: rgba(244, 246, 250, .5);
-  background: color-mix(in srgb, var(--fg-inv) 50%, transparent);
+  background: color-mix(in srgb, var(--fg-inv) var(--halo, 50%), transparent);
   filter: blur(9px);
-  opacity: .85;
+  opacity: var(--halo-a, .85);
 }
 /* the bubble's own entrance blurs the whole element, halo included, so it
    must not be doubled up on the way in */
