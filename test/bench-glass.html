@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>cogspect — glass cost bench</title>
+<!--
+  How much does the liquid-glass treatment actually cost, and can it go on
+  every surface?
+
+  OPEN THIS IN A REAL BROWSER. Headless cannot answer the question.
+
+  Under --virtual-time-budget rAF is starved and reports nothing; without it,
+  headless reports a synthetic 60fps no matter what you put on the page. The
+  `bogus` mode below exists to prove that — a full-screen blur(140px) plus a
+  filter on every face, which should destroy any frame budget, comes back at
+  16.67ms and zero dropped frames, identical to an empty page. So a headless
+  run of this file measures the harness, not the site, and a green result from
+  one means nothing at all.
+
+  Opened by hand it is honest: it drives the pointer across the keen bar for
+  four seconds and reports real frame times. That is the moment the effect
+  works hardest, since every pointer move rewrites --near.
+
+  Modes (?mode=)
+    keen    as shipped
+    all     the treatment forced onto every glass surface on screen
+    heavy   ...plus a full-face panel, an overdose to find the ceiling
+    bogus   the control. If this one is NOT slow, the run is not measuring.
+
+  Read `bogus` first. If it says 60fps, throw the whole run away.
+-->
+<style>
+  html,body{margin:0}
+  iframe{width:1280px;height:800px;border:0;display:block}
+  pre{font:12px/1.5 ui-monospace,Menlo,monospace;padding:10px}
+</style>
+</head><body>
+<iframe id="f" src="../index.html"></iframe>
+<pre id="out">measuring…</pre>
+<script>
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const MODE = new URLSearchParams(location.search).get('mode') || 'keen';
+const SECONDS = 4;
+
+/* Forces the keen bar's treatment onto every glass surface the page has, so
+   the "all" pass measures the worst case we would actually ship: several
+   SVG-displaced backdrops on screen at once, all re-filtering as the pointer
+   moves. */
+const SPREAD = {
+  // every glass surface the page has, which is the rollout being asked about
+  all: `
+    .face-banner, .chat-bar, .ghost-msg, .glass-nav, .toast, .keen-slab {
+      --near: 1;
+      backdrop-filter: url(#lg-drop) blur(calc(5px + var(--near) * 3px)) saturate(160%) !important;
+    }
+  `,
+  // and a deliberate overdose: the same treatment on a full-face panel, to
+  // find where this actually breaks rather than only proving it does not
+  /* A control. If a deliberately absurd load does NOT move these numbers,
+     the bench is measuring nothing and its verdict is worthless — so this
+     mode exists to be slow, and the run is only trustworthy if it is. */
+  bogus: `
+    .stage::after {
+      content: ''; position: fixed; inset: 0; z-index: 999;
+      backdrop-filter: blur(140px) saturate(300%) hue-rotate(90deg);
+      pointer-events: none;
+    }
+    .face { filter: blur(3px) drop-shadow(0 0 40px rgba(0,0,0,.4)); }
+  `,
+  heavy: `
+    .face-banner, .chat-bar, .ghost-msg, .glass-nav, .toast, .keen-slab {
+      --near: 1;
+      backdrop-filter: url(#lg-drop) blur(calc(5px + var(--near) * 3px)) saturate(160%) !important;
+    }
+    .face.landed::after {
+      content: ''; position: absolute; inset: 8%; border-radius: 40px;
+      backdrop-filter: url(#lg-drop) blur(8px) saturate(160%);
+      pointer-events: none;
+    }
+  `
+};
+
+f.addEventListener('load', async () => {
+  const w = f.contentWindow, d = f.contentDocument;
+  await wait(2600);
+  // land on keen, where the real bar lives
+  const key = (k) => w.dispatchEvent(new w.KeyboardEvent('keydown', {key: k, bubbles: true}));
+  key('ArrowRight'); await wait(1200);
+  key('ArrowRight'); await wait(2200);
+
+  if (SPREAD[MODE]) {
+    const st = d.createElement('style');
+    st.textContent = SPREAD[MODE];
+    d.head.appendChild(st);
+    await wait(400);
+  }
+
+  const bar = d.getElementById('keenHandle').getBoundingClientRect();
+  const frames = [];
+  let last = performance.now(), stop = false, t = 0;
+
+  // a pointer that never stops: the worst case for a surface that answers to
+  // where the pointer is
+  const drive = () => {
+    if (stop) return;
+    t += 0.09;
+    w.dispatchEvent(new w.PointerEvent('pointermove', {
+      clientX: bar.left + bar.width * (0.5 + 0.48 * Math.sin(t)),
+      clientY: bar.top + bar.height * (0.5 + 0.4 * Math.cos(t * 1.7)),
+      bubbles: true
+    }));
+    requestAnimationFrame(drive);
+  };
+  const tick = () => {
+    if (stop) return;
+    const now = performance.now();
+    frames.push(now - last);
+    last = now;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(drive);
+  requestAnimationFrame(tick);
+
+  await wait(SECONDS * 1000);
+  stop = true;
+
+  frames.splice(0, 5);                    // the first frames carry the setup
+  frames.sort((a, b) => a - b);
+  const at = (q) => frames[Math.min(frames.length - 1, Math.floor(frames.length * q))];
+  const mean = frames.reduce((a, b) => a + b, 0) / (frames.length || 1);
+  const over = (ms) => frames.filter((v) => v > ms).length;
+
+  // what is actually on screen paying for a filtered backdrop
+  const glassy = [...d.querySelectorAll('*')].filter((n) => {
+    const cs = w.getComputedStyle(n);
+    const bf = cs.backdropFilter || cs.webkitBackdropFilter || '';
+    if (bf === 'none' || !bf) return false;
+    if (Number(cs.opacity) < 0.02 || cs.visibility === 'hidden') return false;
+    const r = n.getBoundingClientRect();
+    return r.width > 2 && r.height > 2 && r.bottom > 0 && r.top < 800;
+  });
+  const svgFiltered = glassy.filter((n) =>
+    /url\(/.test(w.getComputedStyle(n).backdropFilter || ''));
+  const area = glassy.reduce((a, n) => {
+    const r = n.getBoundingClientRect();
+    return a + Math.round(r.width * r.height);
+  }, 0);
+
+  out.textContent = [
+    'mode              ' + MODE + '   dpr ' + w.devicePixelRatio,
+    'frames sampled    ' + frames.length + '  over ' + SECONDS + 's',
+    '',
+    'frame time  mean  ' + mean.toFixed(2) + ' ms   (' + (1000 / mean).toFixed(0) + ' fps)',
+    '            p50   ' + at(0.50).toFixed(2) + ' ms',
+    '            p95   ' + at(0.95).toFixed(2) + ' ms',
+    '            p99   ' + at(0.99).toFixed(2) + ' ms',
+    '            worst ' + at(1).toFixed(2) + ' ms',
+    'dropped     >20ms ' + over(20) + '   >33ms ' + over(33),
+    '',
+    'glass surfaces on screen   ' + glassy.length,
+    '  of those, SVG-displaced  ' + svgFiltered.length,
+    '  total filtered area      ' + (area / 1e6).toFixed(2) + ' Mpx',
+    '  ' + glassy.map((n) => '.' + (String(n.className).split(' ')[0] || n.tagName)).join(' ')
+  ].join('\n');
+  document.title = 'DONE ' + MODE;
+  // Chrome's --dump-dom fires at load, seconds before this has anything to
+  // say, so the result is reported rather than scraped. See benchserver.py.
+  try { await fetch('/__bench?data=' + encodeURIComponent(out.textContent)); }
+  catch (err) { /* opened by hand, not by the runner */ }
+});
+</script>
+</body></html>

@@ -1858,8 +1858,15 @@ body.lens .face-banner {
   /* On a plain face the outline is most of the shape, so it carries more than
      the old 15% did, and it firms up as you approach. */
   border-color: color-mix(in srgb, var(--fg) calc(11% + var(--near) * 10%), transparent);
-  backdrop-filter: blur(calc(5px + var(--near) * 3px)) saturate(160%);
-  -webkit-backdrop-filter: blur(calc(5px + var(--near) * 3px)) saturate(160%);
+  /* The blur radius is deliberately NOT part of --near. Everything else here
+     is a paint on a layer that already exists — fill, border, shadow, the
+     highlight's opacity — and costs about nothing to change per frame. A blur
+     radius is not: changing it re-runs the filter over the backdrop, and
+     --near changes on every pointer move. Holding it constant is what makes
+     this cheap enough to put on chrome that is on screen the whole time. It
+     still moves on press, but that is one transition, not sixty a second. */
+  backdrop-filter: blur(7px) saturate(160%);
+  -webkit-backdrop-filter: blur(7px) saturate(160%);
   box-shadow:
     /* the cast, which tightens as it lifts toward you */
     0 calc(8px + var(--near) * 8px) calc(20px + var(--near) * 18px)
@@ -1873,7 +1880,7 @@ body.lens .face-banner {
     background .35s ease, border-color .35s ease, box-shadow .35s ease,
     backdrop-filter .35s ease, transform .28s cubic-bezier(.3, .9, .3, 1);
 }
-body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(5px) saturate(160%); }
+body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(7px) saturate(160%); }
 
 /* The specular. A real highlight is a shape on the surface, not a gradient
    across the whole box: this is a narrow band with a hot core, positioned at

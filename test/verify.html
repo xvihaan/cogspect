@@ -732,6 +732,13 @@ f.addEventListener('load', async () => {
   ok(await glanceAt(hb.left + hb.width / 2, hb.top + hb.height / 2, () => nearNow() > 0.9),
      `on the bar, the glass is fully there (near ${nearNow()})`);
   const litAt = varOf('--gx');
+  /* The blur radius must NOT move with --near. Everything else the bar
+     changes as you approach is a paint on a layer that already exists; a blur
+     radius re-runs the filter over the backdrop, and --near changes on every
+     pointer move. This is the assertion that keeps the effect affordable on
+     chrome that is on screen the whole time. */
+  const blurAt = () => (/blur\(([\d.]+)px\)/.exec(w.getComputedStyle(khl).backdropFilter) || [])[1];
+  const blurNear = blurAt();
   const armAt = varOf('--sx');
   ok(await glanceAt(hb.left + 8, hb.top + hb.height / 2, () => varOf('--gx') !== litAt),
      `and the highlight moves with the pointer, the way a reflection does (${litAt} → ${varOf('--gx')})`);
@@ -747,6 +754,8 @@ f.addEventListener('load', async () => {
      `and to the other side when you come from there (${varOf('--sx')})`);
   ok(await glanceAt(hb.left + hb.width / 2, hb.bottom + 600, () => nearNow() < 0.05),
      `far away it recedes rather than sitting there lit (near ${nearNow()})`);
+  ok(blurNear === blurAt(),
+     `and it does so without re-blurring the backdrop every frame (${blurNear} → ${blurAt()})`);
   /* Leaving the window entirely is not a pointer position, so it cannot be
      computed from one — the bar has to be told, or it stays lit at whatever
      the last move said. */
