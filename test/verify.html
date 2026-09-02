@@ -761,17 +761,28 @@ f.addEventListener('load', async () => {
   const blurNear = blurAt();
   const armAt = varOf('--sx');
   ok(await glanceAt(hb.left + 8, hb.top + hb.height / 2, () => varOf('--gx') !== litAt),
-     `and the highlight moves with the pointer, the way a reflection does (${litAt} → ${varOf('--gx')})`);
-  /* The rim arcs swing with it. A bright edge on the side the light comes
-     from and a shaded one opposite is what makes this read as a bead rather
-     than a lit rectangle — and on a plain white face it is most of what reads
-     at all, since there is no texture behind the bar for the refraction to
-     bend. Approaching from the left must put the bright arc on the left. */
+     `and the light's direction follows the pointer (${litAt} → ${varOf('--gx')})`);
+  /* The shading swings with it: a soft shadow gathers on the side AWAY from
+     the pointer, which is what gives the refraction a direction instead of
+     leaving it a wobble. */
   ok(parseFloat(varOf('--sx')) > 0 && parseFloat(varOf('--sx')) > parseFloat(armAt),
-     `and the lit rim swings to the side you came from (${armAt} → ${varOf('--sx')})`);
+     `and the shading swings away from the side you came from (${armAt} → ${varOf('--sx')})`);
   await glanceAt(hb.right - 8, hb.top + hb.height / 2, () => parseFloat(varOf('--sx')) < 0);
   ok(parseFloat(varOf('--sx')) < 0,
      `and to the other side when you come from there (${varOf('--sx')})`);
+
+  /* No highlight. There was a hot white spot on this layer and a wash around
+     it, and on a pale face it read as a lamp shining on a pill rather than as
+     glass — on the void face it read as a hole burnt in it. What tells you
+     something is glass is that the world bends behind it, not that it shines,
+     so the layer paints shadow only. */
+  const litPaint = w.getComputedStyle(bulge).backgroundImage +
+                   ' ' + w.getComputedStyle(bulge).boxShadow;
+  const whites = (litPaint.match(/rgba?\(\s*25[0-5][^)]*?([\d.]+)\s*\)/g) || [])
+    .map((c) => Number((/([\d.]+)\s*\)$/.exec(c) || [])[1]))
+    .filter((a) => a > 0.12);
+  ok(whites.length === 0,
+     `the glass layer paints no white light (${whites.join(', ') || 'none'})`);
   ok(await glanceAt(hb.left + hb.width / 2, hb.bottom + 600, () => nearNow() < 0.05),
      `far away it recedes rather than sitting there lit (near ${nearNow()})`);
   ok(blurNear === blurAt(),

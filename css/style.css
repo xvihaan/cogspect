@@ -1868,6 +1868,8 @@ body.lens .face-banner {
   --sx: 5px;              /* ...and as a direction, for the rim arcs */
   --sy: 3px;
   --lift: 10px;           /* how far this one floats: bigger surfaces cast more */
+  --sheen: rgba(255, 255, 255, .3);
+  --sheen-low: rgba(255, 255, 255, .12);
   /* No `position` here, deliberately. Every host already has one — the
      banners are absolute, the nav and the bubble fixed, the toast absolute —
      and setting it would have quietly dropped the five banners back into
@@ -1875,13 +1877,17 @@ body.lens .face-banner {
      started placing them against the screen. */
   background: color-mix(in srgb, var(--fg) 3.5%, transparent);
   border: 1px solid color-mix(in srgb, var(--fg) calc(9% + var(--near) * 9%), transparent);
+  /* The rim light is a constant of the material, not a response to the
+     pointer: brightening it on approach is what made the surface look lit
+     rather than made of glass, and on the void face it flashed. --sheen is
+     near-nothing there — see body.on-dark below. */
   box-shadow:
     0 calc(var(--lift) * .8 + var(--near) * var(--lift) * .8)
       calc(var(--lift) * 2 + var(--near) * var(--lift) * 1.8)
       rgba(5, 10, 25, calc(.05 + var(--near) * .05)),
-    inset 0 1px 0 rgba(255, 255, 255, calc(.3 + var(--near) * .36)),
-    inset 0 -6px 12px -6px rgba(255, 255, 255, calc(.18 + var(--near) * .32)),
-    inset 0 -1px 0 rgba(255, 255, 255, .14);
+    inset 0 1px 0 var(--sheen),
+    inset 0 -6px 12px -6px var(--sheen),
+    inset 0 -1px 0 var(--sheen-low);
   transition:
     background .35s ease, border-color .35s ease, box-shadow .35s ease,
     backdrop-filter .35s ease, transform .28s cubic-bezier(.3, .9, .3, 1);
@@ -1905,36 +1911,44 @@ body.lens .face-banner {
   pointer-events: none;
   opacity: calc(.4 + var(--near) * .6);
   transition: opacity .35s ease;
+  /* No highlight. There was a hot white spot here and a wash around it, and on
+     a pale face it read as a lamp shining on a pill rather than as glass —
+     on the void face it read as a hole burnt in it. What is left is the part
+     that was doing the real work anyway: the REFRACTION swims as the pointer
+     passes, and a soft shadow gathers on the far side to give the swim a
+     direction. Light is not what tells you something is glass; the fact that
+     the world bends behind it is. */
   background:
-    /* the hot spot — small, and high on the body, where a bead's highlight is */
-    radial-gradient(13% 46% at var(--gx) calc(var(--gy) - 4%),
-      rgba(255, 255, 255, .98) 0%,
-      rgba(255, 255, 255, .4) 40%,
-      rgba(255, 255, 255, 0) 100%),
-    /* a restrained wash around it: enough to say the surface is lit, little
-       enough that the face still shows through */
-    radial-gradient(52% 110% at var(--gx) calc(var(--gy) - 8%),
-      rgba(255, 255, 255, .3) 0%,
-      rgba(255, 255, 255, .06) 44%,
-      rgba(255, 255, 255, 0) 74%),
-    /* the shaded side — the half of the pair that makes the other half
-       visible, and the reason this reads on white at all */
-    radial-gradient(64% 128% at calc(100% - var(--gx)) calc(100% - var(--gy)),
-      rgba(21, 22, 28, .085) 0%,
-      rgba(21, 22, 28, .028) 44%,
-      rgba(21, 22, 28, 0) 76%);
-  /* The rim is where a droplet is most itself: a bright arc on the lit side, a
-     soft dark one opposite. --sx/--sy are the light's direction in px, from
-     the same pointer, so the pair swings around the shape as you move rather
-     than sitting on a fixed edge. */
+    radial-gradient(66% 132% at calc(100% - var(--gx)) calc(100% - var(--gy)),
+      rgba(21, 22, 28, .07) 0%,
+      rgba(21, 22, 28, .022) 46%,
+      rgba(21, 22, 28, 0) 78%);
+  /* one rim, and it is the shaded one. --sx/--sy still point away from the
+     pointer, so the shadow swings around the shape as you move rather than
+     sitting on a fixed edge — which is what makes the swim read as a
+     direction rather than as a wobble. */
   box-shadow:
-    inset var(--sx) var(--sy) 6px -3px rgba(255, 255, 255, .95),
-    inset calc(var(--sx) * -1) calc(var(--sy) * -1) 7px -4px rgba(21, 22, 28, .16);
+    inset calc(var(--sx) * -1) calc(var(--sy) * -1) 8px -4px rgba(21, 22, 28, .15);
+}
+/* On the void face a dark rim is invisible, so there the pointer response is
+   the refraction alone — which is the whole of it, and clean. Nothing white
+   is reintroduced to compensate. */
+body.on-dark .liquid > .liquid-lens {
+  background: radial-gradient(66% 132% at calc(100% - var(--gx)) calc(100% - var(--gy)),
+    rgba(0, 0, 0, .22) 0%, rgba(0, 0, 0, .07) 46%, rgba(0, 0, 0, 0) 78%);
+  box-shadow: inset calc(var(--sx) * -1) calc(var(--sy) * -1) 9px -4px rgba(0, 0, 0, .3);
 }
 /* the shading belongs to the GLASS, not to the copy: an absolutely positioned
    layer paints above static in-flow children unless they are lifted too */
 .liquid > *:not(.liquid-lens) { position: relative; z-index: 1; }
 
+
+/* A white rim on a near-black surface is a filament, not a highlight. The
+   void face gets almost none of it, and leans on the refraction instead. */
+body.on-dark .liquid {
+  --sheen: rgba(255, 255, 255, .05);
+  --sheen-low: rgba(255, 255, 255, .03);
+}
 
 /* ---------- what is made of it ------------------------------------------
 
@@ -1968,10 +1982,12 @@ body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(7px) satura
 .face-banner--handle.pressing {
   backdrop-filter: blur(1.5px) saturate(165%);
   -webkit-backdrop-filter: blur(1.5px) saturate(165%);
+  /* the squeeze reads from the flattening and the backdrop coming into focus,
+     not from a flash — same reason the highlight went */
   box-shadow:
     0 3px 10px rgba(5, 10, 25, .07),
-    inset 0 1px 0 rgba(255, 255, 255, .5),
-    inset 0 -8px 14px -8px rgba(255, 255, 255, .5);
+    inset 0 1px 0 var(--sheen),
+    inset 0 -8px 14px -8px var(--sheen);
 }
 body.lens .face-banner--handle.pressing {
   backdrop-filter: url(#lg-drop) blur(1.5px) saturate(170%);
