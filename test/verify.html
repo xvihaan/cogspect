@@ -687,23 +687,74 @@ f.addEventListener('load', async () => {
      What is left is what the whole block does when you push it. */
   const khl = d.getElementById('keenHandle');
   const bulge = khl.querySelector('.handle-lens');
-  ok(!!bulge, 'the bar carries a press dish');
-  ok(!!d.getElementById('lg-dish'),
-     'and a concave displacement map to bend the face through');
+  ok(!!bulge, 'the bar carries a glass layer of its own');
+  ok(!!d.getElementById('lg-drop'),
+     'and a convex droplet map, so the rim bends and the middle stays still');
   /* `.face-banner--handle > *` puts every child in flow at z-index 1. A dish
      that loses that fight is not a dish, it is a paragraph. */
   const lcs = w.getComputedStyle(bulge);
-  ok(lcs.position === 'absolute', `the dish is out of the flow (${lcs.position})`);
-  /* Behind the bar's own children, not merely under them: at z-index 0 the
-     label was still in the backdrop this layer samples, and the warp pulled a
-     ghosted second copy of it up through the glass. */
-  ok(Number(lcs.zIndex) === -1, `and behind the copy (z ${lcs.zIndex})`);
-  ok(Number(lcs.opacity) === 0, 'and invisible until it is pressed');
+  ok(lcs.position === 'absolute', `the specular is out of the flow (${lcs.position})`);
+  /* Under the copy. A highlight painted over type washes the type out, and
+     backdrop-filter samples only what is behind an element anyway. */
+  ok(Number(lcs.zIndex) === 0, `and under the copy (z ${lcs.zIndex})`);
   ok(lcs.pointerEvents === 'none', 'and never eats the drag it is decorating');
-  /* Held off the rounded caps: the pill's own edge is in the backdrop, and
-     displacing a hard curved edge tears a visible cusp out of it. */
-  const capGap = bulge.getBoundingClientRect().left - khl.getBoundingClientRect().left;
-  ok(capGap > 20, `it stops short of the rounded ends (${Math.round(capGap)}px in)`);
+  /* Translucent, and not by a little: the fill is 7% and what keeps the copy
+     legible is the blur and the rim light. A bar you cannot see the face
+     through is a plate, whatever it is made of. */
+  const fill = w.getComputedStyle(khl).backgroundColor;
+  // color-mix resolves to color(srgb r g b / a) here, not rgba() — read the
+  // alpha off whichever form the engine hands back
+  const alpha = Number((/[/,]\s*([\d.]+)\s*\)\s*$/.exec(fill) || [])[1] ?? 1);
+  ok(alpha < 0.16, `the bar is translucent enough to see the face through (${fill})`);
+
+  /* The bead answers to where the pointer is: --near drives every material
+     property from one number, and the highlight is aimed from the same place.
+     Nothing can know the viewer's angle, but the pointer is the closest thing
+     to one, and a highlight that is SOMEWHERE is what makes glass read. */
+  const varOf = (n) => w.getComputedStyle(khl).getPropertyValue(n).trim();
+  const nearNow = () => Number(varOf('--near'));
+  /* The bar coalesces these onto an animation frame — one read and one write
+     per frame, since it runs on every pointer event — and virtual time
+     starves rAF outright: the callback simply never arrives, so an unshimmed
+     version of this measures "no response" whether or not there is one. Give
+     it a timer-backed frame for the duration, then hand the real one back. */
+  const realRaf = w.requestAnimationFrame;
+  w.requestAnimationFrame = (fn) => w.setTimeout(() => fn(w.performance.now()), 16);
+  const glanceAt = async (x, y, want) => {
+    for (let i = 0; i < 40; i++) {
+      w.dispatchEvent(new w.PointerEvent('pointermove', {clientX: x, clientY: y, bubbles: true}));
+      await wait(50);
+      if (want()) return true;
+    }
+    return false;
+  };
+  const hb = khl.getBoundingClientRect();
+  ok(await glanceAt(hb.left + hb.width / 2, hb.top + hb.height / 2, () => nearNow() > 0.9),
+     `on the bar, the glass is fully there (near ${nearNow()})`);
+  const litAt = varOf('--gx');
+  const armAt = varOf('--sx');
+  ok(await glanceAt(hb.left + 8, hb.top + hb.height / 2, () => varOf('--gx') !== litAt),
+     `and the highlight moves with the pointer, the way a reflection does (${litAt} → ${varOf('--gx')})`);
+  /* The rim arcs swing with it. A bright edge on the side the light comes
+     from and a shaded one opposite is what makes this read as a bead rather
+     than a lit rectangle — and on a plain white face it is most of what reads
+     at all, since there is no texture behind the bar for the refraction to
+     bend. Approaching from the left must put the bright arc on the left. */
+  ok(parseFloat(varOf('--sx')) > 0 && parseFloat(varOf('--sx')) > parseFloat(armAt),
+     `and the lit rim swings to the side you came from (${armAt} → ${varOf('--sx')})`);
+  await glanceAt(hb.right - 8, hb.top + hb.height / 2, () => parseFloat(varOf('--sx')) < 0);
+  ok(parseFloat(varOf('--sx')) < 0,
+     `and to the other side when you come from there (${varOf('--sx')})`);
+  ok(await glanceAt(hb.left + hb.width / 2, hb.bottom + 600, () => nearNow() < 0.05),
+     `far away it recedes rather than sitting there lit (near ${nearNow()})`);
+  /* Leaving the window entirely is not a pointer position, so it cannot be
+     computed from one — the bar has to be told, or it stays lit at whatever
+     the last move said. */
+  await glanceAt(hb.left + hb.width / 2, hb.top + hb.height / 2, () => nearNow() > 0.9);
+  w.dispatchEvent(new w.PointerEvent('pointerleave', {bubbles: true}));
+  await wait(60);
+  ok(nearNow() === 0, `and the pointer leaving the page puts it out (near ${nearNow()})`);
+  w.requestAnimationFrame = realRaf;
 
   /* Unpinned from here on. Forcing #zoomWrap to scale(1) while the app's own
      zoomCur is still mid-spring makes the drag maths disagree with what is
@@ -719,23 +770,21 @@ f.addEventListener('load', async () => {
     pointerId: 41, clientX: pressPt.x, clientY: pressPt.y, bubbles: true, cancelable: true
   }));
   await wait(60);
-  ok(khl.classList.contains('pressing'), 'pressing the bar sinks it');
+  ok(khl.classList.contains('pressing'), 'pressing it squeezes the bead');
   /* Virtual time does not advance transitions, so computed values sit at
      their start forever; kill the transitions and read the targets. */
   const lensStill = d.createElement('style');
-  lensStill.textContent = '.handle-lens, .face-banner--handle > h2 { transition: none !important; }';
+  lensStill.textContent =
+    '.handle-lens, .face-banner--handle, .face-banner--handle > h2 { transition: none !important; }';
   d.head.appendChild(lensStill);
-  ok(Number(w.getComputedStyle(bulge).opacity) > 0.5, 'and the dish is actually visible');
-  /* A concave lens minifies. The copy shrinking is the cue the eye reads —
-     the refraction alone is invisible on a surface this blurred. */
+  /* Squeezed, a drop of water spreads and flattens. The copy goes with it —
+     type sitting still on a surface that moved reads as a decal. */
   const shrunk = copyEl.getBoundingClientRect().width;
-  ok(shrunk / copyWide < .97,
-     `the copy shrinks into it (${(shrunk / copyWide).toFixed(3)} of its size)`);
+  ok(shrunk / copyWide < .99,
+     `the copy gives with it (${(shrunk / copyWide).toFixed(3)} of its size)`);
   lensStill.remove();
-  /* The hollow is the pill's own shading, not the dish layer's, so that the
-     dish can be held off the edges where the light has to reach. */
   ok(/inset/.test(w.getComputedStyle(khl).boxShadow),
-     'and the pill lights itself from the inside like a dent');
+     'and the bead lights itself from the inside, top and underside both');
   /* The glass thins while it is held. 9px of blur destroys every edge behind
      the bar, and a lens with nothing to bend is a lens nobody can see — the
      dot lattice has to come back into focus for the warp to read at all. */

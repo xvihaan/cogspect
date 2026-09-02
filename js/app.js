@@ -965,6 +965,55 @@
     }
     const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
 
+    /* The bead answers to where you are.
+
+       A real piece of glass reads as glass because its highlight is SOMEWHERE
+       and where it is depends on your angle to it. Nothing here can know the
+       viewer's angle, but the pointer is the closest thing to one, so the
+       specular is aimed from it: over the bar, the highlight sits under the
+       cursor; away from it, it swings out to the far side, the way a
+       reflection slides off a surface you walk past.
+
+       --near is the same pointer's distance, 1 on the bar and 0 beyond REACH,
+       and every material property reads from it — fill, blur, rim light, the
+       cast underneath. One number, so the whole surface answers together
+       instead of six properties each deciding for themselves. */
+    const REACH = 220;                   // px beyond the bar before it stops caring
+    let glassRaf = 0, glassAt = null;
+
+    function paintGlass() {
+      glassRaf = 0;
+      if (!keenHandle || !glassAt) return;
+      const r = keenHandle.getBoundingClientRect();
+      if (!r.width) return;
+      // distance from the pointer to the bar's box, zero when inside it
+      const dx = Math.max(r.left - glassAt.x, 0, glassAt.x - r.right);
+      const dy = Math.max(r.top - glassAt.y, 0, glassAt.y - r.bottom);
+      const near = 1 - Math.min(1, Math.hypot(dx, dy) / REACH);
+      // the highlight tracks the pointer across the bar and keeps going past
+      // its ends, so walking away slides the reflection off rather than
+      // parking it at the edge
+      const gx = clamp(((glassAt.x - r.left) / r.width) * 100, -25, 125);
+      const gy = clamp(((glassAt.y - r.top) / r.height) * 100, -60, 160);
+      const st = keenHandle.style;
+      st.setProperty('--near', near.toFixed(3));
+      st.setProperty('--gx', gx.toFixed(1) + '%');
+      st.setProperty('--gy', gy.toFixed(1) + '%');
+      // the same light as a direction, for the rim arcs: bright on the side it
+      // comes from, shaded opposite, both swinging round the pill as you move
+      st.setProperty('--sx', (((50 - gx) / 50) * 6).toFixed(2) + 'px');
+      st.setProperty('--sy', (((50 - gy) / 50) * 3.5).toFixed(2) + 'px');
+    }
+    window.addEventListener('pointermove', (e) => {
+      if (cur !== 'back') return;        // only the room this bar belongs to
+      glassAt = { x: e.clientX, y: e.clientY };
+      // one read and one write per frame: this runs on every pointer event
+      if (!glassRaf) glassRaf = requestAnimationFrame(paintGlass);
+    }, { passive: true });
+    window.addEventListener('pointerleave', () => {
+      if (keenHandle) keenHandle.style.setProperty('--near', '0');
+    });
+
 
     function grabSlab(e, el) {
       e.preventDefault();

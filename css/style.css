@@ -1344,8 +1344,8 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .ghost-line.now::after { animation: none; }
   .ghost-line { transition: none; }
   .keen-slab { animation: none; --slab-top: 96px; }
-  /* the dish still shows — it is shading, not motion — but the pill does not
-     shrink and neither does its copy */
+  /* the glass still answers — highlight, fill and focus are shading, not
+     motion — but the bead does not squeeze and its copy does not move */
   .face.landed .face-banner--handle.pressing {
     transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px)));
   }
@@ -1825,88 +1825,132 @@ body.lens .face-banner {
   -webkit-backdrop-filter: blur(4px) saturate(140%);
 }
 
-/* The press dish. Pressed, the WHOLE bar sinks: the face behind it bends the
-   way it would through a concave lens, its shading flips from dome to hollow —
-   light along the bottom inner wall, shadow along the top, which is what a
-   dent looks like under a light that has not moved — and the copy shrinks,
-   because minifying is what a concave lens actually does to what you see
-   through it.
+/* ---------- the keen island: a bead of liquid glass ----------------------
 
-   A round lens under the pointer was tried first and read as nothing at all:
-   56px of gentle refraction on a surface that is already blurred is below the
-   threshold where anyone notices. The whole 360px block is not. */
-/* Pressed, the glass thins. 9px of blur has already destroyed every edge
-   behind the bar, and a lens with nothing to bend is a lens you cannot see —
-   the whole point of the dish is that the dot lattice behind it visibly
-   curves. Letting the backdrop sharpen while it is held is what makes the
-   refraction readable rather than theoretical. */
+   Three properties, and each one is a thing the surface DOES rather than a
+   look it has:
+
+   · liquid and glass. A droplet is nearly flat in the middle and does all its
+     bending at the rim, so #lg-drop is weighted there — the copy stays put
+     and the face behind the edges curls. Over that sits a specular streak
+     that moves with the pointer, which is the whole reason a real piece of
+     glass reads as glass: the highlight is somewhere, and where it is depends
+     on where you are.
+   · translucent, without hiding anything. The fill went 15% → 7%: what keeps
+     the copy legible is the blur and the rim light, not paint. The face is
+     visible straight through it.
+   · organic. It recedes when nothing is near it and materialises as you
+     approach, and pressing it flattens the bead the way pressing a drop of
+     water does — which is also why the backdrop sharpens: squeezed glass is
+     thinner glass. --near is the pointer's distance to the bar, 0 far, 1 on
+     it; everything below reads from it, so the whole surface answers to one
+     number. */
+.face-banner--handle {
+  --near: 0;
+  --gx: 30%;              /* where the light is, as a fraction of the bar */
+  --gy: 24%;
+  --sx: 5px;              /* ...and as a direction, for the rim arcs */
+  --sy: 3px;
+  /* A bead is very slightly DARKER than the paper under it everywhere except
+     its highlight — Fresnel, and the reason glass on white reads at all. The
+     fill is a whisper of the ink token rather than more of the white one. */
+  background: color-mix(in srgb, var(--fg) 3.5%, transparent);
+  /* On a plain face the outline is most of the shape, so it carries more than
+     the old 15% did, and it firms up as you approach. */
+  border-color: color-mix(in srgb, var(--fg) calc(11% + var(--near) * 10%), transparent);
+  backdrop-filter: blur(calc(5px + var(--near) * 3px)) saturate(160%);
+  -webkit-backdrop-filter: blur(calc(5px + var(--near) * 3px)) saturate(160%);
+  box-shadow:
+    /* the cast, which tightens as it lifts toward you */
+    0 calc(8px + var(--near) * 8px) calc(20px + var(--near) * 18px)
+      rgba(5, 10, 25, calc(.05 + var(--near) * .06)),
+    /* the top of a bead catches the sky */
+    inset 0 1px 0 rgba(255, 255, 255, calc(.32 + var(--near) * .38)),
+    /* and light pools along its underside before it leaves */
+    inset 0 -6px 12px -6px rgba(255, 255, 255, calc(.2 + var(--near) * .35)),
+    inset 0 -1px 0 rgba(255, 255, 255, .16);
+  transition:
+    background .35s ease, border-color .35s ease, box-shadow .35s ease,
+    backdrop-filter .35s ease, transform .28s cubic-bezier(.3, .9, .3, 1);
+}
+body.lens .face-banner--handle { backdrop-filter: url(#lg-drop) blur(5px) saturate(160%); }
+
+/* The specular. A real highlight is a shape on the surface, not a gradient
+   across the whole box: this is a narrow band with a hot core, positioned at
+   --gx/--gy, and it strengthens as the pointer nears. It sits UNDER the copy
+   — backdrop-filter samples only what is painted behind an element, and a
+   highlight painted over type washes the type out. */
+.face-banner--handle > .handle-lens {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: calc(.4 + var(--near) * .6);
+  transition: opacity .35s ease;
+  /* White on white is nothing, which is how the first attempt at this
+     disappeared. A drop of water on paper is not read from its highlight
+     alone — it is read from the PAIR: a hot rim on the lit side and a soft
+     shaded one opposite, with the body very slightly darker than the paper
+     between them. That contrast is the whole picture, so it is drawn here
+     rather than hoped for from the refraction, which has no texture to bend
+     on a plain face. */
+  background:
+    /* The hot spot. Small, and high on the body: a bead's highlight sits near
+       the top of the curve, not in the middle of the shape. */
+    radial-gradient(13% 46% at var(--gx) calc(var(--gy) - 4%),
+      rgba(255, 255, 255, .98) 0%,
+      rgba(255, 255, 255, .4) 40%,
+      rgba(255, 255, 255, 0) 100%),
+    /* a restrained wash around it — enough to say the surface is lit, little
+       enough that the face still shows through */
+    radial-gradient(52% 110% at var(--gx) calc(var(--gy) - 8%),
+      rgba(255, 255, 255, .3) 0%,
+      rgba(255, 255, 255, .06) 44%,
+      rgba(255, 255, 255, 0) 74%),
+    /* the shaded side — the half of the pair that makes the other half
+       visible at all, and the reason this reads on white */
+    radial-gradient(64% 128% at calc(100% - var(--gx)) calc(100% - var(--gy)),
+      rgba(21, 22, 28, .085) 0%,
+      rgba(21, 22, 28, .028) 44%,
+      rgba(21, 22, 28, 0) 76%);
+  /* The rim is where a droplet is most itself: a bright arc on the lit side
+     and a soft dark one opposite. --sx/--sy are the light's direction in px,
+     set from the same pointer, so the pair swings around the pill as you move
+     rather than sitting on a fixed edge. */
+  box-shadow:
+    inset var(--sx, 5px) var(--sy, 3px) 6px -3px rgba(255, 255, 255, .95),
+    inset calc(var(--sx, 5px) * -1) calc(var(--sy, 3px) * -1) 7px -4px rgba(21, 22, 28, .16);
+}
+
+/* Pressed, the bead is squeezed: it spreads, it flattens, and the glass gets
+   thinner — which is why the backdrop comes into focus. That sharpening is
+   the action this face is built on and it is unchanged; what changed is the
+   reason it looks true. */
 .face-banner--handle.pressing {
   backdrop-filter: blur(1.5px) saturate(165%);
   -webkit-backdrop-filter: blur(1.5px) saturate(165%);
-  transition: backdrop-filter .22s ease, box-shadow .22s ease;
   box-shadow:
-    0 4px 12px rgba(5, 10, 25, .06),
-    inset 0 5px 9px rgba(21, 22, 28, .2),
-    inset 0 1px 1px rgba(21, 22, 28, .12),
-    inset 0 -3px 4px rgba(255, 255, 255, .85);
-}
-.face.landed .face-banner--handle.pressing {
-  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.982);
-  transition: transform .22s cubic-bezier(.3, .9, .3, 1),
-              box-shadow .22s ease;
+    0 3px 10px rgba(5, 10, 25, .07),
+    inset 0 1px 0 rgba(255, 255, 255, .5),
+    inset 0 -8px 14px -8px rgba(255, 255, 255, .5);
 }
 body.lens .face-banner--handle.pressing {
-  backdrop-filter: url(#lg-lens) blur(1.5px) saturate(170%);
+  backdrop-filter: url(#lg-drop) blur(1.5px) saturate(170%);
 }
-/* the refraction layer. It carries no paint of its own — the shading above is
-   the pill's, so it can sit right on the edges where this must not. */
-.face-banner--handle > .handle-lens {
-  position: absolute;
-  /* BEHIND the bar's own children (-1, not 0). backdrop-filter samples what
-     is painted below the element, and at z-index 0 the label was still in
-     that image: the dish pulled a ghosted second copy of "Design space" up
-     through itself, which reads as a rendering fault, not as glass. */
-  z-index: -1;
-  /* held off the rounded caps: the pill's own edge is in this layer's
-     backdrop, and displacing a hard curved edge tears a cusp out of it. */
-  inset: 0 36px;
-  border-radius: 26px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .22s ease;
-  /* The pill's own rounded edge is in this layer's backdrop, and displacing a
-     hard edge tears a cusp out of it. The mask keeps the warp in the middle
-     of the block and leaves the ends alone. */
-  -webkit-mask-image: radial-gradient(105% 150% at 50% 50%, #000 18%, rgba(0, 0, 0, 0) 64%);
-  mask-image: radial-gradient(105% 150% at 50% 50%, #000 18%, rgba(0, 0, 0, 0) 64%);
-}
-body.lens .face-banner--handle > .handle-lens {
-  backdrop-filter: url(#lg-dish);
-  -webkit-backdrop-filter: none;   /* Safari has no SVG filter here — shading only */
-}
-.face-banner--handle.pressing > .handle-lens { opacity: 1; }
-/* A concave lens MINIFIES what you see through it, and on a surface this
-   blurred that is the cue the eye actually reads. */
-.face-banner--handle > h2,
-.face-banner--handle > p {
-  transition: transform .22s cubic-bezier(.3, .9, .3, 1);
-}
-.face-banner--handle.pressing > h2,
-.face-banner--handle.pressing > p { transform: scale(.93); }
-.face-banner--handle.pressing > p { transform: scale(.93); }
-body.lens .face-banner--handle > .handle-lens {
-  backdrop-filter: url(#lg-dish);
-  -webkit-backdrop-filter: none;   /* Safari has no SVG filter here — shading only */
-}
-.face-banner--handle.pressing > .handle-lens { opacity: 1; }
-/* and the pill gives a little, so the dent has somewhere to go */
 .face.landed .face-banner--handle.pressing {
-  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.982);
-  transition: transform .22s cubic-bezier(.3, .9, .3, 1);
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px)))
+             scale(1.012, .955);
 }
-/* the bulge shading belongs to the GLASS, not to the copy: an absolutely
-   positioned pseudo paints above static in-flow children, so without this
-   the highlight washes "Design space" out to grey */
+/* the copy rides the squeeze rather than sitting still on top of it */
+.face-banner--handle > h2,
+.face-banner--handle > p { transition: transform .22s cubic-bezier(.3, .9, .3, 1); }
+.face-banner--handle.pressing > h2,
+.face-banner--handle.pressing > p { transform: scale(.965); }
+
+/* the shading belongs to the GLASS, not to the copy: an absolutely positioned
+   pseudo paints above static in-flow children, so without this the highlight
+   washes "Design space" out to grey */
 .face-banner--handle > * { position: relative; z-index: 1; }
 
 .keen-slab.dragging { cursor: grabbing; }
