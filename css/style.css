@@ -778,7 +778,28 @@ body.on-dark .ghost-msg {
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
-  width: min(440px, calc(100vw - 48px));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* the bar keeps its own 440, and the row grows by exactly what the two
+     controls need, so moving them here did not shrink the thing you type in */
+  width: min(508px, calc(100vw - 48px));
+}
+.chat-dock .chat-bar { flex: 1; min-width: 0; }
+
+/* Sound in and sound out, side by side. They sit OUTSIDE the bar rather than
+   inside it: the bar is the one surface the visitor is talking to, and
+   hanging switches off it turns it back into a widget with controls. */
+.chat-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+@media (max-width: 420px) {
+  /* below this the row costs the input more than the icons are worth */
+  .chat-dock { gap: 10px; }
+  .chat-controls { gap: 8px; }
 }
 
 /* keen §2 "nav pill / floating chrome" — same recipe as the nav */
@@ -1874,7 +1895,6 @@ body.lens .face-banner--handle > .handle-lens {
   transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.982);
   transition: transform .22s cubic-bezier(.3, .9, .3, 1);
 }
-}
 /* the bulge shading belongs to the GLASS, not to the copy: an absolutely
    positioned pseudo paints above static in-flow children, so without this
    the highlight washes "Design space" out to grey */
@@ -1950,7 +1970,9 @@ body.lens .face-banner--handle > .handle-lens {
 }
 .voice-toggle .vt-body { fill: currentColor; }
 .voice-toggle .vt-wave,
-.voice-toggle .vt-slash {
+.voice-toggle .vt-slash,
+.voice-toggle .mt-arc,
+.voice-toggle .mt-stem {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.4;
@@ -1963,9 +1985,29 @@ body.lens .face-banner--handle > .handle-lens {
 .voice-toggle .vt-wave--far { opacity: .55; }
 .voice-toggle.off .vt-wave { opacity: 0; }
 .voice-toggle.off .vt-slash { opacity: 1; }
-}
 .voice-toggle:hover { color: var(--muted); }
 .voice-toggle.off { opacity: .6; }
+/* The microphone. It shares .voice-toggle wholesale — same box, same colour,
+   same slash for "off" — because these two are one pair of controls and a
+   second visual language between them would say they are not.
+
+   What it does NOT share is which state is the resting one. The speaker is on
+   until you turn it off; the mic is off until you turn it on, and it never
+   remembers being on. A page that opens the microphone because it did last
+   time is a page that opens the microphone without being asked. */
+.mic-toggle .mt-body { fill: currentColor; }
+/* live: the one place these two controls are allowed to look different, since
+   "we are recording you" has to be legible from across the page */
+.mic-toggle.live { color: #e0483f; opacity: 1; }
+.mic-toggle.live .mt-body { animation: micLive 1.5s ease-in-out infinite; }
+@keyframes micLive {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .45; }
+}
+/* heard something: one flash, so a word that landed is confirmed by the
+   control rather than only by text appearing somewhere else */
+.mic-toggle.heard { color: #1a7f4b; }
+
 /* the icon breathes while the voice is live, so the control doubles as an
    indicator of whether anything is speaking */
 .voice-toggle:not(.off) .vt-wave { animation: voicePulse 2.4s ease-in-out infinite; }

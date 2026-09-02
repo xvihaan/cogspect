@@ -1304,6 +1304,11 @@
      to a steady beat for the utterance's duration. */
 
   const TTS = window.speechSynthesis;
+  /* Set by anything that makes cpt audible, read by the microphone. Declared
+     up here because speak() is above the listening block and calls it. */
+  let deafUntil = 0;
+  const SELF_HEAR_GUARD = 700;
+  const deafen = () => { deafUntil = Date.now() + SELF_HEAR_GUARD; };
   /* How long the text will wait for a voice that may never come. Long enough
      for a warmed engine to start, short enough that a muted or blocked one
      does not read as a dead bubble. */
@@ -1444,11 +1449,12 @@
     u.rate = 1.24;
     u.pitch = 1;
     let spoke = false;
-    u.onstart = () => { spoke = true; parkedSpeech = null; go(); };
+    // an open mic must not hear this; see SELF_HEAR_GUARD
+    u.onstart = () => { spoke = true; parkedSpeech = null; deafen(); go(); };
     // engines that emit boundaries pulse the grid on the actual words, over
     // the steady beat startWave() is already running
     u.onboundary = voiceRipple;
-    u.onend = stopBeat;
+    u.onend = () => { stopBeat(); deafen(); };   // the tail is still in the air
     u.onerror = (e) => {
       if (!spoke && !isRetry && /not-allowed|blocked/i.test(e.error || '')) parkedSpeech = text;
       go();                              // never hold the text hostage to the audio
@@ -1494,6 +1500,126 @@
     paintVoiceBtn();
     voiceBtn.addEventListener('click', () => setVoice(!voiceOn));
   }
+
+  /* ---------- listening ---------------------------------------------------
+
+     The other half of talking to cpt. Web Speech again, the recognition side
+     this time — no upload, no key, nothing to host, and it is the visitor's
+     browser doing the transcribing rather than us doing it for them.
+
+     Three things this has to get right:
+
+     · It is OFF, and it does not remember being on. The speaker remembers
+       because leaving it on costs the visitor nothing; a microphone that
+       opens because it was open last time is a microphone opened without
+       being asked. Every session starts silent, deliberately.
+     · A heard sentence goes through the SAME path a typed one does — into the
+       field, then submit — so "음소거해줘" and "포트폴리오로 가줘" work spoken
+       exactly as they work typed, and there is one router rather than two.
+     · It must not hear cpt. An open mic next to a speaking page transcribes
+       the page, answers itself, and speaks again; that loop is the whole
+       failure mode of voice input and it is guarded below.
+
+     Support is not universal — Firefox ships nothing here — so the control is
+     removed rather than shown broken. */
+  const micBtn = document.getElementById('micToggle');
+  // looked up per attempt, not captured at boot: the vendor-prefixed
+  // constructor is not guaranteed to be there the moment this file runs
+  const SR = () => window.SpeechRecognition || window.webkitSpeechRecognition;
+  let hearing = null;                    // the live recognizer, if any
+  let hearingWanted = false;             // what the button says, not what the engine is doing
+  let heardFlash = null;
+
+  if (micBtn && !SR()) micBtn.remove();   // nothing to switch on
+
+  function paintMicBtn() {
+    if (!micBtn) return;
+    micBtn.classList.toggle('off', !hearingWanted);
+    micBtn.classList.toggle('live', hearingWanted);
+    micBtn.setAttribute('aria-pressed', String(hearingWanted));
+    micBtn.setAttribute('aria-label', hearingWanted ? '음성 입력 끄기' : '음성 입력 켜기');
+  }
+
+  function heard(text) {
+    const said = String(text || '').trim();
+    if (!said) return;
+    // through the field and the form, so voice and typing share one router
+    chatInput.value = said;
+    chatForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    if (!micBtn) return;
+    micBtn.classList.add('heard');
+    clearTimeout(heardFlash);
+    heardFlash = setTimeout(() => micBtn.classList.remove('heard'), 900);
+  }
+
+  function startHearing() {
+    const Ctor = SR();
+    if (!Ctor || hearing) return;
+    const r = new Ctor();
+    r.lang = 'ko-KR';
+    r.continuous = true;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+
+    r.onresult = (e) => {
+      // everything cpt said while the mic was open is cpt's, not the visitor's
+      if ((TTS && (TTS.speaking || TTS.pending)) || Date.now() < deafUntil) {
+        deafen();
+        chatInput.value = '';
+        return;
+      }
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        if (res.isFinal) { heard(res[0].transcript); interim = ''; }
+        else interim += res[0].transcript;
+      }
+      // a partial phrase is shown but never sent: the visitor watches it being
+      // understood, and only a finished sentence is acted on
+      if (interim) chatInput.value = interim.trim();
+    };
+    r.onerror = (e) => {
+      const why = e.error || '';
+      if (/not-allowed|service-not-allowed/.test(why)) {
+        // refused at the OS or the site level; asking again on a timer would
+        // just be a page nagging for a microphone
+        setHearing(false);
+        showToast('마이크 권한이 필요합니다. 브라우저 주소창의 설정에서 허용해 주세요.');
+      } else if (why === 'audio-capture') {
+        setHearing(false);
+        showToast('마이크를 찾지 못했습니다.');
+      }
+      // no-speech and aborted are ordinary: onend restarts
+    };
+    r.onend = () => {
+      hearing = null;
+      // engines stop on their own after a pause; while the button is still on
+      // that is a stall to recover from, not a decision the visitor made
+      if (hearingWanted) setTimeout(startHearing, 120);
+    };
+    hearing = r;
+    try { r.start(); } catch (err) { hearing = null; }
+  }
+
+  function stopHearing() {
+    if (!hearing) return;
+    const r = hearing;
+    hearing = null;
+    r.onend = null;                      // this end is deliberate: do not restart
+    try { r.stop(); } catch (err) { /* already gone */ }
+  }
+
+  /* The single place the mic state changes — see setVoice() above, same
+     reason: a site you can talk to must not disagree with its own controls. */
+  function setHearing(on) {
+    hearingWanted = !!on;
+    if (hearingWanted) { deafen(); startHearing(); }
+    else { stopHearing(); chatInput.value = ''; }
+    paintMicBtn();
+    return hearingWanted;
+  }
+  paintMicBtn();
+  if (micBtn) micBtn.addEventListener('click', () => setHearing(!hearingWanted));
 
   // first real interaction releases anything autoplay refused
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) {

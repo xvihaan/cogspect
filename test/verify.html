@@ -275,8 +275,13 @@ f.addEventListener('load', async () => {
   const vb = d.getElementById('voiceToggle');
   ok(!!vb, 'the voice can be turned off');
   ok(vb.getAttribute('aria-pressed') === 'true', 'and it starts on');
-  ok(w.getComputedStyle(vb).pointerEvents === 'auto',
-     'the toggle is clickable even though .hud is pointer-events:none');
+  /* It used to live in .hud, which is pointer-events:none, and needed an
+     override to stay clickable. It is beside the chat bar now — the override
+     is harmless there, but what actually has to hold is that a click lands. */
+  ok(w.getComputedStyle(vb).pointerEvents === 'auto', 'the toggle takes a click');
+  const vbBox = vb.getBoundingClientRect();
+  const onTop = d.elementFromPoint(vbBox.left + vbBox.width / 2, vbBox.top + vbBox.height / 2);
+  ok(vb.contains(onTop), `and nothing covers it (${onTop && onTop.tagName})`);
   vb.click();
   await wait(60);
   ok(vb.getAttribute('aria-pressed') === 'false' && vb.classList.contains('off'),
@@ -289,6 +294,98 @@ f.addEventListener('load', async () => {
      'the control is an icon, not the word "voice"');
   ok(!!vb.querySelector('.vt-slash') && vb.querySelectorAll('.vt-wave').length === 2,
      'and it carries both states — waves on, slash off');
+
+  /* ---- the microphone ---------------------------------------------------
+
+     Sound in and sound out are one pair of controls, so they live together,
+     beside the thing they act on rather than in a corner of the page. */
+  const mb = d.getElementById('micToggle');
+  const bar = d.getElementById('chatForm');
+  ok(!!mb, 'there is a microphone to talk into');
+  const near = (el) => el.getBoundingClientRect();
+  ok(near(mb).right <= near(vb).left + 1, 'the mic comes first, then the speaker');
+  ok(near(vb).right <= near(bar).left + 1, 'and both sit to the left of the conversation bar');
+  ok(Math.abs(near(mb).width - near(vb).width) < 1 &&
+     Math.abs(near(mb).height - near(vb).height) < 1,
+     `the two are the same size (${Math.round(near(mb).width)}px)`);
+  /* Moving them next to the bar must not have come out of the bar. */
+  ok(near(bar).width >= 439, `and the bar kept its own width (${Math.round(near(bar).width)}px)`);
+
+  /* The mic is OFF, and unlike the speaker it does not remember being on.
+     Leaving the speaker on costs a visitor nothing; a microphone that opens
+     because it was open last time is one opened without being asked. */
+  ok(mb.getAttribute('aria-pressed') === 'false' && mb.classList.contains('off'),
+     'the mic starts off');
+  ok(!Object.keys(localStorage).concat(Object.keys(w.localStorage))
+      .some((k) => /mic|hear|listen/i.test(k)),
+     'and nothing on this browser remembers it being on');
+
+  /* Driving it. The constructor is looked up per attempt rather than captured
+     at boot, so a stand-in can be installed here — which is the only way to
+     test any of this without a microphone and a person to talk into it. */
+  const spoken = [];
+  let rec = null;
+  w.SpeechRecognition = function () {
+    rec = this;
+    this.start = () => { this.running = true; };
+    this.stop = () => { this.running = false; if (this.onend) this.onend(); };
+    this.abort = this.stop;
+  };
+  w.webkitSpeechRecognition = w.SpeechRecognition;
+  const realSubmit = d.getElementById('chatInput');
+  /* On WINDOW, capture phase. A capture listener on the form itself would not
+     help: at the target, listeners run in the order they were added whatever
+     their phase, and the app's handler — which clears the field — was added
+     first. Capturing on the way down is what gets there before it. */
+  const onSubmit = () => { spoken.push(realSubmit.value); };
+  w.addEventListener('submit', onSubmit, true);
+
+  mb.click();
+  /* Long enough to clear SELF_HEAR_GUARD. Opening the mic deafens it briefly
+     on purpose — cpt may have been speaking a moment ago — so a test that
+     talks immediately is talking into the guard. */
+  await wait(900);
+  ok(mb.getAttribute('aria-pressed') === 'true' && !mb.classList.contains('off'),
+     'clicking it turns listening on');
+  ok(rec && rec.running && rec.lang === 'ko-KR' && rec.continuous === true,
+     'and it opens a Korean recognizer that keeps listening');
+
+  /* A heard sentence goes down the same path a typed one does — into the
+     field, then submit — so spoken commands route exactly like typed ones and
+     there is one router rather than two. */
+  const result = (text, isFinal) => rec.onresult({
+    resultIndex: 0,
+    results: Object.assign([[{transcript: text}]], {0: Object.assign([{transcript: text}], {isFinal})})
+  });
+  result('포트폴리오', false);
+  await wait(40);
+  ok(realSubmit.value === '포트폴리오' && spoken.length === 0,
+     'a half-finished phrase is shown but never sent');
+  result('음소거해줘', true);
+  await wait(120);
+  ok(spoken.includes('음소거해줘'),
+     `a finished one goes through the chat, not around it (${JSON.stringify(spoken)})`);
+  ok(vb.getAttribute('aria-pressed') === 'false',
+     'so a spoken command works exactly as the typed one does');
+
+  /* The failure mode of voice input: an open mic beside a speaking page
+     transcribes the page, answers itself, and speaks again. */
+  vb.click();                                  // voice back on
+  await wait(60);
+  spoken.length = 0;
+  const wasSpeaking = Object.getOwnPropertyDescriptor(w.speechSynthesis, 'speaking');
+  Object.defineProperty(w.speechSynthesis, 'speaking', {configurable: true, get: () => true});
+  result('cogspect가 지향하는 디자인 공간입니다', true);
+  await wait(120);
+  ok(spoken.length === 0, `it does not hear cpt talking (${JSON.stringify(spoken)})`);
+  if (wasSpeaking) Object.defineProperty(w.speechSynthesis, 'speaking', wasSpeaking);
+  else delete w.speechSynthesis.speaking;
+
+  mb.click();
+  await wait(80);
+  ok(mb.getAttribute('aria-pressed') === 'false' && !rec.running,
+     'and clicking again closes the microphone');
+  w.removeEventListener('submit', onSubmit, true);
 
   /* A site you operate by talking to it has to answer to the chat where it
      answers to the mouse, or the conversation is a search box in an agent's

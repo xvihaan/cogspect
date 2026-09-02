@@ -198,15 +198,6 @@
   <div class="hud">
     <span class="face-indicator" id="faceIndicator">cogspect</span>
     <span class="hud-hint" id="hudHint">드래그·스크롤·키보드로 이동 가능.</span>
-    <button class="voice-toggle" id="voiceToggle" type="button" aria-pressed="true"
-            aria-label="음성 안내 끄기" title="음성 안내">
-      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-        <path class="vt-body" d="M3.6 7.6h3L10.4 4.5v11L6.6 12.4h-3z"/>
-        <path class="vt-wave" d="M12.9 7.6a3.4 3.4 0 0 1 0 4.8"/>
-        <path class="vt-wave vt-wave--far" d="M15.1 5.6a6.4 6.4 0 0 1 0 8.8"/>
-        <path class="vt-slash" d="M13.2 7.4 17.6 12.6"/>
-      </svg>
-    </button>
   </div>
 
   <!-- ephemeral AI answer (b3ta intelligence) -->
@@ -215,6 +206,30 @@
   <!-- bottom chat dock -->
   <div class="chat-dock">
     <div class="toast" id="toast" role="status"></div>
+    <!-- The two ways cpt uses sound, next to the thing they act on rather
+         than parked in the corner: talking TO it, then it talking back. Both
+         start where the visitor left them — the mic off, because a page that
+         opens a microphone unasked is not one you would trust. -->
+    <div class="chat-controls">
+      <button class="voice-toggle mic-toggle off" id="micToggle" type="button"
+              aria-pressed="false" aria-label="음성 입력 켜기" title="음성 입력">
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path class="mt-body" d="M10 3.2a2.1 2.1 0 0 1 2.1 2.1v4.4a2.1 2.1 0 0 1-4.2 0V5.3A2.1 2.1 0 0 1 10 3.2z"/>
+          <path class="mt-arc" d="M5.6 9.3a4.4 4.4 0 0 0 8.8 0"/>
+          <path class="mt-stem" d="M10 13.7v3"/>
+          <path class="vt-slash" d="M4.6 4.4 15.4 15.6"/>
+        </svg>
+      </button>
+      <button class="voice-toggle" id="voiceToggle" type="button" aria-pressed="true"
+              aria-label="음성 안내 끄기" title="음성 안내">
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path class="vt-body" d="M3.6 7.6h3L10.4 4.5v11L6.6 12.4h-3z"/>
+          <path class="vt-wave" d="M12.9 7.6a3.4 3.4 0 0 1 0 4.8"/>
+          <path class="vt-wave vt-wave--far" d="M15.1 5.6a6.4 6.4 0 0 1 0 8.8"/>
+          <path class="vt-slash" d="M13.2 7.4 17.6 12.6"/>
+        </svg>
+      </button>
+    </div>
     <form class="chat-bar" id="chatForm" autocomplete="off">
       <input id="chatInput" type="text" placeholder="cogspect conversation" aria-label="cogspect에게 메시지 보내기">
     </form>
