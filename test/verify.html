@@ -765,6 +765,8 @@ f.addEventListener('load', async () => {
     glance(x, y);
     await wait(150);
     ok(frontOf4.style.transform !== square, `${name} leans the cube`);
+    ok(d4.getElementById('stage').classList.contains('peeking'),
+       `${name}: and the stage knows it is leaning`);
     /* A lean is not a turn. The pose goes to paintFaces() directly and O is
        untouched, so an arrow key mid-peek still turns from a square pose —
        and the cube's own account of where it is never wavers. */
@@ -793,9 +795,41 @@ f.addEventListener('load', async () => {
   ok(seenLines.every((l) => l.split('.').filter(Boolean).length <= 3),
      'and each is one line, not a queue of everything you passed');
 
+  /* The lean has to REVEAL something. At fifteen degrees the arriving face
+     projected as a sixteen-pixel sliver tucked inside the front face's own
+     silhouette — so the peek was a tilt with nothing behind it, and no amount
+     of shading could have fixed that. It has to clear the silhouette, which
+     it does from about twenty-six degrees. */
+  const shadeStill = d4.createElement('style');
+  shadeStill.textContent = '.face, .face::after { transition: none !important; }';
+  d4.head.appendChild(shadeStill);
+  glance(w4.innerWidth / 2, w4.innerHeight / 2);
+  await wait(200);
+  glance(w4.innerWidth - 40, 40);
+  await wait(320);
+  const frontBox = frontOf4.getBoundingClientRect();
+  const nextBox = d4.querySelector('[data-face="right"]').getBoundingClientRect();
+  ok(nextBox.width > 50,
+     `the room arriving is a plane, not a sliver (${Math.round(nextBox.width)}px)`);
+  ok(nextBox.left >= frontBox.right - 2,
+     'and it clears the face you are on rather than hiding inside it');
+  /* Shading, which is the other half: a solid turning under a fixed light does
+     not keep an even tone, so the face you are on darkens along the edge going
+     back and the one arriving is darker throughout. */
+  const shadeOf = (sel) => w4.getComputedStyle(d4.querySelector(sel), '::after');
+  ok(Number(shadeOf('[data-face="front"]').opacity) === 1,
+     'the shading is on while it leans');
+  ok(/gradient/.test(shadeOf('[data-face="right"]').backgroundImage),
+     'and the arriving face carries its own');
+  ok(d4.getElementById('stage').style.getPropertyValue('--peek-ang') === '90',
+     'aimed along the direction the lean runs');
+  shadeStill.remove();
+
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(600);
   ok(frontOf4.style.transform === square, 'and it comes back when you leave');
+  ok(!d4.getElementById('stage').classList.contains('peeking'),
+     'shading and all');
 
   /* Never mid-gesture. A peek is a hover affordance, and while a pointer is
      down the visitor is tumbling the cube or carrying the keen specimen —

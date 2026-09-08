@@ -99,6 +99,70 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   box-shadow: inset 0 0 120px rgba(220, 222, 230, .35), 0 0 0 1px rgba(255, 255, 255, .6);
 }
 
+/* ---------- the peek's shading -------------------------------------------
+
+   A cube leaning fifteen degrees is two nearly identical pale panels with a
+   hairline between them, and it reads as flat: the neighbour that swings into
+   view is just more background, so nothing about it says a room is arriving.
+
+   What is missing is that a solid turning under a fixed light does not keep
+   an even tone. The face you are on darkens along the edge that is rotating
+   AWAY; the face coming in is oblique to the light and darker overall; and
+   the fold between them catches a line. Three things, all of them the same
+   physical fact, and together they turn a tilt into a corner.
+
+   --peek-ang is the direction the tilt runs, in degrees, set from the same
+   place that chooses the corner. Angles rather than four pairs of rules,
+   because four pairs is where one of them ends up pointing the wrong way. */
+.face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s ease;
+  z-index: 3;                          /* over the room, under the island bar */
+}
+.stage.peeking .face::after { opacity: 1; }
+
+/* the face you are standing on: shadow gathers along the edge going back */
+.stage.peeking .face.landed::after {
+  background: linear-gradient(calc(var(--peek-ang, 90) * 1deg),
+    rgba(21, 22, 28, 0) 42%,
+    rgba(21, 22, 28, .05) 72%,
+    rgba(21, 22, 28, .17) 100%);
+}
+/* and the one arriving is oblique to the light, so it is darker throughout,
+   deepening toward the outer edge that is furthest from you */
+.stage.peeking .face:not(.landed)::after {
+  background:
+    linear-gradient(calc(var(--peek-ang, 90) * 1deg),
+      rgba(21, 22, 28, .1) 0%,
+      rgba(21, 22, 28, .2) 60%,
+      rgba(21, 22, 28, .34) 100%);
+}
+/* the void face is already near black; shading it darker says nothing, so
+   there the arriving face is picked out by light instead */
+body.on-dark .stage.peeking .face--void::after,
+.stage.peeking .face--void::after {
+  background: linear-gradient(calc(var(--peek-ang, 90) * 1deg),
+    rgba(255, 255, 255, .07) 0%,
+    rgba(255, 255, 255, .03) 55%,
+    rgba(255, 255, 255, 0) 100%);
+}
+/* the fold. Every face's rim brightens while the cube is leaning, so the two
+   planes stop being one pale sheet and the seam between them reads as an edge
+   of something solid. */
+.stage.peeking .face {
+  border-color: rgba(255, 255, 255, .85);
+  box-shadow:
+    inset 0 0 120px rgba(220, 222, 230, .35),
+    0 0 0 1px rgba(255, 255, 255, .6),
+    0 0 22px rgba(21, 22, 28, .06);
+}
+.stage .face { transition: border-color .3s ease, box-shadow .3s ease; }
+
 /* A face shows nothing until it has landed square.
 
    Turning the cube used to sweep every room past the camera edge-on: the

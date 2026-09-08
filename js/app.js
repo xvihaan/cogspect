@@ -2007,7 +2007,14 @@
      way the intro does it, so the cube's logical orientation is unchanged and
      an arrow key pressed mid-peek still turns from a square pose. */
   const PEEK_CORNER = 150;              // px square at each corner
-  const PEEK_DEG = 15;
+  /* Measured, not chosen. At 15° the arriving face projects as a SIXTEEN pixel
+     sliver tucked inside the front face's own silhouette — which is why the
+     peek read as a tilt with nothing behind it however it was shaded. It
+     clears the silhouette at about 26° and becomes a real second plane after
+     that: 62px at 26, 85 at 30, 174 at 40. Thirty is a third of the way to a
+     turn — plainly a lean rather than a commitment — and wide enough to be a
+     room rather than an edge. */
+  const PEEK_DEG = 30;
   /* Every face, not four of them. Which four are reachable depends on where
      the cube is being held — the corners always reveal the four faces
      adjacent to the one you are on — so over a visit all six get named. */
@@ -2030,6 +2037,11 @@
     'bottom-right': 'down',
     'bottom-left':  'left'
   };
+  /* Which way the shading runs while the cube leans, as a CSS gradient angle.
+     It points along the direction the near edge is travelling: peek right and
+     the face you are on recedes toward its right, so the shadow gathers there.
+     See the .stage.peeking block in the stylesheet. */
+  const PEEK_ANGLE = { right: 90, left: 270, up: 180, down: 0 };
   let peekAt = null, peekTimer = null;
   /* A peek is a hover affordance, and while a pointer is down the visitor is
      doing something else — tumbling the cube, carrying the keen specimen. It
@@ -2052,8 +2064,14 @@
     if (corner === peekAt) return;
     peekAt = corner;
     clearTimeout(peekTimer);
-    if (!corner) { paintFaces(true, 380, EASE_TURN, O); return; }
+    if (!corner) {
+      stage.classList.remove('peeking');
+      paintFaces(true, 380, EASE_TURN, O);
+      return;
+    }
     const dir = PEEK_CORNERS[corner];
+    stage.style.setProperty('--peek-ang', String(PEEK_ANGLE[dir]));
+    stage.classList.add('peeking');
     paintFaces(true, 320, EASE_TURN, peekPose(dir));
     /* cpt names what is leaning into view — every time, not once, and the
        newest corner REPLACES whatever the last one said rather than queueing
