@@ -575,6 +575,17 @@ f.addEventListener('load', async () => {
   const chipA = alphaOf(w4.getComputedStyle(chips[0]).backgroundColor);
   const barA = alphaOf(w4.getComputedStyle(d4.querySelector('.chat-bar')).backgroundColor);
   ok(chipA < barA, `and thinner than the bar they sit over (${chipA} vs ${barA})`);
+  /* Flush with the BAR, not with the dock. The dock is wider than the bar by
+     the two controls hanging off its left, so a row centred on the dock sits
+     visibly left of the thing it belongs to. */
+  const rowBox = d4.getElementById('chatChips').getBoundingClientRect();
+  const barSpan = d4.querySelector('.chat-bar').getBoundingClientRect();
+  ok(Math.abs(rowBox.left - barSpan.left) < 1.5 && Math.abs(rowBox.right - barSpan.right) < 1.5,
+     `the row is the bar's own width (${Math.round(rowBox.left)}–${Math.round(rowBox.right)}` +
+     ` vs ${Math.round(barSpan.left)}–${Math.round(barSpan.right)})`);
+  const ends = [chips[0].getBoundingClientRect(), chips[chips.length - 1].getBoundingClientRect()];
+  ok(Math.abs(ends[0].left - barSpan.left) < 1.5 && Math.abs(ends[1].right - barSpan.right) < 1.5,
+     'and the outer two line up with the bar’s ends');
 
   /* Answered from a table, not the model. The point is that it lands the
      instant you tap, so this must not wait on a network round trip — the

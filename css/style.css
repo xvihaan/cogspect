@@ -804,6 +804,11 @@ body.on-dark .ghost-msg {
   /* the bar keeps its own 440, and the row grows by exactly what the two
      controls need, so moving them here did not shrink the thing you type in */
   width: min(508px, calc(100vw - 48px));
+  /* what the mic and the speaker take out of the row, gap included. The chips
+     above are set flush to the BAR rather than to the dock, so they need to
+     know where the bar starts — and hard-coding 68 in two places is how the
+     two stop agreeing the first time either gap is touched. */
+  --controls-w: calc(22px + 10px + 22px + 14px);
 }
 .chat-dock .chat-bar { flex: 1; min-width: 0; }
 
@@ -816,20 +821,24 @@ body.on-dark .ghost-msg {
 .chat-chips {
   position: absolute;
   bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
+  /* flush with the BAR, not with the dock. The dock is wider than the bar by
+     the two controls hanging off its left, so a row centred on the dock sits
+     visibly left of the thing it belongs to. Left edge at the bar's left edge,
+     right edge at the dock's, which is the bar's. */
+  left: var(--controls-w);
+  right: 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  /* one line: the outer two align with the bar's ends, which is what makes
+     the row read as a column with it rather than as a floating cluster */
+  justify-content: space-between;
   gap: 7px;
-  width: max-content;
-  max-width: min(560px, calc(100vw - 32px));
   opacity: 0;
   pointer-events: none;
   transition: opacity .4s ease, transform .4s cubic-bezier(.2, .85, .2, 1);
 }
 .chat-chips.show { opacity: 1; pointer-events: auto; }
-.chat-chips:not(.show) { transform: translateX(-50%) translateY(6px); }
+.chat-chips:not(.show) { transform: translateY(6px); }
 
 .chip.liquid {
   --near: 0;
@@ -863,8 +872,10 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
    pointer, which would move the other two out from under the cursor */
 .chip.spent { opacity: 0; pointer-events: none; }
 @media (max-width: 520px) {
+  /* narrow enough that the row wraps, and space-between on a wrapped last
+     line strands whatever is on it against one edge */
   .chip { font-size: 11.5px; padding: 6px 12px; }
-  .chat-chips { gap: 6px; }
+  .chat-chips { gap: 6px; justify-content: center; }
 }
 
 /* Sound in and sound out, side by side. They sit OUTSIDE the bar rather than
@@ -878,7 +889,7 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
 }
 @media (max-width: 420px) {
   /* below this the row costs the input more than the icons are worth */
-  .chat-dock { gap: 10px; }
+  .chat-dock { gap: 10px; --controls-w: calc(22px + 8px + 22px + 10px); }
   .chat-controls { gap: 8px; }
 }
 
