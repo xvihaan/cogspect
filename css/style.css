@@ -150,10 +150,15 @@ body.peeking .face--void::after {
     rgba(255, 255, 255, .03) 55%,
     rgba(255, 255, 255, 0) 100%);
 }
-/* the fold. Every face's rim brightens while the cube is leaning, so the two
-   planes stop being one pale sheet and the seam between them reads as an edge
-   of something solid. */
-body.peeking .face {
+/* The fold. The rim of the face you are STANDING ON brightens while the cube
+   leans, so the seam where the two planes meet reads as an edge of something
+   solid rather than a hairline between two pale sheets.
+
+   Only that one. Brightening every face outlined the arriving face's far end
+   too — a 1px white line tracing the diagonal where the side converges to a
+   point, which is precisely the thing that makes a room look like a small
+   box. The fold is the landed face's own edge, so it is all that is needed. */
+body.peeking .face.landed {
   border-color: rgba(255, 255, 255, .85);
   box-shadow:
     inset 0 0 120px rgba(220, 222, 230, .35),
@@ -171,6 +176,40 @@ body.peeking .face {
    of a cube. It comes back the moment the lean does. */
 .grid-canvas { transition: opacity .3s ease; }
 body.peeking .grid-canvas { opacity: 0; }
+
+/* The far end of the side face dissolves instead of ending on a diagonal.
+
+   That converging far edge is the one thing that says "this is a small box"
+   rather than "this is a room you are about to walk into" — but it cannot be
+   pushed off the frame, because the cube is zoomed to sit INSIDE the frame
+   and its whole silhouette, side band included, stays there however far it
+   turns. Measured across tilts from 15° to 40° and lean-ins to 1.7×: the far
+   edge never reaches the viewport at the zoom the cube actually rests at.
+
+   So it is faded out instead — the same thing the chat bar and the answer
+   bubble do with their own edges, which is the house answer to a boundary
+   that should not read as one. A screen-space wash on the side being peeked,
+   aimed by the same --peek-ang, so it works from any corner and at any zoom.
+   Above the cube, below the chrome. */
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s ease;
+  /* The stops are placed where the far edge actually falls: the cube rests at
+     a zoom that puts its outer silhouette around three quarters of the way
+     across, so the wash is clear until 64%, has covered the converging edge by
+     78%, and is the page itself from there out. The fold, at about 62%, stays
+     crisp — which is the point, since the fold is the thing worth seeing. */
+  background: linear-gradient(calc(var(--peek-ang, 90) * 1deg),
+    rgba(240, 241, 245, 0) 64%,
+    rgba(240, 241, 245, .55) 71%,
+    rgb(240, 241, 245) 78%);
+}
+body.peeking .stage::after { opacity: 1; }
 
 /* A face shows nothing until it has landed square.
 

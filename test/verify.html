@@ -802,8 +802,10 @@ f.addEventListener('load', async () => {
      it does from about twenty-six degrees. */
   const shadeStill = d4.createElement('style');
   // the canvas's fade is a transition too, and virtual time freezes it at 1
+  // .stage::after fades in on a transition too, and virtual time leaves every
+  // one of these at its start value
   shadeStill.textContent =
-    '.face, .face::after, .grid-canvas { transition: none !important; }';
+    '.face, .face::after, .grid-canvas, .stage::after { transition: none !important; }';
   d4.head.appendChild(shadeStill);
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(200);
@@ -831,6 +833,20 @@ f.addEventListener('load', async () => {
      angle, which is exactly what the side face looked like. */
   ok(Number(w4.getComputedStyle(d4.getElementById('grid')).opacity) === 0,
      'and the flat lattice is out of the way while the cube is turned');
+  /* The far end of the side face dissolves rather than ending on a diagonal —
+     a converging edge is what says "small box" instead of "room you are about
+     to enter", and it cannot be pushed off the frame: the cube is zoomed to
+     sit INSIDE the frame, so its whole silhouette stays there however far it
+     turns. Measured across tilts to 40° and lean-ins to 1.7x. */
+  const wash = w4.getComputedStyle(d4.querySelector('.stage'), '::after');
+  ok(Number(wash.opacity) === 1 && /gradient/.test(wash.backgroundImage),
+     'the far end is washed into the page rather than ending on a diagonal');
+  /* And only the face you are STANDING ON gets the bright rim. Brightening
+     every face drew a 1px white line along that converging far edge, which
+     is the outline the wash was fighting. */
+  const rimOf = (sel) => w4.getComputedStyle(d4.querySelector(sel)).borderTopColor;
+  ok(rimOf('[data-face="front"]') !== rimOf('[data-face="right"]'),
+     'and the arriving face is not outlined, only the fold is');
   shadeStill.remove();
 
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
