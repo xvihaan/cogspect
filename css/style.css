@@ -124,10 +124,10 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
   transition: opacity .3s ease;
   z-index: 3;                          /* over the room, under the island bar */
 }
-.stage.peeking .face::after { opacity: 1; }
+body.peeking .face::after { opacity: 1; }
 
 /* the face you are standing on: shadow gathers along the edge going back */
-.stage.peeking .face.landed::after {
+body.peeking .face.landed::after {
   background: linear-gradient(calc(var(--peek-ang, 90) * 1deg),
     rgba(21, 22, 28, 0) 42%,
     rgba(21, 22, 28, .05) 72%,
@@ -135,7 +135,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 }
 /* and the one arriving is oblique to the light, so it is darker throughout,
    deepening toward the outer edge that is furthest from you */
-.stage.peeking .face:not(.landed)::after {
+body.peeking .face:not(.landed)::after {
   background:
     linear-gradient(calc(var(--peek-ang, 90) * 1deg),
       rgba(21, 22, 28, .1) 0%,
@@ -144,8 +144,7 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
 }
 /* the void face is already near black; shading it darker says nothing, so
    there the arriving face is picked out by light instead */
-body.on-dark .stage.peeking .face--void::after,
-.stage.peeking .face--void::after {
+body.peeking .face--void::after {
   background: linear-gradient(calc(var(--peek-ang, 90) * 1deg),
     rgba(255, 255, 255, .07) 0%,
     rgba(255, 255, 255, .03) 55%,
@@ -154,7 +153,7 @@ body.on-dark .stage.peeking .face--void::after,
 /* the fold. Every face's rim brightens while the cube is leaning, so the two
    planes stop being one pale sheet and the seam between them reads as an edge
    of something solid. */
-.stage.peeking .face {
+body.peeking .face {
   border-color: rgba(255, 255, 255, .85);
   box-shadow:
     inset 0 0 120px rgba(220, 222, 230, .35),
@@ -162,6 +161,16 @@ body.on-dark .stage.peeking .face--void::after,
     0 0 22px rgba(21, 22, 28, .06);
 }
 .stage .face { transition: border-color .3s ease, box-shadow .3s ease; }
+
+/* And the lattice steps out of the way. It is a flat screen-space canvas
+   painted OVER the cube — a sibling of the stage, which is why every one of
+   these selectors hangs off the body rather than off .stage — so when the
+   cube turns it does not turn with it. On the narrow side face, a tilted
+   plane under an untilted texture reads as two layers stacked rather than as
+   one solid seen from an angle: you should not be able to see past the side
+   of a cube. It comes back the moment the lean does. */
+.grid-canvas { transition: opacity .3s ease; }
+body.peeking .grid-canvas { opacity: 0; }
 
 /* A face shows nothing until it has landed square.
 

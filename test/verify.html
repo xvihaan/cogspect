@@ -765,8 +765,8 @@ f.addEventListener('load', async () => {
     glance(x, y);
     await wait(150);
     ok(frontOf4.style.transform !== square, `${name} leans the cube`);
-    ok(d4.getElementById('stage').classList.contains('peeking'),
-       `${name}: and the stage knows it is leaning`);
+    ok(d4.body.classList.contains('peeking'),
+       `${name}: and the page knows it is leaning`);
     /* A lean is not a turn. The pose goes to paintFaces() directly and O is
        untouched, so an arrow key mid-peek still turns from a square pose —
        and the cube's own account of where it is never wavers. */
@@ -801,7 +801,9 @@ f.addEventListener('load', async () => {
      of shading could have fixed that. It has to clear the silhouette, which
      it does from about twenty-six degrees. */
   const shadeStill = d4.createElement('style');
-  shadeStill.textContent = '.face, .face::after { transition: none !important; }';
+  // the canvas's fade is a transition too, and virtual time freezes it at 1
+  shadeStill.textContent =
+    '.face, .face::after, .grid-canvas { transition: none !important; }';
   d4.head.appendChild(shadeStill);
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(200);
@@ -823,13 +825,18 @@ f.addEventListener('load', async () => {
      'and the arriving face carries its own');
   ok(d4.getElementById('stage').style.getPropertyValue('--peek-ang') === '90',
      'aimed along the direction the lean runs');
+  /* The lattice steps aside. It is a flat screen-space canvas painted OVER the
+     cube, so it cannot turn with it — and a tilted plane under an untilted
+     texture reads as two layers stacked rather than one solid seen from an
+     angle, which is exactly what the side face looked like. */
+  ok(Number(w4.getComputedStyle(d4.getElementById('grid')).opacity) === 0,
+     'and the flat lattice is out of the way while the cube is turned');
   shadeStill.remove();
 
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(600);
   ok(frontOf4.style.transform === square, 'and it comes back when you leave');
-  ok(!d4.getElementById('stage').classList.contains('peeking'),
-     'shading and all');
+  ok(!d4.body.classList.contains('peeking'), 'shading and all');
 
   /* Never mid-gesture. A peek is a hover affordance, and while a pointer is
      down the visitor is tumbling the cube or carrying the keen specimen —

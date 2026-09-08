@@ -2065,13 +2065,14 @@
     peekAt = corner;
     clearTimeout(peekTimer);
     if (!corner) {
-      stage.classList.remove('peeking');
+      document.body.classList.remove('peeking');
       paintFaces(true, 380, EASE_TURN, O);
       return;
     }
     const dir = PEEK_CORNERS[corner];
     stage.style.setProperty('--peek-ang', String(PEEK_ANGLE[dir]));
-    stage.classList.add('peeking');
+    // on the body, not the stage: the lattice canvas is the stage's sibling
+    document.body.classList.add('peeking');
     paintFaces(true, 320, EASE_TURN, peekPose(dir));
     /* cpt names what is leaning into view — every time, not once, and the
        newest corner REPLACES whatever the last one said rather than queueing
