@@ -266,12 +266,37 @@ f.addEventListener('load', async () => {
   // the timing, which _rig.html covers with a shimmed rAF
   ok(typeof w.speechSynthesis !== 'undefined', 'the browser exposes a speech engine');
   for (const sel of ['.chat-bar', '.ghost-msg']) {
-    const cs = w.getComputedStyle(d.querySelector(sel));
-    ok(parseFloat(cs.borderTopWidth) === 0,
-       `${sel} carries no outline — cpt's surfaces are talked to, not read`);
-    ok(/blur\(|url\(/.test(cs.backdropFilter || cs.webkitBackdropFilter || ''),
-       `${sel} still reads as glass without one`);
+    ok(/blur\(|url\(/.test(w.getComputedStyle(d.querySelector(sel)).backdropFilter || ''),
+       `${sel} is made of glass`);
   }
+  /* The two cpt surfaces end differently, on purpose. The bubble is cpt
+     speaking, so its boundary dissolves into a blurred halo; the bar is a
+     thing you operate, so it wears the same drawn outline home/contact does.
+     Both at once would be fog around a line. */
+  const edgeOf = (sel) => parseFloat(w.getComputedStyle(d.querySelector(sel)).borderTopWidth);
+  const haloOf = (sel) =>
+    w.getComputedStyle(d.querySelector(sel), '::before').getPropertyValue('--halo').trim();
+  ok(edgeOf('.chat-bar') > 0 && edgeOf('.chat-bar') === edgeOf('.glass-nav'),
+     `the bar wears home/contact's outline (${edgeOf('.chat-bar')} vs ${edgeOf('.glass-nav')})`);
+  /* Level --near on both before comparing. The edge firms up as the pointer
+     approaches, so two surfaces at different distances have different border
+     colours by design — comparing them as they stand tests where the pointer
+     happens to be, not whether they wear the same edge. */
+  const edgeStill = d.createElement('style');
+  // ...and kill the transition, or the computed colour is wherever each one
+  // was frozen on its way to the new value rather than the value itself
+  edgeStill.textContent = '.chat-bar, .glass-nav { transition: none !important; }';
+  d.head.appendChild(edgeStill);
+  for (const sel of ['.chat-bar', '.glass-nav']) d.querySelector(sel).style.setProperty('--near', '0.5');
+  await wait(40);
+  const barEdge = w.getComputedStyle(d.querySelector('.chat-bar')).borderTopColor;
+  const navEdge = w.getComputedStyle(d.querySelector('.glass-nav')).borderTopColor;
+  ok(barEdge === navEdge, `the same one, not a lookalike (${barEdge})`);
+  for (const sel of ['.chat-bar', '.glass-nav']) d.querySelector(sel).style.removeProperty('--near');
+  edgeStill.remove();
+  ok(!haloOf('.chat-bar'), 'and it dropped the halo it wore instead of an edge');
+  ok(edgeOf('.ghost-msg') === 0 && !!haloOf('.ghost-msg'),
+     'while the bubble keeps the halo and no edge');
   const vb = d.getElementById('voiceToggle');
   ok(!!vb, 'the voice can be turned off');
   ok(vb.getAttribute('aria-pressed') === 'true', 'and it starts on');
@@ -947,11 +972,14 @@ f.addEventListener('load', async () => {
      them. It used to be a 50% white plate, which is a plate with a soft edge
      rather than glass. Below about 12% the copy starts competing with the
      busier faces, so this is bounded from both sides. */
-  for (const sel of ['.ghost-msg', '.chat-bar']) {
-    const halo = parseFloat(w.getComputedStyle(d.querySelector(sel), '::before')
-      .getPropertyValue('--halo'));
-    ok(halo > 8 && halo < 32, `${sel} is see-through, not a white plate (halo ${halo}%)`);
-  }
+  const bubbleHalo = parseFloat(w.getComputedStyle(d.querySelector('.ghost-msg'), '::before')
+    .getPropertyValue('--halo'));
+  ok(bubbleHalo > 8 && bubbleHalo < 32,
+     `the bubble is see-through, not a white plate (halo ${bubbleHalo}%)`);
+  /* The bar has no halo any more, so its own fill is what you look through. */
+  const barAlpha = Number((/[/,]\s*([\d.]+)\s*\)\s*$/.exec(
+    w.getComputedStyle(d.querySelector('.chat-bar')).backgroundColor) || [])[1] ?? 1);
+  ok(barAlpha < 0.1, `and the bar is see-through on its own fill (${barAlpha})`);
   const bulge = khl.querySelector('.liquid-lens');
   ok(!!bulge, 'the bar carries a glass layer of its own');
   ok(!!d.getElementById('lg-drop'),

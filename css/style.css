@@ -702,11 +702,14 @@ input::placeholder { color: #a5a5ab; font-weight: 500; }
     0 2px 10px rgba(5, 10, 25, .05),
     inset 0 1px 0 rgba(255, 255, 255, .28);
 }
-/* An outline that is simply absent leaves a hard silhouette anyway — the
-   fill still stops somewhere. These lay a blurred copy of the same shape
-   just outside the edge, so the boundary dissolves instead of ending, which
-   is the same thing the pixel grid and the glass do everywhere else. */
-.chat-bar::before,
+/* An outline that is simply absent leaves a hard silhouette anyway — the fill
+   still stops somewhere. This lays a blurred copy of the same shape just
+   outside the edge, so the boundary dissolves instead of ending, which is the
+   same thing the pixel grid and the glass do everywhere else.
+
+   The bar used to share this. It has a real outline now, and an outline is a
+   boundary ending on purpose — a dissolving halo under a drawn edge is the
+   two ideas arguing, and what you get is fog around a line. */
 .ghost-msg::before {
   content: '';
   position: absolute;
@@ -977,11 +980,12 @@ body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(15
   border-radius: 999px;
   background: rgba(244, 246, 250, .24);
   background: color-mix(in srgb, var(--fg-inv) 30%, transparent);
-  /* No outline. cpt's surfaces are the one place the visitor is talking to
-     something rather than reading a panel, and an edge makes that a widget.
-     What holds the shape instead is a denser fill, the rim light along the
-     top, and a longer, softer cast underneath. */
-  border: 0;
+  /* An outline, the same one home/contact wears. It was left off for a while
+     on the argument that an edge makes a surface read as a widget rather than
+     as something you talk to — but the nav wears one and still reads as glass,
+     and the bubble is where that argument actually holds: the bubble is cpt
+     speaking, the bar is a thing you operate. Carried by .liquid, so it firms
+     up as you approach like every other edge on the page. */
   backdrop-filter: blur(4px) saturate(145%);
   -webkit-backdrop-filter: blur(4px) saturate(145%);
   box-shadow:
@@ -2112,7 +2116,8 @@ body.lens .toast      { backdrop-filter: url(#lg-drop) blur(6px) saturate(145%);
 /* .chat-bar and .ghost-msg carry a blurred halo on ::before instead of an
    outline — that stays, and the rim arcs sit inside it rather than replacing
    it. See the note on .chat-bar. */
-.chat-bar, .ghost-msg { border: 0; }
+/* the bubble keeps a dissolving halo instead of an edge — see its ::before */
+.ghost-msg { border: 0; }
 
 /* ---------- the keen island, which is all of the above plus a squeeze ---- */
 
