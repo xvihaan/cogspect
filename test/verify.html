@@ -549,7 +549,14 @@ f.addEventListener('load', async () => {
   const w4 = f4.contentWindow, d4 = f4.contentDocument;
   if (w4.speechSynthesis) { w4.speechSynthesis.speak = () => {}; w4.speechSynthesis.cancel = () => {}; }
   const hud4 = () => d4.getElementById('faceIndicator').textContent;
-  await wait(4200);                              // intro, then the greeting
+  /* The chips are the SECOND thing a visitor is offered, not the first. Three
+     buttons appearing beside a greeting still being typed is an interface
+     competing with itself. */
+  await wait(3600);                              // intro done, greeting running
+  ok(d4.getElementById('ghostMsg').classList.contains('show'),
+     'cpt is still introducing the place');
+  ok(!d4.getElementById('chatChips').classList.contains('show'),
+     'and the questions wait rather than talking over it');
   d4.getElementById('ghostMsg').click();
   await wait(900);
 
@@ -594,13 +601,20 @@ f.addEventListener('load', async () => {
   ok(!/작업 기록입니다/.test([...d4.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ')),
      'and that room does not introduce itself over the top of the answer');
 
+  /* They belong to the front face. Everywhere else has its own island bar
+     saying what it is, and a second explanation underneath it is noise. */
+  d4.getElementById('ghostMsg').click();
+  await wait(900);
+  ok(!d4.getElementById('chatChips').classList.contains('show'),
+     'and they do not follow you into the room they opened');
+  d4.getElementById('homeBtn').click();
+  await wait(1800);
+  ok(d4.getElementById('chatChips').classList.contains('show'),
+     'they are waiting again when you come back to the front');
+
   /* Typing retires them. They were an opening; once the visitor has spoken to
      the site they have learned what the chips existed to teach, and three
      standing buttons on a page this quiet are clutter. */
-  d4.getElementById('ghostMsg').click();
-  await wait(900);
-  ok(d4.getElementById('chatChips').classList.contains('show'),
-     'they come back when the answer is done');
   d4.getElementById('chatInput').value = '음소거해줘';
   d4.getElementById('chatForm').dispatchEvent(new w4.Event('submit', {bubbles: true, cancelable: true}));
   await wait(1200);
@@ -609,23 +623,64 @@ f.addEventListener('load', async () => {
   ok(!d4.getElementById('chatChips').classList.contains('show'),
      'and once you have typed to it yourself, they retire');
 
-  /* The edge peek. A scroll page is intuitive because you can SEE there is
+  /* The hot corners. A scroll page is intuitive because you can SEE there is
      more below — the cut-off next section IS the affordance. A cube has none,
-     so the object leans to show what is waiting there. */
+     so the object leans to show what is waiting there.
+
+     Corners rather than edges: the edges are where the chrome lives, the nav
+     at the top right and the chat dock along the bottom, and a corner is a
+     more deliberate place to put a pointer than a whole edge — you do not
+     arrive there on the way to something else. */
   d4.getElementById('homeBtn').click();
   await wait(1800);
+  d4.getElementById('ghostMsg').click();
+  await wait(700);
   const frontOf4 = d4.querySelector('[data-face="front"]');
   const square = frontOf4.style.transform;
   const glance = (x, y) => w4.dispatchEvent(new w4.PointerEvent('pointermove',
     {clientX: x, clientY: y, bubbles: true}));
-  glance(w4.innerWidth - 20, w4.innerHeight / 2);
-  await wait(150);
-  ok(frontOf4.style.transform !== square,
-     'reaching for an edge leans the cube toward the room there');
-  /* A lean is not a turn. The pose goes to paintFaces() directly and O is
-     untouched, so an arrow key mid-peek still turns from a square pose — and
-     the cube's own account of where it is never wavers. */
-  ok(hud4() === LABELS.front, `and the cube still believes it is home (${hud4()})`);
+  const CORNERS = [
+    [40, 40, 'prospect', 'top-left'],
+    [w4.innerWidth - 40, 40, 'portfolio', 'top-right'],
+    [w4.innerWidth - 40, w4.innerHeight - 40, 'minimalid', 'bottom-right'],
+    [40, w4.innerHeight - 40, 'Bifröst', 'bottom-left']
+  ];
+  const roomLine = () => [...d4.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
+  const seenLines = [];
+  for (const [x, y, room, name] of CORNERS) {
+    glance(w4.innerWidth / 2, w4.innerHeight / 2);
+    await wait(220);
+    glance(x, y);
+    await wait(150);
+    ok(frontOf4.style.transform !== square, `${name} leans the cube`);
+    /* A lean is not a turn. The pose goes to paintFaces() directly and O is
+       untouched, so an arrow key mid-peek still turns from a square pose —
+       and the cube's own account of where it is never wavers. */
+    ok(hud4() === LABELS.front, `${name}: and the cube still believes it is home`);
+    /* Wait for the line to CHANGE, not merely to exist: the previous corner's
+       line is still on screen, so polling for "non-empty" reads the last room
+       every time and the test passes while nothing updates. */
+    const was = roomLine();
+    for (let i = 0; i < 40 && roomLine() === was; i++) await wait(100);
+    for (let i = 0; i < 40 && d4.getElementById('ghostMsg').classList.contains('typing'); i++) {
+      await wait(80);
+    }
+    seenLines.push(roomLine());
+    ok(new RegExp(room === 'portfolio' ? '포트폴리오'
+                : room === 'Bifröst' ? '다리'
+                : room === 'prospect' ? 'prospect'
+                : 'minimalid').test(roomLine()),
+       `${name} names ${room} (${roomLine().slice(0, 16)})`);
+  }
+  /* Each corner names a different room, every time — not once per visit, and
+     not four lines stacked up. The newest REPLACES the last, because moving
+     from corner to corner is one person looking around, not four questions. */
+  ok(new Set(seenLines).size === 4,
+     `each corner names its own room (${seenLines.length} lines, ${new Set(seenLines).size} distinct)`);
+  ok(/포트폴리오/.test(seenLines[1]), `the top-right corner is the portfolio (${seenLines[1].slice(0, 18)})`);
+  ok(seenLines.every((l) => l.split('.').filter(Boolean).length <= 3),
+     'and each is one line, not a queue of everything you passed');
+
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(600);
   ok(frontOf4.style.transform === square, 'and it comes back when you leave');
@@ -634,7 +689,7 @@ f.addEventListener('load', async () => {
      down the visitor is tumbling the cube or carrying the keen specimen —
      leaning it then reads as the drag having turned it. */
   w4.dispatchEvent(new w4.PointerEvent('pointerdown', {clientX: 500, clientY: 400, bubbles: true}));
-  glance(w4.innerWidth - 20, w4.innerHeight / 2);
+  glance(w4.innerWidth - 40, 40);
   await wait(250);
   ok(frontOf4.style.transform === square, 'and never while something is being dragged');
   w4.dispatchEvent(new w4.PointerEvent('pointerup', {clientX: 500, clientY: 400, bubbles: true}));

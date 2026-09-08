@@ -552,6 +552,7 @@
   function setFace(face) {
     cur = face;
     setLanded(face);
+    paintChips();                      // they live on the front face only
     // the gate only gets built once — after that the bridge simply stands
     if (face === 'left' && faceEls.left) faceEls.left.classList.add('bridged');
     // arriving at the portfolio shows the visitor where the six projects are,
@@ -1957,68 +1958,94 @@
      This never touches O. The pose is handed to paintFaces() directly, the
      way the intro does it, so the cube's logical orientation is unchanged and
      an arrow key pressed mid-peek still turns from a square pose. */
-  const PEEK_BAND = 90;                 // px from the edge where it starts
+  const PEEK_CORNER = 150;              // px square at each corner
   const PEEK_DEG = 15;
+  /* Every face, not four of them. Which four are reachable depends on where
+     the cube is being held — the corners always reveal the four faces
+     adjacent to the one you are on — so over a visit all six get named. */
   const PEEK_ROOMS = {
-    right:  '민혁님의 포트폴리오 공간이에요.',
-    left:   '다른 공간으로 건너가는 다리예요.',
-    top:    'cogspect가 향하는 방향을 담은 면이에요.',
-    bottom: 'minimalid — 최소한의 견고함.'
+    front:  'cogspect가 시작되는 면이에요.',
+    right:  '민혁님의 포트폴리오 공간이에요. 잔디 속에 프로젝트가 숨어 있어요.',
+    left:   '다른 공간으로 건너가는 다리예요. 파란 문과 붉은 문이 있어요.',
+    back:   'keen — cogspect의 디자인을 직접 만져보는 면이에요.',
+    top:    'prospect — cogspect가 향하는 방향을 담은 면이에요.',
+    bottom: 'minimalid — 최소한의 견고함. 아카이브로 이어져요.'
   };
-  let peekAt = null, peekSaid = new Set(), peekTimer = null;
+  /* Corners, not edges. The four edges are where the chrome lives — the nav
+     at the top right, the chat dock along the bottom — so an edge band fought
+     with them the whole way. The corners are empty, and a corner is a more
+     deliberate place to put a pointer than a whole edge is: you do not arrive
+     there by accident on the way to something else. */
+  const PEEK_CORNERS = {
+    'top-left':     'up',
+    'top-right':    'right',
+    'bottom-right': 'down',
+    'bottom-left':  'left'
+  };
+  let peekAt = null, peekTimer = null;
   /* A peek is a hover affordance, and while a pointer is down the visitor is
      doing something else — tumbling the cube, carrying the keen specimen. It
      used to lean the cube mid-drag, which reads as the drag having turned it. */
   let pointerDown = false;
 
-  function peekPose(edge) {
-    // the surface follows the pointer, exactly as the drag does: reach for the
-    // right edge and the right-hand face comes toward you
-    if (edge === 'right') return mul(rotY(-PEEK_DEG), O);
-    if (edge === 'left')  return mul(rotY(PEEK_DEG), O);
-    if (edge === 'top')   return mul(rotX(PEEK_DEG), O);
-    return mul(rotX(-PEEK_DEG), O);
-  }
+  /* A fifteen-degree version of the same turn the arrow key would make. The
+     signs MUST match DIR's or the cube leans away from the face it is about
+     to name — rotX for 'up' is negative there, and writing it positive here
+     tilted the cube toward minimalid while cpt described prospect. */
+  const PEEK_TILT = {
+    right: () => rotY(-PEEK_DEG),
+    left:  () => rotY(PEEK_DEG),
+    up:    () => rotX(-PEEK_DEG),
+    down:  () => rotX(PEEK_DEG)
+  };
+  const peekPose = (dir) => mul(PEEK_TILT[dir](), O);
 
-  function setPeek(edge) {
-    if (edge === peekAt) return;
-    peekAt = edge;
+  function setPeek(corner) {
+    if (corner === peekAt) return;
+    peekAt = corner;
     clearTimeout(peekTimer);
-    if (!edge) { paintFaces(true, 380, EASE_TURN, O); return; }
-    const pose = peekPose(edge);
-    paintFaces(true, 320, EASE_TURN, pose);
-    // and cpt names what is leaning into view — once per room per visit, and
-    // only if it is not interrupting something the visitor asked for
-    const face = frontFaceFor(pose);
+    if (!corner) { paintFaces(true, 380, EASE_TURN, O); return; }
+    const dir = PEEK_CORNERS[corner];
+    paintFaces(true, 320, EASE_TURN, peekPose(dir));
+    /* cpt names what is leaning into view — every time, not once, and the
+       newest corner REPLACES whatever the last one said rather than queueing
+       behind it. Moving from corner to corner should read as one line being
+       rewritten, which is what a visitor is actually doing: looking around. */
+    /* Which room this corner is about is the face a FULL turn would land on,
+       not the front-most face of the tilted pose: fifteen degrees does not
+       move the front face out of first place, so asking frontFaceFor about
+       the lean named the room you are already standing in, every time. */
+    const face = frontFaceFor(mul(DIR[dir], O));
     const line = PEEK_ROOMS[face];
-    if (!line || peekSaid.has(face) || !ambientFree()) return;
+    if (!line || !ambientFree()) return;
     peekTimer = setTimeout(() => {
-      if (peekAt !== edge || !ambientFree()) return;
-      peekSaid.add(face);
+      if (peekAt !== corner || !ambientFree()) return;
       typeLines([line], line, 'ambient');
-    }, 420);                            // a beat, so a passing cursor says nothing
+    }, 380);                            // a beat, so a passing cursor says nothing
   }
 
-  function edgeUnder(x, y) {
-    if (x < PEEK_BAND) return 'left';
-    if (x > window.innerWidth - PEEK_BAND) return 'right';
-    if (y < PEEK_BAND) return 'top';
-    if (y > window.innerHeight - PEEK_BAND) return 'bottom';
+  function cornerUnder(x, y) {
+    const nearL = x < PEEK_CORNER, nearR = x > window.innerWidth - PEEK_CORNER;
+    const nearT = y < PEEK_CORNER, nearB = y > window.innerHeight - PEEK_CORNER;
+    if (nearT && nearL) return 'top-left';
+    if (nearT && nearR) return 'top-right';
+    if (nearB && nearR) return 'bottom-right';
+    if (nearB && nearL) return 'bottom-left';
     return null;
   }
 
   window.addEventListener('pointermove', (e) => {
-    // never while the cube is already doing something, and never over the
-    // chrome — the chat dock and the nav live at the edges too
     if (pointerDown || phase !== 'idle' || overlayOpen() || reducedMotion.matches) {
       if (peekAt) setPeek(null);
       return;
     }
+    // the corners are clear of the chrome by design, but the nav does reach
+    // into the top right — never lean the cube out from under a button
     if (e.target.closest && e.target.closest('.chat-dock, .glass-nav, .overlay')) {
       setPeek(null);
       return;
     }
-    setPeek(edgeUnder(e.clientX, e.clientY));
+    setPeek(cornerUnder(e.clientX, e.clientY));
   }, { passive: true });
   window.addEventListener('pointerleave', () => setPeek(null));
   window.addEventListener('pointerdown', () => {
@@ -2081,11 +2108,21 @@
      whose whole argument is that it is quiet. They also step aside while cpt
      is talking rather than sitting under its answer. */
   let chipsRetired = false;
+  /* Not until cpt has finished introducing the place. The chips are the second
+     thing a visitor is offered, not the first: three buttons appearing beside
+     a greeting still being typed reads as an interface competing with itself.
+     greet() arms them, and they surface when the greeting clears. */
+  let chipsArmed = false;
 
   function paintChips() {
     if (!chipRow) return;
     const busy = ghost.classList.contains('show') || overlayOpen();
-    chipRow.classList.toggle('show', !chipsRetired && !busy && phase !== 'intro');
+    /* The front face only. Elsewhere they are answering questions about rooms
+       you are already standing in, and every other face has its own island bar
+       saying what it is — a second explanation underneath it is noise. */
+    const atDoor = cur === 'front';
+    chipRow.classList.toggle('show',
+      chipsArmed && atDoor && !chipsRetired && !busy && phase !== 'intro');
   }
   function retireChips() {
     if (chipsRetired) return;
@@ -2373,7 +2410,8 @@
      speaks from here on, when it is spoken to and when a room introduces
      itself. */
   function greet() {
-    if (!ambientFree()) return;
+    chipsArmed = true;                 // whether or not it gets to speak
+    if (!ambientFree()) { paintChips(); return; }
     typeLines(GREETING_LINES, GREETING, 'ambient', true);
   }
 
@@ -2394,7 +2432,6 @@
     setLanded(cur);                  // square again: the room may show itself
     // a beat after the cube settles, not on top of it
     setTimeout(greet, 900);
-    paintChips();
   }
 
   function runIntro() {
