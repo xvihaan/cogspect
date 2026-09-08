@@ -798,19 +798,27 @@ body.on-dark .ghost-msg {
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
-  display: flex;
+  /* Three columns, and the outer two are the SAME width — which is the whole
+     point. The controls used to sit in a flex row beside the bar and pushed it
+     off centre by exactly their width; an empty column of equal size on the
+     other side puts the bar back in the middle of the screen and leaves the
+     controls where they were. */
+  --side: 40px;
+  /* the gap is a variable for the same reason --side is: the chips above take
+     the bar's span from both of them, and a number written twice is a number
+     that stops agreeing the first time one copy is touched — which is exactly
+     what happened under 420px last time */
+  --dock-gap: 12px;
+  display: grid;
+  grid-template-columns: var(--side) 1fr var(--side);
   align-items: center;
-  gap: 14px;
-  /* the bar keeps its own 440, and the row grows by exactly what the two
-     controls need, so moving them here did not shrink the thing you type in */
-  width: min(508px, calc(100vw - 48px));
-  /* what the mic and the speaker take out of the row, gap included. The chips
-     above are set flush to the BAR rather than to the dock, so they need to
-     know where the bar starts — and hard-coding 68 in two places is how the
-     two stop agreeing the first time either gap is touched. */
-  --controls-w: calc(22px + 10px + 22px + 14px);
+  gap: var(--dock-gap);
+  width: min(544px, calc(100vw - 32px));
 }
-.chat-dock .chat-bar { flex: 1; min-width: 0; }
+.chat-dock .chat-bar { min-width: 0; }
+/* the empty third column. It draws nothing and exists only so the bar has the
+   same amount of room on both sides of it. */
+.dock-pad { display: block; }
 
 /* ---------- the opening questions ---------------------------------------
 
@@ -821,12 +829,10 @@ body.on-dark .ghost-msg {
 .chat-chips {
   position: absolute;
   bottom: calc(100% + 12px);
-  /* flush with the BAR, not with the dock. The dock is wider than the bar by
-     the two controls hanging off its left, so a row centred on the dock sits
-     visibly left of the thing it belongs to. Left edge at the bar's left edge,
-     right edge at the dock's, which is the bar's. */
-  left: var(--controls-w);
-  right: 0;
+  /* the bar's own span, which is the dock minus a side column and a gap at
+     each end — read from the same two variables the grid is built from */
+  left: calc(var(--side) + var(--dock-gap));
+  right: calc(var(--side) + var(--dock-gap));
   display: flex;
   flex-wrap: wrap;
   /* Gathered on the middle one. The span stays the bar's — which is the point
@@ -893,15 +899,71 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
    inside it: the bar is the one surface the visitor is talking to, and
    hanging switches off it turns it back into a widget with controls. */
 .chat-controls {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: none;
+  justify-content: center;
 }
+.control-toggle {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #b6b6bc;
+  --lift: 8px;
+  transition: color .3s ease, transform .3s cubic-bezier(.3, .9, .3, 1);
+}
+body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(150%); }
+.control-toggle:hover { color: var(--muted); }
+.control-toggle svg { width: 17px; height: 17px; display: block; }
+.control-toggle .ct-chev {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform .32s cubic-bezier(.3, .9, .3, 1);
+  transform-origin: 50% 50%;
+}
+/* a control that opens has to say it also closes */
+.control-toggle[aria-expanded="true"] .ct-chev { transform: rotate(180deg); }
+/* the mic being live has to be legible with the stack shut, or the one state
+   that must never be missed is hidden behind a chevron */
+.control-toggle.hot { color: #e0483f; }
+
+/* The stack. It grows UP out of the button, absolutely, so opening it moves
+   nothing else on the page. */
+.control-stack {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px) scale(.9);
+  transform-origin: 50% 100%;
+  transition: opacity .26s ease, transform .3s cubic-bezier(.2, .9, .25, 1.02);
+}
+.control-stack.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+/* they rise in order rather than as a block, which is what makes it read as
+   coming out of the button instead of appearing above it */
+.control-stack .voice-toggle { transition: opacity .24s ease, transform .28s ease; }
+.control-stack:not(.open) .voice-toggle { opacity: 0; transform: translateY(6px); }
+.control-stack.open .voice-toggle:nth-child(1) { transition-delay: .06s; }
+
 @media (max-width: 420px) {
-  /* below this the row costs the input more than the icons are worth */
-  .chat-dock { gap: 10px; --controls-w: calc(22px + 8px + 22px + 10px); }
-  .chat-controls { gap: 8px; }
+  .chat-dock { --dock-gap: 9px; --side: 34px; }
+  .control-toggle { width: 30px; height: 30px; }
 }
 
 /* keen §2 "nav pill / floating chrome" — same recipe as the nav */

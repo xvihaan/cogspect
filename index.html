@@ -227,7 +227,13 @@
          than parked in the corner: talking TO it, then it talking back. Both
          start where the visitor left them — the mic off, because a page that
          opens a microphone unasked is not one you would trust. -->
+    <!-- Sound, folded away. The two switches used to hang off the bar's left,
+         which pushed the bar off centre to make room for them — so they live
+         inside one round piece of glass now, and rise out of it when asked.
+         The chevron turns over when they are out, because a control that
+         opens has to say it also closes. -->
     <div class="chat-controls">
+      <div class="control-stack" id="controlStack">
       <button class="voice-toggle mic-toggle off" id="micToggle" type="button"
               aria-pressed="false" aria-label="음성 입력 켜기" title="음성 입력">
         <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -246,10 +252,23 @@
           <path class="vt-slash" d="M13.2 7.4 17.6 12.6"/>
         </svg>
       </button>
+      </div>
+      <button class="control-toggle liquid" id="controlToggle" type="button"
+              aria-expanded="false" aria-controls="controlStack"
+              aria-label="소리 설정 열기" title="소리 설정">
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path class="ct-chev" d="M6.4 11.6 10 8l3.6 3.6"/>
+        </svg>
+        <span class="liquid-lens" aria-hidden="true"></span>
+      </button>
     </div>
     <form class="chat-bar" id="chatForm" autocomplete="off">
       <input id="chatInput" type="text" placeholder="cogspect conversation" aria-label="cogspect에게 메시지 보내기">
     </form>
+    <!-- the empty third column, so the bar has the same room on both sides of
+         it and lands on the middle of the screen rather than beside the
+         controls -->
+    <span class="dock-pad" aria-hidden="true"></span>
   </div>
 
   <!-- project detail overlay -->

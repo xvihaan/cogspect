@@ -303,8 +303,67 @@ f.addEventListener('load', async () => {
   const bar = d.getElementById('chatForm');
   ok(!!mb, 'there is a microphone to talk into');
   const near = (el) => el.getBoundingClientRect();
-  ok(near(mb).right <= near(vb).left + 1, 'the mic comes first, then the speaker');
-  ok(near(vb).right <= near(bar).left + 1, 'and both sit to the left of the conversation bar');
+  /* They are folded into one round button now and rise out of it vertically,
+     so the pair reads top-to-bottom rather than left-to-right — same order. */
+  const ct = d.getElementById('controlToggle');
+  ok(!!ct, 'the two switches live in one round control');
+  /* The stack rises on a transform, and virtual time does not advance
+     transitions — so the rect measured after adding .open is still the SHUT
+     one, eight pixels low and at nine tenths scale. Kill the transition and
+     measure where it actually goes. */
+  const stackStill = d.createElement('style');
+  stackStill.textContent =
+    '.control-stack, .control-stack .voice-toggle { transition: none !important; }';
+  d.head.appendChild(stackStill);
+  d.getElementById('controlStack').classList.add('open');
+  await wait(60);
+  ok(near(mb).bottom <= near(vb).top + 1, 'the mic comes first, then the speaker');
+  ok(near(vb).bottom <= near(ct).top + 1, 'and both rise above the button that holds them');
+  ok(near(ct).right <= near(bar).left + 1, 'which sits to the left of the conversation bar');
+  /* And the bar is on the middle of the SCREEN. It used to be pushed right by
+     the width of the two switches sitting beside it, which is the whole reason
+     they were folded into one button with an empty column opposite. */
+  const barMid = (near(bar).left + near(bar).right) / 2;
+  ok(Math.abs(barMid - w.innerWidth / 2) < 1.5,
+     `and the bar is centred on the screen (${Math.round(barMid)} of ${w.innerWidth})`);
+  d.getElementById('controlStack').classList.remove('open');
+  stackStill.remove();
+
+  /* It is a toggle, not a menu that only opens. */
+  const soundStack = d.getElementById('controlStack');
+  ok(!soundStack.classList.contains('open') && ct.getAttribute('aria-expanded') === 'false',
+     'the switches start folded away');
+  ct.click();
+  await wait(80);
+  ok(soundStack.classList.contains('open') && ct.getAttribute('aria-expanded') === 'true',
+     'one press brings them out');
+  ct.click();
+  await wait(80);
+  ok(!soundStack.classList.contains('open') && ct.getAttribute('aria-expanded') === 'false',
+     'and another puts them back');
+  /* ...and clicking away closes it too. A panel that can only be dismissed by
+     the control that opened it is a panel you have to remember how to shut. */
+  ct.click();
+  await wait(80);
+  d.getElementById('stage').dispatchEvent(new w.PointerEvent('pointerdown',
+    {clientX: 300, clientY: 300, bubbles: true}));
+  await wait(80);
+  ok(!soundStack.classList.contains('open'), 'and so does a press anywhere else');
+
+  /* Shut, the round button still has to say the microphone is open: that is
+     the one state a visitor must never be wrong about, and a chevron is not
+     allowed to hide it. */
+  ok(!ct.classList.contains('hot'), 'closed and quiet, the button is unmarked');
+  const realSR = w.SpeechRecognition;
+  w.SpeechRecognition = function () { this.start = () => {}; this.stop = () => {}; };
+  w.webkitSpeechRecognition = w.SpeechRecognition;
+  mb.click();
+  await wait(120);
+  ok(ct.classList.contains('hot'), 'and marked while the microphone is live, folded or not');
+  mb.click();
+  await wait(120);
+  w.SpeechRecognition = realSR;
+  ok(!ct.classList.contains('hot'), 'and unmarked again when it closes');
   ok(Math.abs(near(mb).width - near(vb).width) < 1 &&
      Math.abs(near(mb).height - near(vb).height) < 1,
      `the two are the same size (${Math.round(near(mb).width)}px)`);

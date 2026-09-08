@@ -1593,6 +1593,11 @@
      Support is not universal — Firefox ships nothing here — so the control is
      removed rather than shown broken. */
   const micBtn = document.getElementById('micToggle');
+  /* Declared up here rather than with the rest of the fold-away below, because
+     paintMicBtn() runs during boot and has to be able to mark it: shut, the
+     round button is the only thing saying whether the microphone is open, and
+     that is the one state a visitor must never be wrong about. */
+  const ctlToggle = document.getElementById('controlToggle');
   // looked up per attempt, not captured at boot: the vendor-prefixed
   // constructor is not guaranteed to be there the moment this file runs
   const SR = () => window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1603,6 +1608,7 @@
   if (micBtn && !SR()) micBtn.remove();   // nothing to switch on
 
   function paintMicBtn() {
+    if (ctlToggle) ctlToggle.classList.toggle('hot', hearingWanted);
     if (!micBtn) return;
     micBtn.classList.toggle('off', !hearingWanted);
     micBtn.classList.toggle('live', hearingWanted);
@@ -1690,6 +1696,48 @@
   }
   paintMicBtn();
   if (micBtn) micBtn.addEventListener('click', () => setHearing(!hearingWanted));
+
+  /* ---------- the sound controls, folded away ------------------------------
+
+     Two switches hanging off the bar's left pushed the bar off centre by
+     exactly their width, and the bar is the thing this page is built around.
+     So they live inside one round piece of glass and rise out of it when
+     asked — vertically, absolutely, so opening them moves nothing else.
+
+     Shut, the button still has to say whether the microphone is open: that is
+     the one state a visitor must never be wrong about, and it cannot be
+     allowed to hide behind a chevron. */
+  const ctlStack = document.getElementById('controlStack');
+  let ctlOpen = false;
+
+  function paintControls() {
+    if (!ctlToggle || !ctlStack) return;
+    ctlStack.classList.toggle('open', ctlOpen);
+    ctlToggle.setAttribute('aria-expanded', String(ctlOpen));
+    ctlToggle.setAttribute('aria-label', ctlOpen ? '소리 설정 닫기' : '소리 설정 열기');
+  }
+  function setControls(open) {
+    ctlOpen = !!open;
+    paintControls();
+  }
+  if (ctlToggle && ctlStack) {
+    liquidEls.push(ctlToggle);
+    ctlToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setControls(!ctlOpen);
+    });
+    // clicking away puts them back: a panel that only closes by the button
+    // that opened it is a panel you have to remember how to dismiss
+    document.addEventListener('pointerdown', (e) => {
+      if (!ctlOpen) return;
+      if (e.target.closest && e.target.closest('.chat-controls')) return;
+      setControls(false);
+    }, { capture: true });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && ctlOpen) setControls(false);
+    });
+    paintControls();
+  }
 
   // first real interaction releases anything autoplay refused
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) {
