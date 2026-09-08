@@ -213,6 +213,16 @@
   <!-- bottom chat dock -->
   <div class="chat-dock">
     <div class="toast" id="toast" role="status"></div>
+    <!-- The opening questions. A cube gives no clue that it can be talked to —
+         the bar below reads as a search field — and it gives no clue that
+         there are five other rooms. Three tappable questions fix both at once:
+         they teach that this answers, and they are also the navigation.
+
+         Answered from a table, not from the model: these are the questions
+         everyone asks first, and an answer that arrives instantly says
+         something about the site that a two-second wait does not. Anything
+         typed still goes to inference. -->
+    <div class="chat-chips" id="chatChips"></div>
     <!-- The two ways cpt uses sound, next to the thing they act on rather
          than parked in the corner: talking TO it, then it talking back. Both
          start where the visitor left them — the mic off, because a page that

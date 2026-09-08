@@ -408,6 +408,7 @@
   });
 
   function openProject(p) {
+    setTimeout(paintChips, 40);
     projArt.className = `project-art art--${p.id}`;
     // no artwork yet → drop the banner rather than show an empty grey box
     projArt.style.display = p.image ? '' : 'none';
@@ -451,6 +452,7 @@
   }
 
   function closeProject() {
+    setTimeout(paintChips, 40);
     projOverlay.classList.remove('open');
     projOverlay.setAttribute('aria-hidden', 'true');
     projOverlay.inert = true;
@@ -682,6 +684,7 @@
     return contactOpen() || projectOpen();
   }
   function openContact() {
+    setTimeout(paintChips, 40);
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
     overlay.inert = false;
@@ -689,6 +692,7 @@
     overlay.querySelector('.contact-card').focus();
   }
   function closeContact() {
+    setTimeout(paintChips, 40);
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.inert = true;
@@ -1697,6 +1701,7 @@
   }
 
   function dismissGhost() {
+    setTimeout(paintChips, 60);        // ...and come back when it is done
     clearTimeout(ghostTimer);
     ghostSource = null;
     parkedSpeech = null;               // gone from the screen, gone from the queue
@@ -1861,6 +1866,7 @@
       ghost.classList.remove('leaving', 'pending');
       ghost.classList.add('show', 'lined');
       startWave(dur);
+      paintChips();                    // they step aside while cpt is talking
       render();
     };
     // a silent message waits for nothing: there is no engine to be in step with
@@ -1933,6 +1939,183 @@
     introSaid.add(face);
     typeLines(lines, lines.join(' '), 'ambient');
   }
+  /* ---------- edge peek: the cube shows its own extent ---------------------
+
+     A scroll page is not intuitive because scrolling is natural — it is
+     intuitive because you can SEE there is more below. The cut-off top of the
+     next section is the affordance, and a scrollbar is a map.
+
+     A cube has neither. Six rooms, and nothing on screen says so; the only
+     hint was a line of cpt's that disappears after fifteen seconds. So the
+     object explains itself instead: bring the pointer near an edge and the
+     cube leans that way, far enough to show the face waiting there and not so
+     far that it reads as a turn. Take the pointer away and it comes back.
+
+     cpt names the room while it is showing, one line, quietly — the peek says
+     "there is something here", the line says what.
+
+     This never touches O. The pose is handed to paintFaces() directly, the
+     way the intro does it, so the cube's logical orientation is unchanged and
+     an arrow key pressed mid-peek still turns from a square pose. */
+  const PEEK_BAND = 90;                 // px from the edge where it starts
+  const PEEK_DEG = 15;
+  const PEEK_ROOMS = {
+    right:  '민혁님의 포트폴리오 공간이에요.',
+    left:   '다른 공간으로 건너가는 다리예요.',
+    top:    'cogspect가 향하는 방향을 담은 면이에요.',
+    bottom: 'minimalid — 최소한의 견고함.'
+  };
+  let peekAt = null, peekSaid = new Set(), peekTimer = null;
+  /* A peek is a hover affordance, and while a pointer is down the visitor is
+     doing something else — tumbling the cube, carrying the keen specimen. It
+     used to lean the cube mid-drag, which reads as the drag having turned it. */
+  let pointerDown = false;
+
+  function peekPose(edge) {
+    // the surface follows the pointer, exactly as the drag does: reach for the
+    // right edge and the right-hand face comes toward you
+    if (edge === 'right') return mul(rotY(-PEEK_DEG), O);
+    if (edge === 'left')  return mul(rotY(PEEK_DEG), O);
+    if (edge === 'top')   return mul(rotX(PEEK_DEG), O);
+    return mul(rotX(-PEEK_DEG), O);
+  }
+
+  function setPeek(edge) {
+    if (edge === peekAt) return;
+    peekAt = edge;
+    clearTimeout(peekTimer);
+    if (!edge) { paintFaces(true, 380, EASE_TURN, O); return; }
+    const pose = peekPose(edge);
+    paintFaces(true, 320, EASE_TURN, pose);
+    // and cpt names what is leaning into view — once per room per visit, and
+    // only if it is not interrupting something the visitor asked for
+    const face = frontFaceFor(pose);
+    const line = PEEK_ROOMS[face];
+    if (!line || peekSaid.has(face) || !ambientFree()) return;
+    peekTimer = setTimeout(() => {
+      if (peekAt !== edge || !ambientFree()) return;
+      peekSaid.add(face);
+      typeLines([line], line, 'ambient');
+    }, 420);                            // a beat, so a passing cursor says nothing
+  }
+
+  function edgeUnder(x, y) {
+    if (x < PEEK_BAND) return 'left';
+    if (x > window.innerWidth - PEEK_BAND) return 'right';
+    if (y < PEEK_BAND) return 'top';
+    if (y > window.innerHeight - PEEK_BAND) return 'bottom';
+    return null;
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    // never while the cube is already doing something, and never over the
+    // chrome — the chat dock and the nav live at the edges too
+    if (pointerDown || phase !== 'idle' || overlayOpen() || reducedMotion.matches) {
+      if (peekAt) setPeek(null);
+      return;
+    }
+    if (e.target.closest && e.target.closest('.chat-dock, .glass-nav, .overlay')) {
+      setPeek(null);
+      return;
+    }
+    setPeek(edgeUnder(e.clientX, e.clientY));
+  }, { passive: true });
+  window.addEventListener('pointerleave', () => setPeek(null));
+  window.addEventListener('pointerdown', () => {
+    pointerDown = true;
+    setPeek(null);
+  }, { capture: true });
+  for (const ev of ['pointerup', 'pointercancel']) {
+    window.addEventListener(ev, () => { pointerDown = false; }, { capture: true });
+  }
+
+  /* ---------- the opening questions ---------------------------------------
+
+     A cube tells you nothing about itself. It does not say there are five
+     other rooms, and the bar underneath reads as a search field rather than
+     as something that answers — so a first visitor has a slogan, no map, and
+     no reason to believe anything is listening.
+
+     Three tappable questions fix both at once. They are the navigation and
+     they are the introduction to the conversation, and tapping one is a
+     first action that cannot fail.
+
+     Answered from this table rather than from the model, deliberately. These
+     are the three questions everyone asks first; there is nothing to infer,
+     and an answer that lands the instant you tap says something about the
+     site that a two-second wait does not. Anything TYPED still goes to
+     retrieval or the model — the chips are a shortcut past the opening, not
+     a replacement for asking. */
+  const CHIPS = [
+    {
+      q: 'cogspect가 뭐야?',
+      lines: [
+        'cogspect는 기술과 예술의 접목을 지향하는 공간이자,',
+        'AI 엔지니어 김민혁의 포트폴리오입니다.',
+        '여섯 면을 가진 큐브고, 각 면이 하나의 주제예요.'
+      ]
+    },
+    {
+      q: '포트폴리오 소개해',
+      face: 'right',
+      lines: [
+        '작업 기록이 잔디처럼 쌓인 면이에요.',
+        '밝게 켜진 픽셀 여섯 개가 프로젝트고, 누르면 열립니다.'
+      ]
+    },
+    {
+      q: '디자인 언어 소개해줘',
+      face: 'back',
+      lines: [
+        'keen — 굴절과 반사, 얇은 서리로 표면을 만드는 디자인 언어예요.',
+        '설명하지 않고 보여줍니다. 레이어를 움직여 보세요.'
+      ]
+    }
+  ];
+
+  const chipRow = document.getElementById('chatChips');
+
+  /* The chips are an opening, so they retire once they have opened it: the
+     moment the visitor types or speaks, they have learned the thing the chips
+     were there to teach, and three standing buttons become clutter on a page
+     whose whole argument is that it is quiet. They also step aside while cpt
+     is talking rather than sitting under its answer. */
+  let chipsRetired = false;
+
+  function paintChips() {
+    if (!chipRow) return;
+    const busy = ghost.classList.contains('show') || overlayOpen();
+    chipRow.classList.toggle('show', !chipsRetired && !busy && phase !== 'intro');
+  }
+  function retireChips() {
+    if (chipsRetired) return;
+    chipsRetired = true;
+    paintChips();
+  }
+
+  if (chipRow) {
+    for (const c of CHIPS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip liquid';
+      b.textContent = c.q;
+      const lens = document.createElement('span');
+      lens.className = 'liquid-lens';
+      lens.setAttribute('aria-hidden', 'true');
+      b.append(lens);
+      b.addEventListener('click', () => {
+        b.classList.add('spent');
+        // the room it is about does not also introduce itself: this answer IS
+        // the arrival, and two ambient lines about one face is one too many
+        if (c.face) { introSaid.add(c.face); navigateTo(c.face); }
+        typeLines(c.lines, c.lines.join(' '), 'user');
+        paintChips();
+      });
+      chipRow.append(b);
+    }
+    liquidEls.push(...chipRow.querySelectorAll('.chip'));
+  }
+
   ghost.addEventListener('click', () => { hushVoice(); dismissGhost(); });
 
   function tokenize(s) {
@@ -2108,6 +2291,7 @@
     e.preventDefault();
     const q = chatInput.value.trim().toLowerCase();
     if (!q) return;
+    retireChips();                     // they were an opening; it is open now
     chatInput.value = '';
     const cmd = COMMANDS.find((c) => c.keys.some((k) => q.includes(k)));
     if (cmd) {
@@ -2210,6 +2394,7 @@
     setLanded(cur);                  // square again: the room may show itself
     // a beat after the cube settles, not on top of it
     setTimeout(greet, 900);
+    paintChips();
   }
 
   function runIntro() {

@@ -537,6 +537,110 @@ f.addEventListener('load', async () => {
 
   /* ---------- set pieces ---------------------------------------------- */
 
+  log('\n— the way in —');
+
+  /* On a page of its own. The chips retire the moment the visitor types, and
+     by this point in the suite we have typed a dozen times — testing them on
+     the main page would be testing a visitor who is no longer new. */
+  const f4 = document.createElement('iframe');
+  f4.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
+  document.body.appendChild(f4);
+  await new Promise((r) => { f4.addEventListener('load', r, {once: true}); f4.src = '../index.html'; });
+  const w4 = f4.contentWindow, d4 = f4.contentDocument;
+  if (w4.speechSynthesis) { w4.speechSynthesis.speak = () => {}; w4.speechSynthesis.cancel = () => {}; }
+  const hud4 = () => d4.getElementById('faceIndicator').textContent;
+  await wait(4200);                              // intro, then the greeting
+  d4.getElementById('ghostMsg').click();
+  await wait(900);
+
+  /* A cube tells you nothing about itself: no map, no sign that five other
+     rooms exist, and a bar underneath that reads as a search field rather
+     than as something that answers. These two are the whole of the fix. */
+  const chips = [...d4.querySelectorAll('.chip')];
+  ok(chips.length === 3, `three questions are offered (${chips.length})`);
+  ok(d4.getElementById('chatChips').classList.contains('show'),
+     'and they are showing once the stage is handed over');
+  ok(chips.every((c) => c.classList.contains('liquid')),
+     'they are made of the same glass as everything else');
+  /* Thinner than the bars. These hover over whatever room you are in, and a
+     plate over the content is the one thing they must not be. */
+  const alphaOf = (c) => Number((/[/,]\s*([\d.]+)\s*\)\s*$/.exec(c) || [])[1] ?? 1);
+  const chipA = alphaOf(w4.getComputedStyle(chips[0]).backgroundColor);
+  const barA = alphaOf(w4.getComputedStyle(d4.querySelector('.chat-bar')).backgroundColor);
+  ok(chipA < barA, `and thinner than the bar they sit over (${chipA} vs ${barA})`);
+
+  /* Answered from a table, not the model. The point is that it lands the
+     instant you tap, so this must not wait on a network round trip — the
+     fetch is left live on purpose: if a chip reached for it, this hangs. */
+  const chipT0 = Date.now();
+  chips[1].click();                              // 포트폴리오 소개해
+  // when the first character lands, not when the sentence finishes typing —
+  // the claim is that nothing was waited on, and cpt types at its own pace
+  for (let i = 0; i < 40; i++) {
+    if ([...d4.querySelectorAll('.ghost-line')].some((n) => n.textContent)) break;
+    await wait(50);
+  }
+  ok(Date.now() - chipT0 < 900, `it answers without a round trip (${Date.now() - chipT0}ms)`);
+  for (let i = 0; i < 60 && d4.getElementById('ghostMsg').classList.contains('typing'); i++) {
+    await wait(100);
+  }
+  const chipText = [...d4.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
+  ok(/잔디|픽셀/.test(chipText), `and it is the table's answer (${chipText.slice(0, 20)})`);
+  ok(chips[1].classList.contains('spent'), 'the one you used steps out of the row');
+  ok(!d4.getElementById('chatChips').classList.contains('show'),
+     'and the row stands aside while cpt is answering');
+  await wait(2800);
+  ok(hud4() === LABELS.right, `it took the cube to the room it is about (${hud4()})`);
+  ok(!/작업 기록입니다/.test([...d4.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ')),
+     'and that room does not introduce itself over the top of the answer');
+
+  /* Typing retires them. They were an opening; once the visitor has spoken to
+     the site they have learned what the chips existed to teach, and three
+     standing buttons on a page this quiet are clutter. */
+  d4.getElementById('ghostMsg').click();
+  await wait(900);
+  ok(d4.getElementById('chatChips').classList.contains('show'),
+     'they come back when the answer is done');
+  d4.getElementById('chatInput').value = '음소거해줘';
+  d4.getElementById('chatForm').dispatchEvent(new w4.Event('submit', {bubbles: true, cancelable: true}));
+  await wait(1200);
+  d4.getElementById('ghostMsg').click();
+  await wait(900);
+  ok(!d4.getElementById('chatChips').classList.contains('show'),
+     'and once you have typed to it yourself, they retire');
+
+  /* The edge peek. A scroll page is intuitive because you can SEE there is
+     more below — the cut-off next section IS the affordance. A cube has none,
+     so the object leans to show what is waiting there. */
+  d4.getElementById('homeBtn').click();
+  await wait(1800);
+  const frontOf4 = d4.querySelector('[data-face="front"]');
+  const square = frontOf4.style.transform;
+  const glance = (x, y) => w4.dispatchEvent(new w4.PointerEvent('pointermove',
+    {clientX: x, clientY: y, bubbles: true}));
+  glance(w4.innerWidth - 20, w4.innerHeight / 2);
+  await wait(150);
+  ok(frontOf4.style.transform !== square,
+     'reaching for an edge leans the cube toward the room there');
+  /* A lean is not a turn. The pose goes to paintFaces() directly and O is
+     untouched, so an arrow key mid-peek still turns from a square pose — and
+     the cube's own account of where it is never wavers. */
+  ok(hud4() === LABELS.front, `and the cube still believes it is home (${hud4()})`);
+  glance(w4.innerWidth / 2, w4.innerHeight / 2);
+  await wait(600);
+  ok(frontOf4.style.transform === square, 'and it comes back when you leave');
+
+  /* Never mid-gesture. A peek is a hover affordance, and while a pointer is
+     down the visitor is tumbling the cube or carrying the keen specimen —
+     leaning it then reads as the drag having turned it. */
+  w4.dispatchEvent(new w4.PointerEvent('pointerdown', {clientX: 500, clientY: 400, bubbles: true}));
+  glance(w4.innerWidth - 20, w4.innerHeight / 2);
+  await wait(250);
+  ok(frontOf4.style.transform === square, 'and never while something is being dragged');
+  w4.dispatchEvent(new w4.PointerEvent('pointerup', {clientX: 500, clientY: 400, bubbles: true}));
+  await wait(200);
+  f4.remove();
+
   log('\n— set pieces —');
   d.getElementById('homeBtn').click();
   await wait(1400);

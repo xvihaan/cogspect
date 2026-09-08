@@ -807,6 +807,66 @@ body.on-dark .ghost-msg {
 }
 .chat-dock .chat-bar { flex: 1; min-width: 0; }
 
+/* ---------- the opening questions ---------------------------------------
+
+   Above the bar, not in it: they are an offer, and an offer that sits inside
+   the field it fills in reads as placeholder text. They are keen glass like
+   everything else, but thinner than any other surface here — they hover over
+   whatever room you are in and must not put a plate over it. */
+.chat-chips {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease, transform .4s cubic-bezier(.2, .85, .2, 1);
+}
+.chat-chips.show { opacity: 1; pointer-events: auto; }
+.chat-chips:not(.show) { transform: translateX(-50%) translateY(6px); }
+
+.chip.liquid {
+  --near: 0;
+  --gx: 30%; --gy: 24%; --sx: 4px; --sy: 2.5px;
+  --halo: 0%;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  white-space: nowrap;
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  /* thinner than the bars: 2% fill against their 3.5%, and half the blur.
+     These sit over content rather than over chrome. */
+  background: color-mix(in srgb, var(--fg) 1.8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg) calc(10% + var(--near) * 10%), transparent);
+  backdrop-filter: blur(3px) saturate(150%);
+  -webkit-backdrop-filter: blur(3px) saturate(150%);
+  box-shadow:
+    0 5px 14px rgba(5, 10, 25, .05),
+    inset 0 1px 0 var(--sheen-low);
+  transition: background .3s ease, border-color .3s ease,
+              transform .25s cubic-bezier(.3, .9, .3, 1), opacity .3s ease;
+}
+body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%); }
+.chip.liquid:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.chip:active { transform: scale(.97); }
+/* used up: it fades where it stands rather than the row reflowing under the
+   pointer, which would move the other two out from under the cursor */
+.chip.spent { opacity: 0; pointer-events: none; }
+@media (max-width: 520px) {
+  .chip { font-size: 11.5px; padding: 6px 12px; }
+  .chat-chips { gap: 6px; }
+}
+
 /* Sound in and sound out, side by side. They sit OUTSIDE the bar rather than
    inside it: the bar is the one surface the visitor is talking to, and
    hanging switches off it turns it back into a widget with controls. */
