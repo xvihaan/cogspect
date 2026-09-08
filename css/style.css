@@ -829,15 +829,20 @@ body.on-dark .ghost-msg {
   right: 0;
   display: flex;
   flex-wrap: wrap;
-  /* one line: the outer two align with the bar's ends, which is what makes
-     the row read as a column with it rather than as a floating cluster */
-  justify-content: space-between;
-  gap: 7px;
+  /* Gathered on the middle one. The span stays the bar's — which is the point
+     of left/right above — so the cluster centres on the BAR's centre and not
+     on the dock's, which sits 34px to the left of it. */
+  justify-content: center;
+  gap: 8px;
   opacity: 0;
   pointer-events: none;
   transition: opacity .4s ease, transform .4s cubic-bezier(.2, .85, .2, 1);
 }
-.chat-chips.show { opacity: 1; pointer-events: auto; }
+/* The row sits back. These are an offer, not a toolbar: at full strength
+   three outlined pills under the conversation are the loudest thing on a page
+   whose argument is that it is quiet. Each one comes up to full on hover, so
+   the one you are actually reaching for is the one that is fully there. */
+.chat-chips.show { opacity: .72; pointer-events: auto; }
 .chat-chips:not(.show) { transform: translateY(6px); }
 
 .chip.liquid {
@@ -848,25 +853,31 @@ body.on-dark .ghost-msg {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: -.01em;
-  color: var(--ink);
+  color: var(--muted);
   white-space: nowrap;
   padding: 7px 15px;
   border-radius: 999px;
   cursor: pointer;
   /* thinner than the bars: 2% fill against their 3.5%, and half the blur.
      These sit over content rather than over chrome. */
-  background: color-mix(in srgb, var(--fg) 1.8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--fg) calc(10% + var(--near) * 10%), transparent);
+  background: color-mix(in srgb, var(--fg) 1.2%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg) calc(6.5% + var(--near) * 7%), transparent);
   backdrop-filter: blur(3px) saturate(150%);
   -webkit-backdrop-filter: blur(3px) saturate(150%);
+  /* the ring and the cast were most of what made these shout; the shape is
+     carried by the blur and the faint edge now */
   box-shadow:
-    0 5px 14px rgba(5, 10, 25, .05),
+    0 3px 9px rgba(5, 10, 25, .035),
     inset 0 1px 0 var(--sheen-low);
-  transition: background .3s ease, border-color .3s ease,
+  transition: background .3s ease, border-color .3s ease, color .3s ease,
               transform .25s cubic-bezier(.3, .9, .3, 1), opacity .3s ease;
 }
 body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%); }
-.chip.liquid:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.chip.liquid:hover {
+  background: color-mix(in srgb, var(--fg) 3.5%, transparent);
+  color: var(--ink);
+  opacity: 1;                          /* full strength for the one you mean */
+}
 .chip:active { transform: scale(.97); }
 /* used up: it fades where it stands rather than the row reflowing under the
    pointer, which would move the other two out from under the cursor */

@@ -583,9 +583,26 @@ f.addEventListener('load', async () => {
   ok(Math.abs(rowBox.left - barSpan.left) < 1.5 && Math.abs(rowBox.right - barSpan.right) < 1.5,
      `the row is the bar's own width (${Math.round(rowBox.left)}–${Math.round(rowBox.right)}` +
      ` vs ${Math.round(barSpan.left)}–${Math.round(barSpan.right)})`);
+  /* Gathered on the middle one, and centred on the BAR's centre rather than
+     the dock's — the dock's is 34px to the left of it, which is the whole
+     reason the row is given the bar's span rather than the dock's. */
   const ends = [chips[0].getBoundingClientRect(), chips[chips.length - 1].getBoundingClientRect()];
-  ok(Math.abs(ends[0].left - barSpan.left) < 1.5 && Math.abs(ends[1].right - barSpan.right) < 1.5,
-     'and the outer two line up with the bar’s ends');
+  const clusterMid = (ends[0].left + ends[1].right) / 2;
+  ok(Math.abs(clusterMid - (barSpan.left + barSpan.right) / 2) < 2,
+     `they gather on the bar's centre (${Math.round(clusterMid)} vs ${Math.round((barSpan.left + barSpan.right) / 2)})`);
+  ok(ends[0].left > barSpan.left && ends[1].right < barSpan.right,
+     'as a cluster, not stretched to the ends');
+  /* They sit back. Three outlined pills at full strength under the
+     conversation are the loudest thing on a page whose argument is quiet. */
+  /* Virtual time does not advance transitions, so the computed opacity sits at
+     its start value — 0 — and an unguarded version of this passes while the
+     row is at full strength. Kill the transition and read the target. */
+  const rowStill = d4.createElement('style');
+  rowStill.textContent = '.chat-chips { transition: none !important; }';
+  d4.head.appendChild(rowStill);
+  const rowOp = Number(w4.getComputedStyle(d4.getElementById('chatChips')).opacity);
+  ok(rowOp > 0.4 && rowOp < 0.85, `and the row does not shout (opacity ${rowOp})`);
+  rowStill.remove();
 
   /* Answered from a table, not the model. The point is that it lands the
      instant you tap, so this must not wait on a network round trip — the
