@@ -2038,10 +2038,12 @@
     'bottom-left':  'left'
   };
   /* Which way the shading runs while the cube leans, as a CSS gradient angle.
-     It points along the direction the near edge is travelling: peek right and
-     the face you are on recedes toward its right, so the shadow gathers there.
-     See the .stage.peeking block in the stylesheet. */
-  const PEEK_ANGLE = { right: 90, left: 270, up: 180, down: 0 };
+     It points AWAY, toward the far edge: peek right and the face you are on
+     recedes toward its right, so shadow gathers there and the arriving face
+     is darkest at its own far end. Up and down were inverted here at first,
+     which put the shadow on the fold — the one edge that should be lightest,
+     since it is the nearest thing on screen. See the body.peeking block. */
+  const PEEK_ANGLE = { right: 90, left: 270, up: 0, down: 180 };
   let peekAt = null, peekTimer = null;
   /* A peek is a hover affordance, and while a pointer is down the visitor is
      doing something else — tumbling the cube, carrying the keen specimen. It
@@ -2058,6 +2060,27 @@
     up:    () => rotX(-PEEK_DEG),
     down:  () => rotX(PEEK_DEG)
   };
+  /* How far the camera stands back while leaning, per direction.
+
+     Sideways, not at all: the side face's far edge is already off the frame
+     and the CEO's word for it was perfect.
+
+     Up and down, a little — because at 100% the cube's face is as wide as the
+     screen and TALLER than it, so the top face is bigger than the viewport and
+     its far edge sits above the top of it at every tilt from 30° to 54°
+     (measured). The convergence that makes it read as the top of a solid
+     happens off-screen. You cannot see the top of a box with your nose
+     against its front, so the view backs off far enough to catch it. */
+  const PEEK_BACK = { right: 1, left: 1, up: 0.68, down: 0.68 };
+  /* And whether the far end gets washed into the page.
+
+     Sideways, yes: the side face ends on a converging diagonal inside the
+     frame, and that diagonal is what makes a room read as a small box.
+
+     Up and down, no — the opposite. Standing back is what brings the top
+     face's convergence into view in the first place, and washing it out
+     afterwards would erase the one thing the pull-back was for. */
+  const PEEK_WASH = { right: 1, left: 1, up: 0, down: 0 };
   const peekPose = (dir) => mul(PEEK_TILT[dir](), O);
 
   function setPeek(corner) {
@@ -2071,6 +2094,8 @@
     }
     const dir = PEEK_CORNERS[corner];
     stage.style.setProperty('--peek-ang', String(PEEK_ANGLE[dir]));
+    stage.style.setProperty('--peek-back', String(PEEK_BACK[dir]));
+    stage.style.setProperty('--peek-wash', String(PEEK_WASH[dir]));
     // on the body, not the stage: the lattice canvas is the stage's sibling
     document.body.classList.add('peeking');
     paintFaces(true, 320, EASE_TURN, peekPose(dir));

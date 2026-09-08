@@ -841,6 +841,8 @@ f.addEventListener('load', async () => {
   const wash = w4.getComputedStyle(d4.querySelector('.stage'), '::after');
   ok(Number(wash.opacity) === 1 && /gradient/.test(wash.backgroundImage),
      'the far end is washed into the page rather than ending on a diagonal');
+  ok(d4.getElementById('stage').style.getPropertyValue('--peek-back') === '1',
+     'and sideways the view does not need to stand back');
   /* And only the face you are STANDING ON gets the bright rim. Brightening
      every face drew a 1px white line along that converging far edge, which
      is the outline the wash was fighting. */
@@ -848,6 +850,36 @@ f.addEventListener('load', async () => {
   ok(rimOf('[data-face="front"]') !== rimOf('[data-face="right"]'),
      'and the arriving face is not outlined, only the fold is');
   shadeStill.remove();
+
+  /* Up and down are the other way round on both counts.
+
+     At 100% the cube's face is as wide as the screen and TALLER than it, so
+     the top face is bigger than the viewport and its far edge sits above the
+     top of it at every tilt from 30° to 54° — measured. The convergence that
+     makes it read as the top of a solid happens off-screen entirely. You
+     cannot see the top of a box with your nose against its front, so the view
+     stands back far enough to catch it.
+
+     And having gone to that trouble, the wash must not then erase it: the
+     converging far edge is the whole point here, where sideways it was the
+     thing to hide. */
+  glance(w4.innerWidth / 2, w4.innerHeight / 2);
+  await wait(250);
+  glance(40, 40);                                // top-left: the face above
+  await wait(400);
+  ok(Number(d4.getElementById('stage').style.getPropertyValue('--peek-back')) < 0.8,
+     `looking up, the view stands back (${d4.getElementById('stage').style.getPropertyValue('--peek-back')})`);
+  ok(d4.getElementById('stage').style.getPropertyValue('--peek-wash') === '0',
+     'and nothing washes over the convergence it went back to see');
+  const topBox = d4.querySelector('[data-face="top"]').getBoundingClientRect();
+  ok(topBox.top > 0 && topBox.left > 0 && topBox.right < w4.innerWidth,
+     `so the whole face is in frame, corners and all (${Math.round(topBox.left)},` +
+     `${Math.round(topBox.top)}→${Math.round(topBox.right)})`);
+  /* The shading aims AWAY, at the far edge. Up and down were inverted at
+     first, which put the shadow on the fold — the one edge that must be
+     lightest, since it is the nearest thing on screen. */
+  ok(d4.getElementById('stage').style.getPropertyValue('--peek-ang') === '0',
+     'and the shading runs toward the far edge, not the fold');
 
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(600);

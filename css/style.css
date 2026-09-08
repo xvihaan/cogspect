@@ -177,6 +177,13 @@ body.peeking .face.landed {
 .grid-canvas { transition: opacity .3s ease; }
 body.peeking .grid-canvas { opacity: 0; }
 
+/* Standing back, for the peeks that need it. Scaling here rather than on
+   #zoomWrap, which the zoom spring owns and which this must not fight —
+   .persp sits between them and nothing else touches it. --peek-back is 1 for
+   the sideways peeks, which need nothing. */
+.persp { transition: transform .32s cubic-bezier(.36, .06, .14, 1); }
+body.peeking .persp { transform: scale(var(--peek-back, 1)); }
+
 /* The far end of the side face dissolves instead of ending on a diagonal.
 
    That converging far edge is the one thing that says "this is a small box"
@@ -209,7 +216,7 @@ body.peeking .grid-canvas { opacity: 0; }
     rgba(240, 241, 245, .55) 71%,
     rgb(240, 241, 245) 78%);
 }
-body.peeking .stage::after { opacity: 1; }
+body.peeking .stage::after { opacity: var(--peek-wash, 1); }
 
 /* A face shows nothing until it has landed square.
 
