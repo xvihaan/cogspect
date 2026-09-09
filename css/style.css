@@ -577,8 +577,8 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   height: calc(100vh - var(--keen-target-top) - 108px);
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(6, 1fr);
-  gap: 9px;
+  grid-template-rows: repeat(8, 1fr);
+  gap: 8px;
   text-align: left;
 }
 @media (min-width: 968px) {
@@ -602,32 +602,32 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   overflow: hidden;
   min-width: 0;
   min-height: 0;
-  padding: 15px 17px;
-  border-radius: 20px;
+  padding: 12px 14px;
+  border-radius: 17px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 /* the one that carries the entry reads top-down, not bottom-up */
-.keen-card--word { justify-content: flex-start; padding: 19px 21px; }
+.keen-card--word { justify-content: flex-start; padding: 17px 19px; border-radius: 20px; }
 
 /* Narrow: twelve columns of a phone screen are 26px each, which is not a card.
    Six columns, and the bento re-cuts itself rather than shrinking. */
+/* Narrow: twelve columns of a phone screen are 26px each, which is not a card.
+   Six columns, placed by FLOW rather than by hand — fifteen hand-placed cards
+   is fifteen chances for one to land on another. What does not fit is dropped
+   rather than crushed. */
 @media (max-width: 900px) {
   .keen-grid {
     grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: repeat(8, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 7px;
   }
-  .keen-card { --c: 1 / span 3 !important; --r: auto !important; }
-  .keen-card--word { --c: 1 / span 6 !important; --r: 1 / span 3 !important; }
-  .keen-card:nth-child(2) { --c: 1 / span 3 !important; --r: 4 / span 2 !important; }
-  .keen-card:nth-child(3) { --c: 4 / span 3 !important; --r: 4 / span 2 !important; }
-  .keen-card:nth-child(4) { --c: 1 / span 6 !important; --r: 6 / span 2 !important; }
-  .keen-card:nth-child(5) { --c: 1 / span 2 !important; --r: 8 / span 1 !important; }
-  .keen-card:nth-child(6) { --c: 3 / span 2 !important; --r: 8 / span 1 !important; }
-  .keen-card:nth-child(7) { --c: 5 / span 2 !important; --r: 8 / span 1 !important; }
-  .keen-card:nth-child(8),
-  .keen-card:nth-child(9) { display: none; }
+  .keen-card { --c: auto / span 3 !important; --r: auto !important; padding: 10px 12px; }
+  .keen-card--word { --c: 1 / span 6 !important; --r: 1 / span 2 !important; }
+  .keen-card:nth-child(4n + 3) { --c: auto / span 2 !important; }
+  .keen-card:nth-child(4n + 4) { --c: auto / span 4 !important; }
+  .keen-card:nth-child(n + 12) { display: none; }
 }
 
 /* Out of focus until the bar is pressed. keen is a lens, so the room named
@@ -662,42 +662,28 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
 .face--keen.reading .keen-card:nth-child(7) { transition-delay: .22s; }
 .face--keen.reading .keen-card:nth-child(8) { transition-delay: .25s; }
 .face--keen.reading .keen-card:nth-child(9) { transition-delay: .28s; }
+.face--keen.reading .keen-card:nth-child(10) { transition-delay: .3s; }
+.face--keen.reading .keen-card:nth-child(11) { transition-delay: .32s; }
+.face--keen.reading .keen-card:nth-child(12) { transition-delay: .34s; }
+.face--keen.reading .keen-card:nth-child(13) { transition-delay: .36s; }
+.face--keen.reading .keen-card:nth-child(14) { transition-delay: .38s; }
+.face--keen.reading .keen-card:nth-child(15) { transition-delay: .4s; }
 
-.keen-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 7px 9px;
-  padding-bottom: 9px;
-  border-bottom: 1px solid rgba(21, 22, 28, .12);
-  border-bottom: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
-}
+/* No brackets, no pronunciation, no part of speech, no rule under the word.
+   The dictionary framing was a second idea competing with the first: the card
+   says the word and what it means, and the material it is printed on says the
+   rest. */
 .keen-title {
   margin: 0;
-  font-size: clamp(20px, 2.8vw, 27px);
+  font-size: clamp(19px, 2.2vw, 24px);
   font-weight: 700;
-  letter-spacing: -.03em;
+  letter-spacing: -.035em;
   line-height: 1;
   color: var(--ink);
 }
-.keen-pron {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--faint);
-  font-feature-settings: 'tnum';
-}
-.keen-pos {
-  margin-left: auto;
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
 .keen-def {
-  margin: 10px 0 0;
-  font-size: 12px;
+  margin: 9px 0 0;
+  font-size: 11.5px;
   font-weight: 500;
   line-height: 1.65;
   color: #3a3a3e;
