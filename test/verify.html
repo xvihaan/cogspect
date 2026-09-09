@@ -1056,23 +1056,49 @@ f.addEventListener('load', async () => {
      Number(/blur\(([\d.]+)px\)/.exec(kCopy().filter)[1]) > 1,
      `the explanation is out of focus (${kCopy().filter})`);
   ok(khl.getAttribute('aria-pressed') === 'false', 'and the bar is not pressed');
+  /* The focus pull sweeps rather than switching: the headword lands before the
+     definition. Read BEFORE the transitions are killed below, since killing
+     them is what makes every delay read as zero. */
+  const delayOf = (sel) => w.getComputedStyle(d.querySelector(sel)).transitionDelay;
+  ok(delayOf('.keen-def') !== delayOf('.keen-head'),
+     `and its two halves do not arrive together (${delayOf('.keen-head')} vs ${delayOf('.keen-def')})`);
 
   /* Virtual time does not advance transitions, so the computed filter sits at
      its start value forever and the blur never appears to lift, pass or fail. */
   const keenStill = d.createElement('style');
-  keenStill.textContent = '.keen-copy { transition: none !important; }';
+  keenStill.textContent =
+    '.keen-copy, .keen-head, .keen-def, .face-banner--handle { transition: none !important; }';
   d.head.appendChild(keenStill);
+
+  /* The two swap places. At rest the bar is the clear thing on a blurred page;
+     pressed, it hands that over — the room sharpens and the bar takes the blur
+     on itself. The control says which state it is in by BEING the other one. */
+  const blurOfBar = () => {
+    const m = /blur\(([\d.]+)px\)/.exec(w.getComputedStyle(khl).backdropFilter || '');
+    return m ? Number(m[1]) : null;
+  };
+  const restBlur = blurOfBar();
 
   khl.click();
   await wait(80);
   ok(khl.getAttribute('aria-pressed') === 'true', 'one press and it is reading');
+  ok(blurOfBar() > restBlur + 4,
+     `and the bar takes the blur the room gave up (${restBlur} → ${blurOfBar()})`);
   ok(face('back').classList.contains('reading'), 'the room knows it too');
   ok(/blur\(0px\)|none/.test(kCopy().filter) && Number(kCopy().opacity) > 0.95,
      `and the whole entry comes into focus, headword included (${kCopy().filter})`);
+  /* And the focus pull sweeps rather than switching: out of focus is also
+     slightly LARGER, which is what a lens does at the wrong focal plane, and
+     the headword lands before the definition. */
+  ok(/scale\(1\)|none|matrix\(1, 0, 0, 1/.test(kCopy().transform),
+     `in focus, the entry settles into size (${kCopy().transform})`);
   khl.click();
   await wait(80);
   ok(khl.getAttribute('aria-pressed') === 'false' && /blur\([1-9]/.test(kCopy().filter),
      'and another press lets it go again');
+  ok(blurOfBar() === restBlur, 'and the bar is clear glass again');
+  ok(!/scale\(1\)|none/.test(kCopy().transform),
+     `with the entry back at the wrong focal plane, slightly larger (${kCopy().transform})`);
 
   /* The keyboard has to work, since role=button carries no behaviour of its
      own — an element that says it is a button and cannot be pressed by one is

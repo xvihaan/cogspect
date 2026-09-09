@@ -612,9 +612,32 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   min-width: 0;
   filter: blur(3.6px);
   opacity: .52;
-  transition: filter .55s cubic-bezier(.2, .8, .25, 1), opacity .55s ease;
+  /* Out of focus is also slightly LARGER. That is what a lens does at the
+     wrong focal plane, and it is why a rack focus reads as a rack focus
+     rather than as a blur fading out: the image settles into size as it
+     settles into sharpness. */
+  transform: scale(1.018);
+  transform-origin: 0 0;
+  transition:
+    filter .62s cubic-bezier(.22, .78, .2, 1),
+    opacity .5s ease,
+    transform .62s cubic-bezier(.22, .78, .2, 1);
 }
-.face--keen.reading .keen-copy { filter: blur(0); opacity: 1; }
+.face--keen.reading .keen-copy {
+  filter: blur(0);
+  opacity: 1;
+  transform: scale(1);
+}
+/* and the two halves do not arrive together — the headword lands first, the
+   definition a beat behind it, the way a lens sweeps rather than switches */
+.keen-head, .keen-def {
+  transition: transform .62s cubic-bezier(.22, .78, .2, 1), opacity .5s ease;
+}
+.keen-head { transform: translateY(6px); opacity: .8; }
+.keen-def  { transform: translateY(11px); opacity: .7; transition-delay: .07s; }
+.face--keen.reading .keen-head,
+.face--keen.reading .keen-def { transform: none; opacity: 1; }
+.face--keen.reading .keen-def { transition-delay: .1s; }
 
 .keen-head {
   display: flex;
@@ -2181,13 +2204,47 @@ body.lens .face-banner--handle.pressing {
   68%      { opacity: .3; }
 }
 
-/* Reading. The bar stays pressed-looking while the room is in focus, so the
-   control says which of its two states it is in without a caption. */
-.face-banner--handle[aria-pressed="true"] { cursor: default; }
+/* Reading. The two swap places.
+
+   At rest the bar is the clear thing on a blurred page — thin glass over a
+   room out of focus. Pressed, it hands that over: the room sharpens and the
+   bar takes the blur on itself, sinking in and frosting over like a lens that
+   has spent its focus somewhere else. The control says which of its two
+   states it is in by BEING the other one. */
+.face-banner--handle[aria-pressed="true"] {
+  cursor: default;
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+  border-color: color-mix(in srgb, var(--fg) 15%, transparent);
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  box-shadow:
+    0 2px 7px rgba(5, 10, 25, .05),
+    inset 0 5px 10px -2px rgba(21, 22, 28, .18),
+    inset 0 1px 1px rgba(21, 22, 28, .1),
+    inset 0 -3px 5px rgba(255, 255, 255, .5);
+  transition:
+    background .5s ease, border-color .5s ease, box-shadow .5s ease,
+    backdrop-filter .5s ease, transform .5s cubic-bezier(.22, .78, .2, 1);
+}
+body.lens .face-banner--handle[aria-pressed="true"] {
+  backdrop-filter: url(#lg-drop) blur(16px) saturate(135%);
+}
+/* sunk, and it stays sunk — the momentary squeeze of a press is a different
+   thing from the settled state of being switched on */
+.face.landed .face-banner--handle[aria-pressed="true"] {
+  transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px)))
+             scale(.986, .97);
+}
+/* its own copy goes quiet with it: the bar has said what it had to say and
+   the room is the thing to read now */
+.face-banner--handle[aria-pressed="true"] > h2,
+.face-banner--handle[aria-pressed="true"] > p { opacity: .62; }
 
 /* the copy rides the squeeze rather than sitting still on top of it */
 .face-banner--handle > h2,
-.face-banner--handle > p { transition: transform .22s cubic-bezier(.3, .9, .3, 1); }
+.face-banner--handle > p {
+  transition: transform .22s cubic-bezier(.3, .9, .3, 1), opacity .5s ease;
+}
 .face-banner--handle.pressing > h2,
 .face-banner--handle.pressing > p { transform: scale(.965); }
 
