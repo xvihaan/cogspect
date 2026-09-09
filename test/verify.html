@@ -776,7 +776,7 @@ f.addEventListener('load', async () => {
      'in the middle of the page nothing is drawn at all');
   /* The ramp is the whole point: it has to start before the hot zone, so that
      heading toward a corner is enough to discover it. */
-  const far = 320 / Math.SQRT2, mid = 230 / Math.SQRT2;
+  const far = 280 / Math.SQRT2, mid = 185 / Math.SQRT2;
   glance(w4.innerWidth - far, far);
   await wait(150);
   const atFar = litOf('top-right');
@@ -784,7 +784,7 @@ f.addEventListener('load', async () => {
   await wait(150);
   const atMid = litOf('top-right');
   ok(atFar < 0.1 && atMid > 0.4,
-     `and it grows as you head for one (${atFar} at 320px → ${atMid} at 230px)`);
+     `and it grows as you head for one (${atFar} at 280px → ${atMid} at 185px)`);
   ok(['top-left', 'bottom-left', 'bottom-right'].every((c) => litOf(c) === 0),
      'only the corner you are heading for, not all four');
   /* Nothing may promise a corner that is not going to answer. */
@@ -1386,14 +1386,40 @@ f.addEventListener('load', async () => {
     w2.speechSynthesis.cancel = () => {};
   }
 
+  /* The greeting ends with a demonstration: the cube leans to the right and
+     comes back, with that corner lit as if a pointer were there. Nobody reads
+     an instruction about a hover; everybody understands one they have just
+     watched happen. Watched from inside the same loop, since it fires half a
+     second after the last line finishes typing. */
+  const frontOf2 = d2.querySelector('[data-face="front"]');
   let maxAlive = 0, sawOut = false, seen = new Set();
+  let squarePose = null, leanFrames = 0, litFrames = 0, cameBack = false;
+  /* 95 frames, not more: the greeting dismisses itself at about eleven and a
+     half seconds and the assertion after this loop needs it still up. The
+     demonstration lands well inside that — the typing ends around seven. */
   for (let i = 0; i < 95; i++) {
     const all = [...d2.querySelectorAll('.ghost-line')];
     maxAlive = Math.max(maxAlive, all.filter((n) => !n.classList.contains('out')).length);
     if (all.some((n) => n.classList.contains('out'))) sawOut = true;
     all.forEach((n) => { if (n.textContent) seen.add(n.textContent); });
+
+    const typing = d2.getElementById('ghostMsg').classList.contains('typing');
+    const pose = frontOf2.style.transform;
+    if (!typing && all.length >= 3 && !squarePose) squarePose = pose;
+    if (squarePose && pose !== squarePose) leanFrames++;
+    if (squarePose && leanFrames && pose === squarePose) cameBack = true;
+    if ([...d2.querySelectorAll('.corner-hint')]
+        .some((n) => Number(n.style.getPropertyValue('--lit') || 0) > 0.5)) litFrames++;
     await wait(120);
   }
+  ok(leanFrames > 3, `the cube shows what a corner does, once (${leanFrames} frames leaning)`);
+  ok(litFrames > 3, `with that corner lit as a pointer would light it (${litFrames} frames)`);
+  ok(cameBack, 'and it comes back square');
+  /* Silently. The room's own line would replace the greeting the visitor is
+     still reading, which is the one message that must not be interrupted. */
+  ok(!/포트폴리오 공간이에요/.test([...d2.querySelectorAll('.ghost-line')]
+      .map((n) => n.textContent).join(' ')),
+     'and says nothing over the greeting while it does');
   ok(maxAlive > 1, `the greeting arrives as lines, not one block (${maxAlive} at once)`);
   ok(maxAlive === 3, `never more than three on screen (peak ${maxAlive})`);
   ok(sawOut, 'and the oldest is retired once a fourth starts');

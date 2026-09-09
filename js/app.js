@@ -1777,6 +1777,12 @@
                  going should switch to the design space, mid-sentence,
                  text and voice together. */
   let ghostSource = null;
+  /* Fires when a message finishes typing of its own accord — not when it is
+     cut off by a newer one, which is what stopTyping() also serves. Set by the
+     caller before it speaks, cleared the moment anything else takes the floor,
+     so a demonstration hung off the end of the greeting cannot run after the
+     greeting has been interrupted. */
+  let afterTyping = null;
   /* Bumped by every message that takes the floor. A message waiting on the
      engine checks it before writing: if a newer one has arrived meanwhile,
      the older voice is already cancelled and its text must not appear. */
@@ -1793,6 +1799,7 @@
     ghostSource = source || 'user';
     clearTimeout(ghostTimer);
     stopTyping();                        // the old line stops growing at once
+    afterTyping = null;                  // ...and whatever was waiting on it is off
     // what is READ is the original text, not the lines joined back up: the
     // splitter drops the whitespace it broke on, and the voice should not
     // inherit that
@@ -1826,7 +1833,13 @@
         let li = 0, ci = 0, el = null;
         typeTimer = setInterval(() => {
           if (!el) {
-            if (li >= lines.length) { stopTyping(); return; }
+            if (li >= lines.length) {
+              stopTyping();
+              const done = afterTyping;
+              afterTyping = null;
+              if (done) done();
+              return;
+            }
             el = document.createElement('span');
             el.className = 'ghost-line now';
             ghost.appendChild(el);
@@ -1975,6 +1988,27 @@
   const PEEK_WASH = { right: 1, left: 1, up: 0, down: 0 };
   const peekPose = (dir) => mul(PEEK_TILT[dir](), O);
 
+  /* Shown once, at the end of the greeting: the cube leans to the right and
+     comes back, with that corner lit as if a pointer were there. Nobody reads
+     an instruction about a hover; everybody understands one they have just
+     watched happen. It says nothing — the room's own line would replace the
+     greeting the visitor is still reading. */
+  let peekDemo = false;
+
+  function demoPeek() {
+    if (phase !== 'idle' || overlayOpen() || reducedMotion.matches) return;
+    if (!hintEls.length) return;
+    peekDemo = true;
+    const [cx, cy] = CORNER_AT['top-right']();
+    paintHints(cx - 60, cy + 60);       // the corner answering, as it would
+    setPeek('top-right');
+    setTimeout(() => {
+      setPeek(null);
+      clearHints();
+      peekDemo = false;
+    }, 1150);
+  }
+
   function setPeek(corner) {
     if (corner === peekAt) return;
     peekAt = corner;
@@ -2001,7 +2035,7 @@
        the lean named the room you are already standing in, every time. */
     const face = frontFaceFor(mul(DIR[dir], O));
     const line = PEEK_ROOMS[face];
-    if (!line || !ambientFree()) return;
+    if (!line || peekDemo || !ambientFree()) return;
     peekTimer = setTimeout(() => {
       if (peekAt !== corner || !ambientFree()) return;
       typeLines([line], line, 'ambient');
@@ -2010,10 +2044,11 @@
 
   /* How early the corner starts answering. The hot zone is 150px, and a zone
      that only replies once you are inside it is a feature nobody finds — the
-     pointer has no reason to go to a corner. So the reply begins at 320 and
+     pointer has no reason to go to a corner. So the reply begins early and
      grows: you do not have to reach the corner to learn it is live, you only
-     have to head that way. */
-  const HINT_REACH = 320;
+     have to head that way. Near enough to read as belonging to the corner —
+     at 320 it began so far out that it read as a page vignette. */
+  const HINT_REACH = 260;
   const hintEls = [...document.querySelectorAll('.corner-hint')];
   const CORNER_AT = {
     'top-left':     () => [0, 0],
@@ -2051,6 +2086,7 @@
   }
 
   window.addEventListener('pointermove', (e) => {
+    if (peekDemo) return;              // let the demonstration finish uninterrupted
     if (pointerDown || phase !== 'idle' || overlayOpen() || reducedMotion.matches) {
       if (peekAt) setPeek(null);
       // nothing may promise a corner that is not going to answer
@@ -2434,6 +2470,9 @@
     chipsArmed = true;                 // whether or not it gets to speak
     if (!ambientFree()) { paintChips(); return; }
     typeLines(GREETING_LINES, GREETING, 'ambient', true);
+    // and when it has finished saying its piece, the cube shows what the
+    // corners do — once, and only if the greeting was allowed to finish
+    afterTyping = () => setTimeout(demoPeek, 550);
   }
 
   const INTRO_LEG = 1080;
