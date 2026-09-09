@@ -583,9 +583,14 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
 }
 @media (min-width: 968px) {
   .keen-grid {
-    --keen-target-left: 56px;
+    /* Symmetric, at any width. It used to be anchored 56px from the left with
+       a 1180 cap, which on anything wider than 1292 left a margin on the right
+       several times the one on the left — the grid drifted left of a face that
+       is centred, and the eye reads that as a mistake because it is one. The
+       left inset is now whatever keeps the two equal. */
+    --keen-target-left: max(56px, calc((100vw - 1600px) / 2));
     --keen-target-top: 156px;
-    width: min(1180px, calc(100vw - 112px));
+    width: min(1600px, calc(100vw - 112px));
     gap: 11px;
   }
 }
@@ -607,6 +612,22 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  /* `translate` rather than `transform`, because transform is already carrying
+     the focus pull at 600ms and a lift that slow is a card that has not
+     noticed you. The two compose as separate properties. */
+  translate: 0 0;
+  transition: translate .26s cubic-bezier(.3, .9, .3, 1),
+              border-color .26s ease, box-shadow .26s ease;
+}
+/* A card answers when you reach for it — but only once the room is in focus,
+   since nudging something you cannot read is a surface twitching for no
+   reason. Everything else about it stays put: the lift IS the answer. */
+.face--keen.reading .keen-card:hover {
+  translate: 0 -4px;
+  border-color: color-mix(in srgb, var(--fg) 19%, transparent);
+  box-shadow:
+    0 12px 26px rgba(5, 10, 25, .09),
+    inset 0 1px 0 var(--sheen);
 }
 /* the one that carries the entry reads top-down, not bottom-up */
 .keen-card--word { justify-content: flex-start; padding: 17px 19px; border-radius: 20px; }

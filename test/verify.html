@@ -1082,6 +1082,32 @@ f.addEventListener('load', async () => {
   const sweep = cards.map((c) => w.getComputedStyle(c).transitionDelay);
   ok(new Set(sweep).size >= 4,
      `and they do not all arrive at once (${new Set(sweep).size} steps)`);
+
+  /* Symmetric. It used to be anchored 56px from the left under a 1180 cap,
+     which on anything wider than 1292 left a right margin several times the
+     left one — the grid drifted left of a face that is centred, and the eye
+     reads that as the mistake it is. */
+  const gridBox = d.querySelector('.keen-grid').getBoundingClientRect();
+  const gapL = Math.round(gridBox.left), gapR = Math.round(w.innerWidth - gridBox.right);
+  ok(Math.abs(gapL - gapR) < 2,
+     `and the grid sits square in the face (${gapL}px vs ${gapR}px)`);
+
+  /* A card answers when you reach for it. :hover cannot be dispatched, so the
+     rule is read out of the stylesheet rather than acted on — and it has to be
+     gated on .reading, since nudging something you cannot read is a surface
+     twitching for no reason. */
+  const hoverRule = [...d.styleSheets].flatMap((sh) => {
+    try { return [...sh.cssRules]; } catch (err) { return []; }
+  }).find((r) => r.selectorText && /\.keen-card:hover/.test(r.selectorText));
+  ok(!!hoverRule, 'the cards answer to the pointer');
+  ok(hoverRule && /reading/.test(hoverRule.selectorText),
+     `and only once the room is in focus (${hoverRule && hoverRule.selectorText})`);
+  ok(hoverRule && /-?\d/.test(hoverRule.style.translate || ''),
+     `by lifting (${hoverRule && hoverRule.style.translate})`);
+  /* On `translate`, not `transform` — transform is already carrying the focus
+     pull at 600ms, and a lift that slow is a card that has not noticed you. */
+  ok(hoverRule && !hoverRule.style.transform,
+     'without fighting the focus pull for the transform');
   d.getElementById('keenHandle').click();
   await wait(30);
 
