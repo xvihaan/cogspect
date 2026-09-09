@@ -549,95 +549,119 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
 /* 04 · keen — the design language written up as a dictionary entry, sitting
    under the face's own notification bar. */
 
-.keen-entry {
-  position: absolute;
-  /* Positioned by the distance from the SCREEN's top-left corner, and those
-     two numbers are the only knobs: smaller = closer to the corner, bigger =
-     further from it.
+/* ---------- the design space, as a grid of glass -------------------------
 
-     How it works, and why there is no half-size constant any more: the cube
-     face is an S×S box (S = max(viewport w, h)) that layout() centres on the
-     viewport in BOTH axes, so `top: 50%; left: 50%` puts this block's TOP-LEFT
-     CORNER exactly on the centre of the screen — a plain `top: Npx` would be
-     measured from the face's own top edge, which on any landscape display
-     sits far above the visible screen. Stepping back by 50vw/50vh from that
-     centre therefore lands the corner at (target_left, target_top) from the
-     screen's corner, whatever the block's own size happens to be. The earlier
-     version subtracted 50% and added back half the block's rendered size,
-     which silently broke the moment the glass specimen changed its height. */
+   One face is all the room there is, so the space is divided rather than
+   scrolled. Cards of different sizes, every one of them made of keen — which
+   makes the grid itself the specimen, and means an empty card is an exhibit
+   rather than a gap.
+
+   Anchored from the SCREEN's top-left corner, not the face's. The cube face is
+   an S×S box (S = max(viewport w, h)) that layout() centres on the viewport in
+   both axes, so `top: 50%; left: 50%` puts this block's top-left corner on the
+   centre of the screen; stepping back by 50vw/50vh lands it at exactly
+   (target_left, target_top) from the screen's corner, whatever size it is. A
+   plain `top: Npx` would be measured from the face's own top edge, which on
+   any landscape display sits far above the visible screen. */
+.keen-grid {
+  position: absolute;
   top: 50%;
   left: 50%;
   --keen-target-left: 18px;
-  --keen-target-top: 246px;
+  --keen-target-top: 152px;
   transform:
     translateX(calc(-50vw + var(--keen-target-left)))
     translateY(calc(-50vh + var(--keen-target-top)));
-  /* the specimen left the flow, so the copy no longer has to share the row
-     with it and can sit in a proper narrow column against the left edge */
-  width: min(430px, 62vw);
-  display: flex;
-  align-items: flex-start;
+  width: calc(100vw - var(--keen-target-left) * 2);
+  /* down to the chat dock and no further */
+  height: calc(100vh - var(--keen-target-top) - 108px);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 9px;
   text-align: left;
 }
-/* Desktop: flush under the wordmark's own left edge, and low enough to clear
-   the Design space bar (which ends around y135). */
 @media (min-width: 968px) {
-  .keen-entry {
+  .keen-grid {
     --keen-target-left: 56px;
-    --keen-target-top: 168px;
+    --keen-target-top: 156px;
+    width: min(1180px, calc(100vw - 112px));
+    gap: 11px;
   }
 }
-/* Narrow screens: at 62vw the copy column is squeezed so hard it wraps for
-   pages, so widen the block and shrink the specimen to give it room. */
-@media (max-width: 967px) {
-  .keen-entry {
-    width: min(600px, 88vw);
-    --keen-target-left: 18px;
-    --keen-target-top: 164px;
-  }
-}
-/* A short viewport has less room between the bar and the chat dock, and the
-   bar itself moves up to 72px there — so follow it up. Last, so it wins on
-   screens that match both this and the width rule above. */
+/* A short viewport has less between the bar and the dock, and the bar moves up
+   to 72px there — so follow it up and give the grid the room back. */
 @media (max-height: 620px) {
-  .keen-entry { --keen-target-top: 158px; }
+  .keen-grid { --keen-target-top: 144px; height: calc(100vh - 144px - 96px); }
 }
 
-/* Out of focus by default — the headword too, not just the definition. keen
-   is a lens, so the entry for keen is the one thing on this site you can only
-   read THROUGH one, and the bar above it is that lens: press it and this
-   comes into focus, press it again and it goes back out. */
-.keen-copy {
-  flex: 1 1 auto;
+.keen-card {
+  grid-column: var(--c, auto);
+  grid-row: var(--r, auto);
+  position: relative;
+  overflow: hidden;
   min-width: 0;
-  filter: blur(3.6px);
-  opacity: .52;
-  /* Out of focus is also slightly LARGER. That is what a lens does at the
-     wrong focal plane, and it is why a rack focus reads as a rack focus
-     rather than as a blur fading out: the image settles into size as it
-     settles into sharpness. */
-  transform: scale(1.018);
-  transform-origin: 0 0;
-  transition:
-    filter .62s cubic-bezier(.22, .78, .2, 1),
-    opacity .5s ease,
-    transform .62s cubic-bezier(.22, .78, .2, 1);
+  min-height: 0;
+  padding: 15px 17px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
-.face--keen.reading .keen-copy {
+/* the one that carries the entry reads top-down, not bottom-up */
+.keen-card--word { justify-content: flex-start; padding: 19px 21px; }
+
+/* Narrow: twelve columns of a phone screen are 26px each, which is not a card.
+   Six columns, and the bento re-cuts itself rather than shrinking. */
+@media (max-width: 900px) {
+  .keen-grid {
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+  }
+  .keen-card { --c: 1 / span 3 !important; --r: auto !important; }
+  .keen-card--word { --c: 1 / span 6 !important; --r: 1 / span 3 !important; }
+  .keen-card:nth-child(2) { --c: 1 / span 3 !important; --r: 4 / span 2 !important; }
+  .keen-card:nth-child(3) { --c: 4 / span 3 !important; --r: 4 / span 2 !important; }
+  .keen-card:nth-child(4) { --c: 1 / span 6 !important; --r: 6 / span 2 !important; }
+  .keen-card:nth-child(5) { --c: 1 / span 2 !important; --r: 8 / span 1 !important; }
+  .keen-card:nth-child(6) { --c: 3 / span 2 !important; --r: 8 / span 1 !important; }
+  .keen-card:nth-child(7) { --c: 5 / span 2 !important; --r: 8 / span 1 !important; }
+  .keen-card:nth-child(8),
+  .keen-card:nth-child(9) { display: none; }
+}
+
+/* Out of focus until the bar is pressed. keen is a lens, so the room named
+   for it is the one place on this site you can only read THROUGH one.
+
+   Out of focus is also slightly LARGER and slightly LOWER — that is what a
+   lens does at the wrong focal plane, and it is why a rack focus reads as a
+   rack focus rather than as a blur fading out: the image settles into size as
+   it settles into sharpness. */
+.keen-card {
+  filter: blur(4px);
+  opacity: .5;
+  transform: scale(1.02) translateY(7px);
+  transition:
+    filter .6s cubic-bezier(.22, .78, .2, 1),
+    opacity .48s ease,
+    transform .6s cubic-bezier(.22, .78, .2, 1);
+}
+.face--keen.reading .keen-card {
   filter: blur(0);
   opacity: 1;
-  transform: scale(1);
+  transform: none;
 }
-/* and the two halves do not arrive together — the headword lands first, the
-   definition a beat behind it, the way a lens sweeps rather than switches */
-.keen-head, .keen-def {
-  transition: transform .62s cubic-bezier(.22, .78, .2, 1), opacity .5s ease;
-}
-.keen-head { transform: translateY(6px); opacity: .8; }
-.keen-def  { transform: translateY(11px); opacity: .7; transition-delay: .07s; }
-.face--keen.reading .keen-head,
-.face--keen.reading .keen-def { transform: none; opacity: 1; }
-.face--keen.reading .keen-def { transition-delay: .1s; }
+/* And they do not all arrive at once. The focus sweeps across the grid — the
+   entry first, the rest fanning out behind it — so the change reads as a lens
+   being pulled rather than a light being switched. */
+.face--keen.reading .keen-card:nth-child(2) { transition-delay: .05s; }
+.face--keen.reading .keen-card:nth-child(3) { transition-delay: .09s; }
+.face--keen.reading .keen-card:nth-child(4) { transition-delay: .13s; }
+.face--keen.reading .keen-card:nth-child(5) { transition-delay: .16s; }
+.face--keen.reading .keen-card:nth-child(6) { transition-delay: .19s; }
+.face--keen.reading .keen-card:nth-child(7) { transition-delay: .22s; }
+.face--keen.reading .keen-card:nth-child(8) { transition-delay: .25s; }
+.face--keen.reading .keen-card:nth-child(9) { transition-delay: .28s; }
 
 .keen-head {
   display: flex;
