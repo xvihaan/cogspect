@@ -1863,7 +1863,7 @@
     ],
     back: [
       'cogspect가 지향하는 디자인 공간입니다.',
-      '위의 바를 누르면 흐릿한 것이 또렷해져요.'
+      '위의 바를 누르면 흐릿한 공간이 또렷해져요.'
     ]
   };
   const introSaid = new Set();
@@ -1911,11 +1911,11 @@
      the cube is being held — the corners always reveal the four faces
      adjacent to the one you are on — so over a visit all six get named. */
   const PEEK_ROOMS = {
-    front:  'cogspect가 시작되는 면이에요.',
+    front:  'cogspect가 시작되는 공간이에요.',
     right:  '민혁님의 포트폴리오 공간이에요. 잔디 속에 프로젝트가 숨어 있어요.',
-    left:   '다른 공간으로 건너가는 다리예요. 파란 문과 붉은 문이 있어요.',
-    back:   'keen — 바를 누르면 흐릿한 것이 또렷해지는 면이에요.',
-    top:    'prospect — cogspect가 향하는 방향을 담은 면이에요.',
+    left:   '다른 공간으로 건너가는 다리예요. 색다른 이벤트를 경험할 수 있어요.',
+    back:   'keen — 바를 누르면 흐릿한 공간이 또렷해지는 공간이에요.',
+    top:    'prospect — cogspect가 향하는 방향을 담은 공간이에요.',
     bottom: 'minimalid — 최소한의 견고함. 아카이브로 이어져요.'
   };
   /* Corners, not edges. The four edges are where the chrome lives — the nav
@@ -2062,8 +2062,8 @@
       q: 'cogspect가 뭐야?',
       lines: [
         'cogspect는 기술과 예술의 접목을 지향하는 공간이자,',
-        'AI 엔지니어 김민혁의 포트폴리오입니다.',
-        '여섯 면을 가진 큐브고, 각 면이 하나의 주제예요.'
+        'AI 개발자 민혁님의 포트폴리오입니다.',
+        '육각면을 가진 테서렉트고, 각 면이 하나의 공간예요.'
       ]
     },
     {
@@ -2071,15 +2071,15 @@
       face: 'right',
       lines: [
         '작업 기록이 잔디처럼 쌓인 면이에요.',
-        '밝게 켜진 픽셀 여섯 개가 프로젝트고, 누르면 열립니다.'
+        '밝게 켜진 픽셀 여섯 개가 프로젝트고, 클릭하면 열립니다.'
       ]
     },
     {
       q: '디자인 언어 소개해줘',
       face: 'back',
       lines: [
-        'keen — 굴절과 반사, 얇은 서리로 표면을 만드는 디자인 언어예요.',
-        '설명하지 않고 보여줍니다. 레이어를 움직여 보세요.'
+        'keen — 굴절과 굴곡, 반사 표면이 깃든 디자인 언어예요.',
+        '레이어 바를 클릭하면 세상이 보이는 공간입니다.'
       ]
     }
   ];
@@ -2378,8 +2378,8 @@
   const GREETING_LINES = [
     '안녕하세요, 저는 cogspect의 안내 에이전트 cpt입니다.',
     '이곳은 기술과 예술의 접목을 지향하는 cogspect이자,',
-    '개발자 김민혁의 포트폴리오입니다. 작업물은 오른쪽 면에 있어요.',
-    '방향키나 드래그로 넘겨 보시고, 궁금한 건 아래에 물어보세요.'
+    '개발자 민혁님의 포트폴리오입니다. 테서렉트 공간을 탐색해 보세요.',
+    '방향키나 드래그로 넘겨보고, 궁금한 건 cpt에 물어보세요.'
   ];
   const GREETING = GREETING_LINES.join(' ');
 
