@@ -131,23 +131,24 @@
         </section>
 
         <section class="face face--keen" data-face="back" aria-label="keen">
-          <!-- The bar is the control, not a label: it stays put, and dragging
-               it drives the specimen below. The site runs on an agent, so its
-               chrome should be operable rather than decorative. -->
-          <div class="face-banner face-banner--handle" id="keenHandle">
+          <!-- The bar is the lens. Press it and the room behind comes into
+               focus; press again and it goes back out.
+
+               It used to steer a draggable slab of glass, and carrying that
+               slab around to read a paragraph is work — which is the opposite
+               of what this face is arguing for. One press does the same job
+               and asks nothing.
+
+               role=button rather than a real <button>, because a button's
+               content model is phrasing content and the title here is an h2. -->
+          <div class="face-banner face-banner--handle" id="keenHandle"
+               role="button" tabindex="0" aria-pressed="false"
+               aria-controls="keenEntry" aria-label="디자인 공간 보기">
             <h2>Design space</h2>
             <p>cogspect의 디자인을 경험하다</p>
-            <!-- Pressed, the whole bar dishes inward: the face behind it
-                 bends the way it would through a concave lens, and the pill's
-                 own shading flips from dome to hollow. A round bulge under
-                 the finger was too small to read as anything. -->
             <span class="liquid-lens" aria-hidden="true"></span>
           </div>
-          <!-- the design language shown rather than described: a slab of the
-               actual glass, cut to the same block as the bar that steers it -->
-          <div class="keen-slab" id="keenSlab" role="img"
-               aria-label="keen 글래스 레이어 — 위 바를 끌어 움직일 수 있습니다"></div>
-          <div class="keen-entry">
+          <div class="keen-entry" id="keenEntry">
             <div class="keen-copy">
               <div class="keen-head">
                 <h2 class="keen-title">⌜keen⌟</h2>

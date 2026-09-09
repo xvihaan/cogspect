@@ -604,16 +604,17 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
 }
 
 /* Out of focus by default — the headword too, not just the definition. keen
-   is a lens, so the entry for keen is the one thing on this site you can
-   only read THROUGH one. Nothing here is legible until the specimen is
-   over it. */
+   is a lens, so the entry for keen is the one thing on this site you can only
+   read THROUGH one, and the bar above it is that lens: press it and this
+   comes into focus, press it again and it goes back out. */
 .keen-copy {
   flex: 1 1 auto;
   min-width: 0;
   filter: blur(3.6px);
   opacity: .52;
-  transition: filter .4s ease, opacity .4s ease;
+  transition: filter .55s cubic-bezier(.2, .8, .25, 1), opacity .55s ease;
 }
+.face--keen.reading .keen-copy { filter: blur(0); opacity: 1; }
 
 .keen-head {
   display: flex;
@@ -656,19 +657,6 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   text-wrap: pretty;
 }
 
-/* A second, sharp copy of the whole block, cloned at boot so the two can
-   never say different things, drawn above the glass and clipped to wherever
-   the specimen happens to be. The blurred original still shows underneath at
-   half opacity, which reads as the glow around type seen through glass
-   rather than as a smudge. */
-.keen-entry--sharp {
-  z-index: 4;
-  pointer-events: none;
-  clip-path: inset(
-    var(--lens-t, 100%) var(--lens-r, 100%) var(--lens-b, 100%) var(--lens-l, 100%)
-    round 26px);
-}
-.keen-entry--sharp .keen-copy { filter: none; opacity: 1; }
 
 /* 05 · vision */
 
@@ -1619,9 +1607,13 @@ body.on-dark input::placeholder { color: #7a7a82; }
   .planet, .bridge { animation: none; }
   .ghost-line.now::after { animation: none; }
   .ghost-line { transition: none; }
-  .keen-slab { animation: none; --slab-top: 96px; }
-  /* the glass still answers — highlight, fill and focus are shading, not
-     motion — but the bead does not squeeze and its copy does not move */
+  /* the glass still answers — fill, border and focus are shading, not motion —
+     but the bead does not squeeze, its copy does not move, and the bar does
+     not breathe */
+  .face--keen.landed .face-banner--handle:not(.learned),
+  .face--keen.landed .face-banner--handle:not(.learned) > .liquid-lens {
+    animation: none;
+  }
   .face.landed .face-banner--handle.pressing {
     transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px)));
   }
@@ -1997,110 +1989,6 @@ body.lens .face-banner {
   .face-banner p { font-size: 9.5px; }
 }
 
-/* ---------- 04b · keen — the design language as a specimen ----------
-   The reserved slot holds a real piece of the material instead of a
-   description of it: a glass slab the visitor can pick up and drag across
-   the face, refracting whatever passes under it. */
-
-/* Same block as the bar that steers it — same width, height and radius —
-   so the pair reads as one object and its shadow, and the drag makes sense
-   before anyone is told about it. It is out of .keen-entry's flow now and
-   positioned against the SCREEN by the same corner technique the bar uses,
-   which is also why the entry could be narrowed and moved left. */
-.keen-slab {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  /* declared as fallbacks, not as values: the responsive overrides below set
-     --slab-top, and a plain declaration here would outrank them on equal
-     specificity purely by coming later in the file */
-  transform: translate(0, 0);
-  margin-left: calc(-50vw + var(--slab-left, 50vw) - 180px);   /* 180 = half its width */
-  margin-top: calc(-50vh + var(--slab-top, 68px));
-  width: 360px;
-  height: 60px;
-  /* the bar is border-box; without this the slab's 1px border makes it
-     362×62 against the bar's 360×60, and they stop being the same block */
-  box-sizing: border-box;
-  border-radius: 28px;
-  cursor: grab;
-  touch-action: none;
-  z-index: 3;
-  will-change: transform;
-  background: rgba(244, 246, 250, .26);
-  background: color-mix(in srgb, var(--fg-inv) 26%, transparent);
-  border: 1px solid rgba(21, 22, 28, .16);
-  border: 1px solid color-mix(in srgb, var(--fg) 16%, transparent);
-  /* No blur, and no displacement either. This pane's job is now to make
-     what is under it CLEAR — a lens that frosts the one sharp line it
-     passes over is arguing against itself. Its glassiness comes from the
-     fill, the rim and the shadow instead. */
-  backdrop-filter: saturate(150%) brightness(1.02);
-  -webkit-backdrop-filter: saturate(150%) brightness(1.02);
-  box-shadow:
-    0 18px 42px rgba(5, 10, 25, .14),
-    inset 0 1px 0 rgba(255, 255, 255, .34);
-}
-/* Narrow screens: the bar narrows with the viewport, so the specimen has to
-   track it or the pair stops matching. Placed after the base rule so these
-   actually win. */
-@media (max-width: 967px) {
-  .keen-slab {
-    width: min(360px, calc(100vw - 32px));
-    margin-left: calc(-50vw + var(--slab-left, 50vw) - min(180px, calc(50vw - 16px)));
-  }
-}
-
-/* The teaser. At rest the specimen is hidden behind the bar, which is the
-   whole idea — it is something you pull OUT of the bar — but a thing nobody
-   can see is a thing nobody will try. So on arrival it dips out from under
-   the bar three times while the bar's own subtitle says what to do. */
-
-/* the bar is a control here; everywhere else it stays a label */
-.face-banner--handle { cursor: grab; touch-action: none; }
-.face-banner--handle.dragging { cursor: grabbing; }
-
-/* Two pieces of keen glass overlapping are simply more glass. The patch is
-   another pane of exactly the material the specimen is made of — same fill,
-   same rim, same frost — so where the specimen is behind the bar you are
-   looking through two panes and it reads as thicker.
-
-   It was a convex lens for a while: a real displacement map, a specular cap,
-   ends darkening as the surface turned away. It was wrong. Warping a 6:1
-   block that has type on it does not read as a bulge, it reads as the whole
-   bar going soft — out of focus rather than curved. Glass on glass says the
-   same thing without pretending the bar is a magnifier.
-
-   The patch is sized and placed as the SPECIMEN, in the bar's coordinates,
-   and the bar clips it: overflow:hidden is what turns "the specimen's whole
-   block" into "however much of it is behind the bar". Fitting it to the
-   intersection instead makes the entire bar react the moment the two so much
-   as touch, which is not how a pane sliding past looks. */
-.face-banner--handle { overflow: hidden; }
-.face-banner--handle::after {
-  content: '';
-  position: absolute;
-  left: var(--ov-x, 0px);
-  top: var(--ov-y, 0px);
-  width: var(--ov-w, 0px);
-  height: var(--ov-h, 0px);
-  box-sizing: border-box;
-  border-radius: 28px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .2s ease;
-  background: rgba(244, 246, 250, .24);
-  background: color-mix(in srgb, var(--fg-inv) 24%, transparent);
-  border: 1px solid rgba(21, 22, 28, .12);
-  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32);
-}
-.face-banner--handle.touching::after {
-  opacity: 1;
-  backdrop-filter: blur(4px) saturate(140%);
-  -webkit-backdrop-filter: blur(4px) saturate(140%);
-}
-
 /* ---------- liquid glass ------------------------------------------------
 
    The material every keen surface is made of. Three properties, and each one
@@ -2264,25 +2152,44 @@ body.lens .face-banner--handle.pressing {
   transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px)))
              scale(1.012, .955);
 }
+/* Breathing, until it has been pressed once.
+
+   The bar is the only way into this room now, and nothing about a title says
+   "press me". It used to be taught by dipping the specimen out from under the
+   bar, which was a caption in motion; this is the surface itself, swelling
+   and hollowing on a slow four-second cycle — the same convex/concave pair
+   the press does, at a fraction of the depth and a tenth of the speed.
+
+   It stops the moment it is pressed. Repeating an instruction at someone who
+   has already followed it is nagging, not guidance. */
+.face--keen.landed .face-banner--handle:not(.learned) {
+  animation: keenBreathe 4.4s ease-in-out 1.2s infinite;
+}
+@keyframes keenBreathe {
+  0%, 100% { transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(1); }
+  32%      { transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(1.014, .988); }
+  68%      { transform: translateX(-50%) translateY(calc(-50vh + var(--banner-top, 68px))) scale(.99, 1.008); }
+}
+/* the same breath in the glass: it thickens as the bar swells and thins as it
+   hollows, so the movement reads as the material rather than as a wobble */
+.face--keen.landed .face-banner--handle:not(.learned) > .liquid-lens {
+  animation: keenBreatheLens 4.4s ease-in-out 1.2s infinite;
+}
+@keyframes keenBreatheLens {
+  0%, 100% { opacity: .4; }
+  32%      { opacity: .78; }
+  68%      { opacity: .3; }
+}
+
+/* Reading. The bar stays pressed-looking while the room is in focus, so the
+   control says which of its two states it is in without a caption. */
+.face-banner--handle[aria-pressed="true"] { cursor: default; }
+
 /* the copy rides the squeeze rather than sitting still on top of it */
 .face-banner--handle > h2,
 .face-banner--handle > p { transition: transform .22s cubic-bezier(.3, .9, .3, 1); }
 .face-banner--handle.pressing > h2,
 .face-banner--handle.pressing > p { transform: scale(.965); }
-
-.keen-slab.dragging { cursor: grabbing; }
-/* while it is being steered from the bar, the specimen lifts a little so it
-   is obvious which of the two blocks is the one that moves */
-.keen-slab {
-  transition: box-shadow .25s ease, border-color .25s ease;
-}
-.keen-slab.lifted {
-  border-color: color-mix(in srgb, var(--fg) 26%, transparent);
-  box-shadow:
-    0 26px 60px rgba(5, 10, 25, .2),
-    inset 0 1px 0 rgba(255, 255, 255, .45);
-}
-
 
 /* ---------- 01b · intro ---------- */
 

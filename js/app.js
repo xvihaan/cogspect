@@ -549,10 +549,13 @@
   }
   function clearLanded() { setLanded(null); }
 
+  let onLeaveKeen = null;             // set once the keen bar exists; see below
+
   function setFace(face) {
     cur = face;
     setLanded(face);
     paintChips();                      // they live on the front face only
+    if (face !== 'back' && onLeaveKeen) onLeaveKeen();
     // the gate only gets built once — after that the bridge simply stands
     if (face === 'left' && faceEls.left) faceEls.left.classList.add('bridged');
     // arriving at the portfolio shows the visitor where the six projects are,
@@ -719,7 +722,7 @@
        with momentum and a snap onto the nearest resting pose. */
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .keen-slab, .face-banner--handle')) return;
+    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .face-banner--handle')) return;
     if (overlayOpen()) return;
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
@@ -991,161 +994,51 @@
     for (const el of liquidEls) el.style.setProperty('--near', '0');
   });
 
-  /* ---------- keen specimen: a control surface, not an ornament ----------
-     The design language is demonstrated instead of described — moving the
-     slab across the lattice shows the refraction doing its work. What steers
-     it is the "Design space" bar: the bar stays exactly where it is and the
-     specimen answers to it, which is the point. This is an agent-run site,
-     so its chrome should be operable rather than decorative, and a label
-     that turns out to be a control says that better than a caption would.
+  /* ---------- keen: the bar is the lens ----------------------------------
 
-     The slab is grabbable directly too. Discovering the bar is the reward;
-     failing to move a thing that plainly looks draggable is not a lesson
-     worth teaching. Both paths run the same drag. */
+     The entry for keen is out of focus, and the bar above it brings it in.
+     Press once to read, press again to let it go.
 
-  const keenSlab = document.getElementById('keenSlab');
+     It used to steer a slab of glass you dragged across the face, and that
+     demonstrated the material well — but carrying a pane around to read a
+     paragraph is work, and this face's whole argument is that the design gets
+     out of your way. One press does the same job and asks nothing.
+
+     The bar is still the lens either way: what changed is that it now covers
+     the whole room instead of a slab's worth of it. */
   const keenHandle = document.getElementById('keenHandle');
+  /* Straight from the document, not from faceEls — that map is filled by
+     mountFaces() at boot, well after this line runs, so reading it here
+     captured undefined and setKeenReading() then returned early on every
+     press without saying anything. */
+  const keenFace = document.querySelector('[data-face="back"]');
+  let keenReading = false;
 
-  /* The bar used to dip the specimen out from under itself twice on arrival,
-     to teach the drag. The room introduces itself in words now, so the dance
-     was saying the same thing twice — and the press bulge below says the
-     rest without a caption. */
-
-  /* The sharp copy is cloned rather than written twice: two hand-maintained
-     copies of the same paragraph drift the first time one of them is edited. */
-  const keenEntry = document.querySelector('.keen-entry');
-  let keenSharp = null;
-  if (keenEntry) {
-    keenSharp = keenEntry.cloneNode(true);
-    keenSharp.classList.add('keen-entry--sharp');
-    keenSharp.setAttribute('aria-hidden', 'true');
-    keenSharp.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
-    keenEntry.parentNode.insertBefore(keenSharp, keenEntry.nextSibling);
+  function setKeenReading(on) {
+    if (!keenHandle || !keenFace) return;
+    keenReading = !!on;
+    keenFace.classList.toggle('reading', keenReading);
+    keenHandle.setAttribute('aria-pressed', String(keenReading));
+    keenHandle.setAttribute('aria-label', keenReading ? '디자인 공간 닫기' : '디자인 공간 보기');
+    // once pressed, it stops breathing: repeating an instruction at someone
+    // who has already followed it is nagging, not guidance
+    keenHandle.classList.add('learned');
   }
 
-  if (keenSlab) {
-    let slabDrag = null, slabX = 0, slabY = 0;
-
-    /* The old ±190px box barely let the slab off its own slot. The range is
-       now the whole visible face: the limits are derived at grab time from
-       where the slab actually sits on screen, so it can be carried anywhere
-       the visitor can see, and stops at the edges instead of at an arbitrary
-       distance. The bottom margin keeps it from parking under the chat dock. */
-    const EDGE = 14, DOCK = 96;
-    function slabLimits() {
-      const r = keenSlab.getBoundingClientRect();
-      const z = zoomCur || 1;
-      // how far the slab may still travel, in screen px, then back to local px
-      return {
-        minX: slabX - (r.left - EDGE) / z,
-        maxX: slabX + (window.innerWidth - EDGE - r.right) / z,
-        minY: slabY - (r.top - EDGE) / z,
-        maxY: slabY + (window.innerHeight - DOCK - r.bottom) / z
-      };
-    }
-    const clamp = (v, lo, hi) => (hi <= lo ? v : Math.max(lo, Math.min(hi, v)));
-
-
-
-    function grabSlab(e, el) {
+  if (keenHandle) {
+    keenHandle.addEventListener('click', () => setKeenReading(!keenReading));
+    // role=button carries no keyboard behaviour of its own
+    keenHandle.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
       e.preventDefault();
-      e.stopPropagation();                   // the cube must not turn under it
-      slabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, lim: slabLimits(), el };
-      el.classList.add('dragging', 'held');
-      keenSlab.classList.add('lifted');
-      // Capture is an enhancement, not the mechanism: it throws when there is
-      // no live pointer with this id, and the move/up listeners live on the
-      // window anyway so the drag survives the pointer leaving the element.
-      try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
-      // pressed, the bead squeezes and its glass thins — see .liquid
-      if (el === keenHandle) keenHandle.classList.add('pressing');
-    }
-    keenSlab.addEventListener('pointerdown', (e) => grabSlab(e, keenSlab));
-    if (keenHandle) keenHandle.addEventListener('pointerdown', (e) => grabSlab(e, keenHandle));
-    window.addEventListener('pointermove', (e) => {
-      if (!slabDrag || e.pointerId !== slabDrag.id) return;
-      // the pointer moves in screen px; the slab lives inside the zoomed face
-      const L = slabDrag.lim;
-      slabX = clamp(slabX + (e.clientX - slabDrag.x) / (zoomCur || 1), L.minX, L.maxX);
-      slabY = clamp(slabY + (e.clientY - slabDrag.y) / (zoomCur || 1), L.minY, L.maxY);
-      slabDrag.x = e.clientX; slabDrag.y = e.clientY;
-      keenSlab.style.transform = `translate(${slabX.toFixed(1)}px, ${slabY.toFixed(1)}px)`;
-      // answer on the same event rather than on the next frame — the glass
-      // should thicken and thin as the specimen is carried, not a beat behind
-      keenTouch();
+      setKeenReading(!keenReading);
     });
-    const dropSlab = (e) => {
-      if (!slabDrag || e.pointerId !== slabDrag.id) return;
-      slabDrag.el.classList.remove('dragging');
-      if (keenHandle) keenHandle.classList.remove('pressing');
-      keenSlab.classList.remove('lifted');
-      slabDrag = null;
-    };
-    window.addEventListener('pointerup', dropSlab);
-    window.addEventListener('pointercancel', dropSlab);
-  }
-
-  /* The bar bulges where the specimen passes behind it. Polled rather than
-     computed from the animation, because the dip is a CSS keyframe and the
-     drag is a transform — there is no single place that knows where the slab
-     is. Two rect reads per frame, and only while this face is the one on
-     screen. */
-  let touching = false, ovKey = '';
-  function keenTouch() {
-    if (!keenSlab || !keenHandle) return;
-    if (cur !== 'back') {
-      if (touching) { touching = false; keenHandle.classList.remove('touching'); }
-      return;
-    }
-    const a = keenSlab.getBoundingClientRect(), b = keenHandle.getBoundingClientRect();
-    const hit = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
-    if (hit) {
-      /* Hand the patch the SPECIMEN's own box, in the bar's coordinates — the
-         bar's overflow:hidden is what turns that into "only the part that
-         overlaps". Rects come back in screen px and the patch lives inside
-         the zoomed face, so divide back out. */
-      const z = zoomCur || 1;
-      const key = `${a.left - b.left}|${a.top - b.top}|${a.width}|${z}`;
-      if (key !== ovKey) {
-        ovKey = key;
-        const st = keenHandle.style;
-        st.setProperty('--ov-x', `${((a.left - b.left) / z).toFixed(1)}px`);
-        st.setProperty('--ov-y', `${((a.top - b.top) / z).toFixed(1)}px`);
-        st.setProperty('--ov-w', `${(a.width / z).toFixed(1)}px`);
-        st.setProperty('--ov-h', `${(a.height / z).toFixed(1)}px`);
-      }
-    }
-    keenLens();
-    if (hit === touching) return;
-    touching = hit;
-    keenHandle.classList.toggle('touching', hit);
-  }
-
-  /* The window the sharp copy shows through, as clip-path insets from the
-     entry's own edges. Clamped at zero: a specimen hanging off one side
-     should open the window to that edge, not past it. */
-  let lensKey = '';
-  function keenLens() {
-    if (!keenSharp || !keenEntry || !keenSlab) return;
-    const a = keenSlab.getBoundingClientRect(), e = keenEntry.getBoundingClientRect();
-    const over = !(a.right <= e.left || e.right <= a.left || a.bottom <= e.top || e.bottom <= a.top);
-    const key = over ? `${a.left - e.left}|${a.top - e.top}|${a.width}|${e.width}` : 'off';
-    if (key === lensKey) return;
-    lensKey = key;
-    const st = keenSharp.style;
-    if (!over) {
-      st.setProperty('--lens-t', '100%');
-      st.setProperty('--lens-r', '100%');
-      st.setProperty('--lens-b', '100%');
-      st.setProperty('--lens-l', '100%');
-      return;
-    }
-    const px = (v) => `${Math.max(0, v).toFixed(1)}px`;
-    const z = (e.height && keenEntry.offsetHeight) ? e.height / keenEntry.offsetHeight : 1;
-    st.setProperty('--lens-t', px((a.top - e.top) / z));
-    st.setProperty('--lens-r', px((e.right - a.right) / z));
-    st.setProperty('--lens-b', px((e.bottom - a.bottom) / z));
-    st.setProperty('--lens-l', px((a.left - e.left) / z));
+    /* Leaving the room puts it back out of focus, so the entry and the bar
+       never disagree about which state this is in. Assigned to a mutable hook
+       rather than called from setFace() directly: setFace runs during boot,
+       before these consts are initialised, and reaching into them from there
+       would throw on the temporal dead zone. */
+    onLeaveKeen = () => { if (keenReading) setKeenReading(false); };
   }
 
   /* ---------- pixel-grid ripples ---------- */
@@ -1273,7 +1166,6 @@
     zoomWrap.style.transform = `scale(${zoomCur * (1 - kick)})`;
 
     drawGrid();
-    keenTouch();
     requestAnimationFrame(tick);
   }
 
@@ -1971,7 +1863,7 @@
     ],
     back: [
       'cogspect가 지향하는 디자인 공간입니다.',
-      '레이어를 움직여서 탐색해 보세요.'
+      '위의 바를 누르면 흐릿한 것이 또렷해져요.'
     ]
   };
   const introSaid = new Set();
@@ -2022,7 +1914,7 @@
     front:  'cogspect가 시작되는 면이에요.',
     right:  '민혁님의 포트폴리오 공간이에요. 잔디 속에 프로젝트가 숨어 있어요.',
     left:   '다른 공간으로 건너가는 다리예요. 파란 문과 붉은 문이 있어요.',
-    back:   'keen — cogspect의 디자인을 직접 만져보는 면이에요.',
+    back:   'keen — 바를 누르면 흐릿한 것이 또렷해지는 면이에요.',
     top:    'prospect — cogspect가 향하는 방향을 담은 면이에요.',
     bottom: 'minimalid — 최소한의 견고함. 아카이브로 이어져요.'
   };

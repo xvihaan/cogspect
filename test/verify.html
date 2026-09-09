@@ -1034,303 +1034,94 @@ f.addEventListener('load', async () => {
      `the keen entry sits below its bar (bar ends ${Math.round(kb.bottom)}, entry starts ${Math.round(ke.top)})`);
   ok(d.querySelector('.keen-entry .keen-title').textContent.includes('keen'),
      'and the dictionary entry still says what it said');
-  // the specimen is cut from the same block as the bar that steers it —
-  // border-box matters here, a 1px border is enough to break the match
-  const kslabEl = d.getElementById('keenSlab');
-  const kslab = kslabEl.getBoundingClientRect();
-  ok(Math.abs(kslab.width - kb.width) < 1.5 && Math.abs(kslab.height - kb.height) < 1.5,
-     `the specimen is the same block as the bar (${Math.round(kslab.width)}×${Math.round(kslab.height)})`);
+  /* ---- keen: the bar is the lens ----------------------------------------
 
-  /* The press dish. The specimen rests hidden behind the bar, so the bar has
-     to say by itself that it is a live piece of glass — it used to do that by
-     dipping the specimen out twice, which the room now explains in words.
-     What is left is what the whole block does when you push it. */
+     The entry for keen is out of focus and the bar above it brings it in.
+     Press to read, press again to let it go. It used to steer a slab of glass
+     you dragged across the face, which demonstrated the material well — but
+     carrying a pane around to read a paragraph is work, and this room's whole
+     argument is that the design gets out of your way. */
   const khl = d.getElementById('keenHandle');
-  /* One material, not a family resemblance. Every glass surface on the page
-     carries it, each with its own glass layer to light — and the answer
-     bubble is the one that had to be defended, because it empties itself
-     between messages and used to take the layer with it. */
-  for (const sel of ['.glass-nav', '.chat-bar', '.ghost-msg', '.toast', '.face-banner']) {
-    const el = d.querySelector(sel);
-    ok(el.classList.contains('liquid'), `${sel} is made of the same glass`);
-    ok(!!el.querySelector(':scope > .liquid-lens'), `${sel} has a layer to light`);
-  }
-  /* The two cpt surfaces are the ones you look THROUGH the most — the answer
-     sits over whatever room you are in — and their own fill is only 3.5%, so
-     what actually decides how opaque they read is the blurred halo behind
-     them. It used to be a 50% white plate, which is a plate with a soft edge
-     rather than glass. Below about 12% the copy starts competing with the
-     busier faces, so this is bounded from both sides. */
-  const bubbleHalo = parseFloat(w.getComputedStyle(d.querySelector('.ghost-msg'), '::before')
-    .getPropertyValue('--halo'));
-  ok(bubbleHalo > 8 && bubbleHalo < 32,
-     `the bubble is see-through, not a white plate (halo ${bubbleHalo}%)`);
-  /* The bar has no halo any more, so its own fill is what you look through. */
-  const barAlpha = Number((/[/,]\s*([\d.]+)\s*\)\s*$/.exec(
-    w.getComputedStyle(d.querySelector('.chat-bar')).backgroundColor) || [])[1] ?? 1);
-  ok(barAlpha < 0.1, `and the bar is see-through on its own fill (${barAlpha})`);
-  const bulge = khl.querySelector('.liquid-lens');
-  ok(!!bulge, 'the bar carries a glass layer of its own');
-  ok(!!d.getElementById('lg-drop'),
-     'and a convex droplet map, so the rim bends and the middle stays still');
-  /* `.face-banner--handle > *` puts every child in flow at z-index 1. A dish
-     that loses that fight is not a dish, it is a paragraph. */
-  const lcs = w.getComputedStyle(bulge);
-  ok(lcs.position === 'absolute', `the specular is out of the flow (${lcs.position})`);
-  /* Under the copy. A highlight painted over type washes the type out, and
-     backdrop-filter samples only what is behind an element anyway. */
-  ok(Number(lcs.zIndex) === 0, `and under the copy (z ${lcs.zIndex})`);
-  ok(lcs.pointerEvents === 'none', 'and never eats the drag it is decorating');
-  /* Translucent, and not by a little: the fill is 7% and what keeps the copy
-     legible is the blur and the rim light. A bar you cannot see the face
-     through is a plate, whatever it is made of. */
-  const fill = w.getComputedStyle(khl).backgroundColor;
-  // color-mix resolves to color(srgb r g b / a) here, not rgba() — read the
-  // alpha off whichever form the engine hands back
-  const alpha = Number((/[/,]\s*([\d.]+)\s*\)\s*$/.exec(fill) || [])[1] ?? 1);
-  ok(alpha < 0.16, `the bar is translucent enough to see the face through (${fill})`);
+  const kCopy = () => w.getComputedStyle(d.querySelector('.keen-copy'));
+  ok(khl.getAttribute('role') === 'button' && khl.hasAttribute('aria-pressed'),
+     'the bar is a control, and says so');
+  ok(khl.getAttribute('aria-controls') === 'keenEntry',
+     'and names what it acts on');
+  ok(Number(khl.tabIndex) >= 0, 'and can be reached from the keyboard');
+  ok(!d.getElementById('keenSlab'), 'the slab you had to drag is gone');
 
-  /* The bead answers to where the pointer is: --near drives every material
-     property from one number, and the highlight is aimed from the same place.
-     Nothing can know the viewer's angle, but the pointer is the closest thing
-     to one, and a highlight that is SOMEWHERE is what makes glass read. */
-  const varOf = (n) => w.getComputedStyle(khl).getPropertyValue(n).trim();
-  const nearNow = () => Number(varOf('--near'));
-  /* The bar coalesces these onto an animation frame — one read and one write
-     per frame, since it runs on every pointer event — and virtual time
-     starves rAF outright: the callback simply never arrives, so an unshimmed
-     version of this measures "no response" whether or not there is one. Give
-     it a timer-backed frame for the duration, then hand the real one back. */
-  const realRaf = w.requestAnimationFrame;
-  w.requestAnimationFrame = (fn) => w.setTimeout(() => fn(w.performance.now()), 16);
-  const glanceAt = async (x, y, want) => {
-    for (let i = 0; i < 40; i++) {
-      w.dispatchEvent(new w.PointerEvent('pointermove', {clientX: x, clientY: y, bubbles: true}));
-      await wait(50);
-      if (want()) return true;
-    }
-    return false;
-  };
-  const hb = khl.getBoundingClientRect();
-  ok(await glanceAt(hb.left + hb.width / 2, hb.top + hb.height / 2, () => nearNow() > 0.9),
-     `on the bar, the glass is fully there (near ${nearNow()})`);
-  const litAt = varOf('--gx');
-  /* The blur radius must NOT move with --near. Everything else the bar
-     changes as you approach is a paint on a layer that already exists; a blur
-     radius re-runs the filter over the backdrop, and --near changes on every
-     pointer move. This is the assertion that keeps the effect affordable on
-     chrome that is on screen the whole time. */
-  const blurAt = () => (/blur\(([\d.]+)px\)/.exec(w.getComputedStyle(khl).backdropFilter) || [])[1];
-  const blurNear = blurAt();
-  const armAt = varOf('--sx');
-  ok(await glanceAt(hb.left + 8, hb.top + hb.height / 2, () => varOf('--gx') !== litAt),
-     `and the light's direction follows the pointer (${litAt} → ${varOf('--gx')})`);
-  /* The shading swings with it: a soft shadow gathers on the side AWAY from
-     the pointer, which is what gives the refraction a direction instead of
-     leaving it a wobble. */
-  ok(parseFloat(varOf('--sx')) > 0 && parseFloat(varOf('--sx')) > parseFloat(armAt),
-     `and the shading swings away from the side you came from (${armAt} → ${varOf('--sx')})`);
-  await glanceAt(hb.right - 8, hb.top + hb.height / 2, () => parseFloat(varOf('--sx')) < 0);
-  ok(parseFloat(varOf('--sx')) < 0,
-     `and to the other side when you come from there (${varOf('--sx')})`);
+  /* Blurred until asked. keen is a lens, so the entry for keen is the one
+     thing on this site you can only read THROUGH one. */
+  ok(/blur\(([\d.]+)px\)/.test(kCopy().filter) &&
+     Number(/blur\(([\d.]+)px\)/.exec(kCopy().filter)[1]) > 1,
+     `the explanation is out of focus (${kCopy().filter})`);
+  ok(khl.getAttribute('aria-pressed') === 'false', 'and the bar is not pressed');
 
-  /* No highlight. There was a hot white spot on this layer and a wash around
-     it, and on a pale face it read as a lamp shining on a pill rather than as
-     glass — on the void face it read as a hole burnt in it. What tells you
-     something is glass is that the world bends behind it, not that it shines,
-     so the layer paints shadow only. */
-  const litPaint = w.getComputedStyle(bulge).backgroundImage +
-                   ' ' + w.getComputedStyle(bulge).boxShadow;
-  const whites = (litPaint.match(/rgba?\(\s*25[0-5][^)]*?([\d.]+)\s*\)/g) || [])
-    .map((c) => Number((/([\d.]+)\s*\)$/.exec(c) || [])[1]))
-    .filter((a) => a > 0.12);
-  ok(whites.length === 0,
-     `the glass layer paints no white light (${whites.join(', ') || 'none'})`);
-  ok(await glanceAt(hb.left + hb.width / 2, hb.bottom + 600, () => nearNow() < 0.05),
-     `far away it recedes rather than sitting there lit (near ${nearNow()})`);
-  ok(blurNear === blurAt(),
-     `and it does so without re-blurring the backdrop every frame (${blurNear} → ${blurAt()})`);
-  /* Leaving the window entirely is not a pointer position, so it cannot be
-     computed from one — the bar has to be told, or it stays lit at whatever
-     the last move said. */
-  await glanceAt(hb.left + hb.width / 2, hb.top + hb.height / 2, () => nearNow() > 0.9);
-  w.dispatchEvent(new w.PointerEvent('pointerleave', {bubbles: true}));
-  await wait(60);
-  ok(nearNow() === 0, `and the pointer leaving the page puts it out (near ${nearNow()})`);
-  w.requestAnimationFrame = realRaf;
+  /* Virtual time does not advance transitions, so the computed filter sits at
+     its start value forever and the blur never appears to lift, pass or fail. */
+  const keenStill = d.createElement('style');
+  keenStill.textContent = '.keen-copy { transition: none !important; }';
+  d.head.appendChild(keenStill);
 
-  /* Unpinned from here on. Forcing #zoomWrap to scale(1) while the app's own
-     zoomCur is still mid-spring makes the drag maths disagree with what is
-     drawn, and everything measured through the drag comes out scaled. */
-  pin.remove();
-  await wait(400);
-
-  const barBox = khl.getBoundingClientRect();
-  const pressPt = { x: barBox.left + barBox.width * 0.25, y: barBox.top + barBox.height * 0.5 };
-  const copyEl = khl.querySelector('h2');
-  const copyWide = copyEl.getBoundingClientRect().width;
-  khl.dispatchEvent(new w.PointerEvent('pointerdown', {
-    pointerId: 41, clientX: pressPt.x, clientY: pressPt.y, bubbles: true, cancelable: true
-  }));
-  await wait(60);
-  ok(khl.classList.contains('pressing'), 'pressing it squeezes the bead');
-  /* Virtual time does not advance transitions, so computed values sit at
-     their start forever; kill the transitions and read the targets. */
-  const lensStill = d.createElement('style');
-  lensStill.textContent =
-    '.liquid-lens, .liquid, .face-banner--handle > h2 { transition: none !important; }';
-  d.head.appendChild(lensStill);
-  /* Squeezed, a drop of water spreads and flattens. The copy goes with it —
-     type sitting still on a surface that moved reads as a decal. */
-  const shrunk = copyEl.getBoundingClientRect().width;
-  ok(shrunk / copyWide < .99,
-     `the copy gives with it (${(shrunk / copyWide).toFixed(3)} of its size)`);
-  lensStill.remove();
-  ok(/inset/.test(w.getComputedStyle(khl).boxShadow),
-     'and the bead lights itself from the inside, top and underside both');
-  /* The glass thins while it is held. 9px of blur destroys every edge behind
-     the bar, and a lens with nothing to bend is a lens nobody can see — the
-     dot lattice has to come back into focus for the warp to read at all. */
-  const blurOf = (el) => {
-    const m = /blur\(([\d.]+)px\)/.exec(w.getComputedStyle(el).backdropFilter || '');
-    return m ? Number(m[1]) : null;
-  };
-  const heldBlur = blurOf(khl);
-  ok(heldBlur !== null && heldBlur < 4,
-     `and its glass thins so there is something left to refract (${heldBlur}px)`);
-
-  /* Move by a fraction of the BAR's own screen width, not by a fixed 120px.
-     The face is zoomed, so 120 screen px can be 340 face px — enough to carry
-     the specimen clear of the bar, which silently breaks every overlap
-     measurement taken after this. */
-  const step = barBox.width * 0.15;
-  const lensOn = kslabEl.getBoundingClientRect().left;
-  w.dispatchEvent(new w.PointerEvent('pointermove', {
-    pointerId: 41, clientX: pressPt.x + step, clientY: pressPt.y, bubbles: true
-  }));
-  await wait(60);
-  ok(kslabEl.getBoundingClientRect().left - lensOn > step * 0.5,
-     'and the bar is still steering the specimen while it is held');
-  ok(khl.classList.contains('touching'),
-     'and the specimen is still behind it, so the glass is still doubled');
-  w.dispatchEvent(new w.PointerEvent('pointerup', { pointerId: 41, bubbles: true }));
-  await wait(60);
-  ok(!khl.classList.contains('pressing'), 'it comes back up when the finger lifts');
-
-  // put the specimen back before the geometry checks below
-  kslabEl.style.transform = '';
-  await wait(60);
-
-
-  const barRest = khl.getBoundingClientRect();
-  const slabRest = kslabEl.getBoundingClientRect();
-  ok(Math.abs(slabRest.top - barRest.top) < 2 && Math.abs(slabRest.left - barRest.left) < 2,
-     'and it rests hidden exactly behind the bar, to be pulled out of it');
-
-  /* Two pieces of keen glass overlapping are simply more glass. The class is
-     toggled from tick(), which virtual time starves, so assert the geometry
-     it keys on: stacked they must touch, carried away they must come apart,
-     or the effect that happens WHEN they touch never stops. */
-  const overlaps = () => {
-    const A = kslabEl.getBoundingClientRect(), B = khl.getBoundingClientRect();
-    return !(A.right <= B.left || B.right <= A.left || A.bottom <= B.top || B.bottom <= A.top);
-  };
-  ok(overlaps() === true, 'stacked, the specimen is behind the bar — they touch');
-  kslabEl.style.transform = 'translate(0px, 140px)';
-  kslabEl.getBoundingClientRect();
-  ok(overlaps() === false, 'carried clear of the bar, they come apart');
-  kslabEl.style.transform = '';
-  /* The patch has to be the SPECIMEN's box, clipped by the bar — not the
-     intersection. Fitted to the intersection, the whole bar reacts the
-     moment the two so much as touch, which is what this replaced. */
-  ok(w.getComputedStyle(khl).overflow === 'hidden',
-     'the bar clips the bulge, which is what confines it to the overlap');
-
-  /* The bar is a control: it stays put, and the specimen answers to it. Run
-     unpinned — forcing the wrap to scale(1) while the app's own zoomCur is
-     still mid-spring makes the drag maths disagree with what is drawn, and
-     the slab looks like it escapes when it has not. */
-  const kh = d.getElementById('keenHandle'), ksl = d.getElementById('keenSlab');
-  ok(!!kh && w.getComputedStyle(kh).cursor === 'grab', 'the bar reads as grabbable');
-  /* Measured in FACE coordinates, not screen ones. The whole face scales with
-     the zoom spring, so a bar that has not moved an inch relative to its own
-     face still reports a different clientRect if the spring happens to be
-     running — which is a test that fails on timing rather than on behaviour. */
-  const faceEl = face('back');
-  const rel = (el) => {
-    const r = el.getBoundingClientRect(), f = faceEl.getBoundingClientRect();
-    return { x: (r.left - f.left) / f.width, y: (r.top - f.top) / f.height };
-  };
-  const bar0 = rel(kh), slab0 = rel(ksl);
-  // pointer coordinates are screen-space; the comparison above is not
-  const grab = kh.getBoundingClientRect();
-  kh.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId: 84, clientX: grab.left + 40, clientY: grab.top + 20, bubbles: true}));
-  for (let i = 1; i <= 14; i++) {
-    w.dispatchEvent(new w.PointerEvent('pointermove',
-      {pointerId: 84, clientX: grab.left + 40 + i * 6, clientY: grab.top + 20 + i * 5, bubbles: true}));
-    await wait(8);
-  }
-  const midPose = face('front').style.transform;
-  w.dispatchEvent(new w.PointerEvent('pointerup', {pointerId: 84, bubbles: true}));
-  await wait(120);
-  const bar1 = rel(kh), slab1 = rel(ksl);
-  const shift = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
-  ok(shift(bar0, bar1) < 0.002, `the bar itself does not move (${shift(bar0, bar1).toFixed(4)} of the face)`);
-  ok(shift(slab0, slab1) > 0.01,
-     `the specimen follows it (${(shift(slab0, slab1) * 100).toFixed(1)}% of the face)`);
-  ok(midPose === face('front').style.transform, 'and the cube does not turn under the drag');
-  const slabScreen = ksl.getBoundingClientRect();
-  ok(slabScreen.left >= -1 && slabScreen.top >= -1 && slabScreen.right <= w.innerWidth + 1,
-     'the specimen stays on screen');
-
-  /* The patch must be the SPECIMEN's block, clipped by the bar — not the
-     intersection. Fitted to the intersection, the whole bar reacts the moment
-     the two so much as touch, which is what this replaced. Read after the
-     drag: the drag updates the overlap synchronously, where tick() would
-     leave it to a frame virtual time may never deliver. */
-  const ovH = parseFloat(kh.style.getPropertyValue('--ov-h'));
-  ok(ovH > 0 && Math.abs(ovH - 60) < 2,
-     `the glass patch is the specimen's own 60px block (${ovH}px)`);
-  kh.style.setProperty('--ov-h', '42px');
-  ok(parseFloat(w.getComputedStyle(kh, '::after').height) === 42,
-     'and the patch takes its size from that, so the bar can clip it');
-  kh.style.removeProperty('--ov-h');
-
-  /* Inverted lens: the explanation is out of focus, and the specimen is what
-     brings it in. Two copies of the block, cloned at boot so they cannot
-     drift apart, with the sharp one clipped to wherever the specimen is. */
-  const sharpEl = d.querySelector('.keen-entry--sharp');
-  ok(!!sharpEl && sharpEl.getAttribute('aria-hidden') === 'true',
-     'a sharp copy exists, and it is hidden from screen readers');
-  ok(sharpEl.querySelector('.keen-def').textContent ===
-     d.querySelector('.keen-entry .keen-def').textContent,
-     'the two copies say the same thing');
-  ok(/blur\(/.test(w.getComputedStyle(d.querySelector('.keen-entry .keen-copy')).filter),
-     'the whole entry is out of focus by default, headword included');
-  ok(w.getComputedStyle(sharpEl.querySelector('.keen-copy')).filter === 'none',
-     'and the copy the lens reveals is not');
-  ok(w.getComputedStyle(sharpEl.querySelector('.keen-head')).visibility === 'visible',
-     'the lens brings the headword in too, not only the definition');
-  ok(/100%/.test(w.getComputedStyle(sharpEl).clipPath),
-     'with the specimen away, nothing is in focus');
-
-  // carry the specimen onto the definition and the window must open
-  const entryBox = d.querySelector('.keen-entry').getBoundingClientRect();
-  const slabNow = ksl.getBoundingClientRect();
-  const wantX = entryBox.left + 30 - slabNow.left;
-  const wantY = entryBox.top + entryBox.height * 0.72 - slabNow.top;
-  const bh = kh.getBoundingClientRect();
-  kh.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId: 88, clientX: bh.left + 40, clientY: bh.top + 20, bubbles: true}));
-  for (let i = 1; i <= 12; i++) {
-    w.dispatchEvent(new w.PointerEvent('pointermove', {pointerId: 88,
-      clientX: bh.left + 40 + (wantX * i) / 12, clientY: bh.top + 20 + (wantY * i) / 12, bubbles: true}));
-    await wait(8);
-  }
-  w.dispatchEvent(new w.PointerEvent('pointerup', {pointerId: 88, bubbles: true}));
+  khl.click();
   await wait(80);
-  const clip = w.getComputedStyle(sharpEl).clipPath;
-  ok(!/100%/.test(clip) && /inset\(/.test(clip),
-     `laid over the explanation, that band comes into focus (${clip})`);
+  ok(khl.getAttribute('aria-pressed') === 'true', 'one press and it is reading');
+  ok(face('back').classList.contains('reading'), 'the room knows it too');
+  ok(/blur\(0px\)|none/.test(kCopy().filter) && Number(kCopy().opacity) > 0.95,
+     `and the whole entry comes into focus, headword included (${kCopy().filter})`);
+  khl.click();
+  await wait(80);
+  ok(khl.getAttribute('aria-pressed') === 'false' && /blur\([1-9]/.test(kCopy().filter),
+     'and another press lets it go again');
+
+  /* The keyboard has to work, since role=button carries no behaviour of its
+     own — an element that says it is a button and cannot be pressed by one is
+     worse than a div. */
+  khl.dispatchEvent(new w.KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+  await wait(80);
+  ok(khl.getAttribute('aria-pressed') === 'true', 'Enter presses it');
+  khl.dispatchEvent(new w.KeyboardEvent('keydown', {key: ' ', bubbles: true}));
+  await wait(80);
+  ok(khl.getAttribute('aria-pressed') === 'false', 'and Space presses it again');
+
+  keenStill.remove();
+
+  /* Walking out puts it back out of focus, so the bar and the entry never
+     disagree about which state the room is in. */
+  khl.click();
+  await wait(120);
+  ok(khl.getAttribute('aria-pressed') === 'true', 'left reading');
+  d.getElementById('homeBtn').click();
+  await wait(1600);
+  ok(khl.getAttribute('aria-pressed') === 'false' &&
+     !face('back').classList.contains('reading'),
+     'and leaving the room closes it again');
+
+  /* Breathing, on a page that has not been pressed yet. Nothing about a title
+     says "press me", and this bar is the only way into that room — but the
+     hint stops for good once it has been followed, so by this point in the
+     suite the main page has learned it and cannot be asked. */
+  const f5 = document.createElement('iframe');
+  f5.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
+  document.body.appendChild(f5);
+  await new Promise((r) => { f5.addEventListener('load', r, {once: true}); f5.src = '../index.html'; });
+  const w5 = f5.contentWindow, d5 = f5.contentDocument;
+  if (w5.speechSynthesis) { w5.speechSynthesis.speak = () => {}; w5.speechSynthesis.cancel = () => {}; }
+  await wait(4200);
+  const key5 = (k) => w5.dispatchEvent(new w5.KeyboardEvent('keydown', {key: k, bubbles: true}));
+  key5('ArrowRight'); await wait(1300);
+  key5('ArrowRight'); await wait(1600);
+  const fresh = d5.getElementById('keenHandle');
+  const breathOf = (el) => [...el.getAnimations()].map((a) => a.animationName || '');
+  ok(!fresh.classList.contains('learned'), 'arriving, the bar has not been pressed');
+  ok(breathOf(fresh).some((n) => /keenBreathe/.test(n)),
+     `so it breathes to say it can be (${breathOf(fresh).join(',') || 'nothing'})`);
+  fresh.click();
+  await wait(200);
+  ok(fresh.classList.contains('learned') &&
+     !breathOf(fresh).some((n) => /keenBreathe/.test(n)),
+     'and stops the moment it has been, rather than nagging');
+  f5.remove();
 
   // mid-turn: no face may claim the bar
   d.getElementById('homeBtn').click();
@@ -1445,28 +1236,22 @@ f.addEventListener('load', async () => {
   const dAttr = beam.getAttribute('d');
   ok(/^M[\d\s.]+L[\d\s.]+$/.test(dAttr.trim()), `the beam is a straight run (${dAttr})`);
 
-  // the keen specimen: draggable, far, and without turning the cube under it
+  /* The design space reached the long way round, and its bar pressed without
+     the cube moving under it: the face is a drag surface, so a control sitting
+     on one has to swallow the press rather than pass it through. */
   d.getElementById('homeBtn').click();
   await wait(1200);
   key('ArrowRight'); await wait(950); key('ArrowRight'); await wait(1200);
-  const slab = d.getElementById('keenSlab');
-  ok(!!slab && hud() === LABELS.back, 'arrived at keen with the specimen present');
-  const poseBeforeSlab = face('front').style.transform;
-  const r0 = slab.getBoundingClientRect();
-  slab.dispatchEvent(new w.PointerEvent('pointerdown', {pointerId:71, clientX:r0.left+48, clientY:r0.top+48, bubbles:true}));
-  for (let i=1;i<=40;i++) {
-    slab.dispatchEvent(new w.PointerEvent('pointermove',
-      {pointerId:71, clientX:r0.left+48+i*14, clientY:r0.top+48+i*9, bubbles:true}));
-    await wait(8);
-  }
-  slab.dispatchEvent(new w.PointerEvent('pointerup', {pointerId:71, bubbles:true}));
-  await wait(200);
-  ok(face('front').style.transform === poseBeforeSlab, 'dragging the specimen does not turn the cube');
-  const r1 = slab.getBoundingClientRect();
-  const moved = Math.hypot(r1.left-r0.left, r1.top-r0.top);
-  ok(moved > 260, `the specimen travels the face, not a small box (${Math.round(moved)}px)`);
-  ok(r1.right <= w.innerWidth && r1.left >= 0 && r1.top >= 0,
-     'the specimen stops at the edge of the screen');
+  ok(hud() === LABELS.back, 'arrived at the design space');
+  const kbar = d.getElementById('keenHandle');
+  const poseBeforePress = face('front').style.transform;
+  kbar.click();
+  await wait(250);
+  ok(kbar.getAttribute('aria-pressed') === 'true', 'the bar reads on a press');
+  ok(face('front').style.transform === poseBeforePress,
+     'and pressing it does not turn the cube under it');
+  kbar.click();
+  await wait(150);
 
   /* ---------- the greeting, in a page of its own ------------------------
      The greeting fires once, seconds after load, and this harness has been
