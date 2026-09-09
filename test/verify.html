@@ -758,6 +758,42 @@ f.addEventListener('load', async () => {
     [40, w4.innerHeight - 40, 'Bifröst', 'bottom-left']
   ];
   const roomLine = () => [...d4.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
+
+  /* The corners answer EARLY. A hot zone that only replies once you are inside
+     it is a feature nobody finds — the pointer has no reason to go to a
+     corner — so a breath of shade gathers in the one you are moving toward,
+     long before you arrive. You do not have to reach it to learn it is live. */
+  const hints = [...d4.querySelectorAll('.corner-hint')];
+  const litOf = (corner) =>
+    Number(hints.find((h) => h.dataset.corner === corner).style.getPropertyValue('--lit') || 0);
+  ok(hints.length === 4, `every corner can answer (${hints.length})`);
+  ok(w4.getComputedStyle(hints[0]).pointerEvents === 'none',
+     'and none of them is in the way of anything');
+
+  glance(w4.innerWidth / 2, w4.innerHeight / 2);
+  await wait(150);
+  ok(hints.every((h) => litOf(h.dataset.corner) === 0),
+     'in the middle of the page nothing is drawn at all');
+  /* The ramp is the whole point: it has to start before the hot zone, so that
+     heading toward a corner is enough to discover it. */
+  const far = 320 / Math.SQRT2, mid = 230 / Math.SQRT2;
+  glance(w4.innerWidth - far, far);
+  await wait(150);
+  const atFar = litOf('top-right');
+  glance(w4.innerWidth - mid, mid);
+  await wait(150);
+  const atMid = litOf('top-right');
+  ok(atFar < 0.1 && atMid > 0.4,
+     `and it grows as you head for one (${atFar} at 320px → ${atMid} at 230px)`);
+  ok(['top-left', 'bottom-left', 'bottom-right'].every((c) => litOf(c) === 0),
+     'only the corner you are heading for, not all four');
+  /* Nothing may promise a corner that is not going to answer. */
+  w4.dispatchEvent(new w4.PointerEvent('pointerdown', {clientX: 500, clientY: 400, bubbles: true}));
+  glance(w4.innerWidth - mid, mid);
+  await wait(150);
+  ok(litOf('top-right') === 0, 'and it goes out while something is being dragged');
+  w4.dispatchEvent(new w4.PointerEvent('pointerup', {clientX: 500, clientY: 400, bubbles: true}));
+  await wait(120);
   const seenLines = [];
   for (const [x, y, room, name] of CORNERS) {
     glance(w4.innerWidth / 2, w4.innerHeight / 2);

@@ -216,6 +216,19 @@
   <!-- pixel-grid ripple canvas -->
   <canvas class="grid-canvas" id="grid"></canvas>
 
+  <!-- The corners are live, and nothing said so. A hot zone you have to land
+       inside before it answers is a feature nobody finds: the pointer has no
+       reason to go there. So the answer starts EARLY and grows — a breath of
+       shade gathering in the corner you are moving toward, long before you
+       arrive. You do not have to reach the corner to learn it is there; you
+       only have to head that way. -->
+  <div class="corner-hints" aria-hidden="true">
+    <span class="corner-hint" data-corner="top-left"></span>
+    <span class="corner-hint" data-corner="top-right"></span>
+    <span class="corner-hint" data-corner="bottom-right"></span>
+    <span class="corner-hint" data-corner="bottom-left"></span>
+  </div>
+
   <!-- wordmark -->
   <div class="wordmark">cogspect</div>
 

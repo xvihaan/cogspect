@@ -2008,6 +2008,38 @@
     }, 380);                            // a beat, so a passing cursor says nothing
   }
 
+  /* How early the corner starts answering. The hot zone is 150px, and a zone
+     that only replies once you are inside it is a feature nobody finds — the
+     pointer has no reason to go to a corner. So the reply begins at 320 and
+     grows: you do not have to reach the corner to learn it is live, you only
+     have to head that way. */
+  const HINT_REACH = 320;
+  const hintEls = [...document.querySelectorAll('.corner-hint')];
+  const CORNER_AT = {
+    'top-left':     () => [0, 0],
+    'top-right':    () => [window.innerWidth, 0],
+    'bottom-right': () => [window.innerWidth, window.innerHeight],
+    'bottom-left':  () => [0, window.innerHeight]
+  };
+  let hintOff = false;
+
+  function paintHints(x, y) {
+    for (const el of hintEls) {
+      const at = CORNER_AT[el.dataset.corner];
+      let lit = 0;
+      if (at && !hintOff) {
+        const [cx, cy] = at();
+        const d = Math.hypot(x - cx, y - cy);
+        lit = Math.max(0, Math.min(1, (HINT_REACH - d) / (HINT_REACH - PEEK_CORNER)));
+      }
+      // two decimals: this runs on every pointer move, and writing a custom
+      // property that has not meaningfully changed is a style recalc for free
+      const v = lit.toFixed(2);
+      if (el.dataset.lit !== v) { el.dataset.lit = v; el.style.setProperty('--lit', v); }
+    }
+  }
+  function clearHints() { hintOff = true; paintHints(-9999, -9999); hintOff = false; }
+
   function cornerUnder(x, y) {
     const nearL = x < PEEK_CORNER, nearR = x > window.innerWidth - PEEK_CORNER;
     const nearT = y < PEEK_CORNER, nearB = y > window.innerHeight - PEEK_CORNER;
@@ -2021,20 +2053,25 @@
   window.addEventListener('pointermove', (e) => {
     if (pointerDown || phase !== 'idle' || overlayOpen() || reducedMotion.matches) {
       if (peekAt) setPeek(null);
+      // nothing may promise a corner that is not going to answer
+      clearHints();
       return;
     }
+    paintHints(e.clientX, e.clientY);
     // the corners are clear of the chrome by design, but the nav does reach
     // into the top right — never lean the cube out from under a button
     if (e.target.closest && e.target.closest('.chat-dock, .glass-nav, .overlay')) {
       setPeek(null);
+      clearHints();
       return;
     }
     setPeek(cornerUnder(e.clientX, e.clientY));
   }, { passive: true });
-  window.addEventListener('pointerleave', () => setPeek(null));
+  window.addEventListener('pointerleave', () => { setPeek(null); clearHints(); });
   window.addEventListener('pointerdown', () => {
     pointerDown = true;
     setPeek(null);
+    clearHints();
   }, { capture: true });
   for (const ev of ['pointerup', 'pointercancel']) {
     window.addEventListener(ev, () => { pointerDown = false; }, { capture: true });

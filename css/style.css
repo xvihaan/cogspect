@@ -747,6 +747,63 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   z-index: 40;
 }
 
+/* The corner hints. Faint on purpose: this is an invitation, not a button,
+   and a mark loud enough to be a button is a mark that has to be explained.
+   Nothing is drawn at all until the pointer starts toward a corner, so the
+   page at rest is exactly as bare as it was. */
+.corner-hints {
+  position: fixed;
+  inset: 0;
+  z-index: 42;                         /* over the cube, under the chrome */
+  pointer-events: none;
+}
+.corner-hint {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  opacity: var(--lit, 0);
+  transition: opacity .35s ease;
+}
+.corner-hint[data-corner="top-left"]     { top: 0; left: 0; }
+.corner-hint[data-corner="top-right"]    { top: 0; right: 0; }
+.corner-hint[data-corner="bottom-right"] { bottom: 0; right: 0; }
+.corner-hint[data-corner="bottom-left"]  { bottom: 0; left: 0; }
+/* the shade gathers AT the corner and falls away inward, so it reads as the
+   room turning rather than as a shape stuck to the glass */
+.corner-hint[data-corner="top-left"] {
+  background: radial-gradient(circle at 0 0,
+    rgba(21, 22, 28, .16) 0%, rgba(21, 22, 28, .055) 40%, rgba(21, 22, 28, 0) 74%);
+}
+.corner-hint[data-corner="top-right"] {
+  background: radial-gradient(circle at 100% 0,
+    rgba(21, 22, 28, .16) 0%, rgba(21, 22, 28, .055) 40%, rgba(21, 22, 28, 0) 74%);
+}
+.corner-hint[data-corner="bottom-right"] {
+  background: radial-gradient(circle at 100% 100%,
+    rgba(21, 22, 28, .16) 0%, rgba(21, 22, 28, .055) 40%, rgba(21, 22, 28, 0) 74%);
+}
+.corner-hint[data-corner="bottom-left"] {
+  background: radial-gradient(circle at 0 100%,
+    rgba(21, 22, 28, .16) 0%, rgba(21, 22, 28, .055) 40%, rgba(21, 22, 28, 0) 74%);
+}
+/* on the void face shade says nothing, so there the corner catches light */
+body.on-dark .corner-hint[data-corner="top-left"] {
+  background: radial-gradient(circle at 0 0,
+    rgba(255, 255, 255, .15) 0%, rgba(255, 255, 255, .05) 40%, rgba(255, 255, 255, 0) 74%);
+}
+body.on-dark .corner-hint[data-corner="top-right"] {
+  background: radial-gradient(circle at 100% 0,
+    rgba(255, 255, 255, .15) 0%, rgba(255, 255, 255, .05) 40%, rgba(255, 255, 255, 0) 74%);
+}
+body.on-dark .corner-hint[data-corner="bottom-right"] {
+  background: radial-gradient(circle at 100% 100%,
+    rgba(255, 255, 255, .15) 0%, rgba(255, 255, 255, .05) 40%, rgba(255, 255, 255, 0) 74%);
+}
+body.on-dark .corner-hint[data-corner="bottom-left"] {
+  background: radial-gradient(circle at 0 100%,
+    rgba(255, 255, 255, .15) 0%, rgba(255, 255, 255, .05) 40%, rgba(255, 255, 255, 0) 74%);
+}
+
 /* ---------- liquid glass chrome ----------
    Layered recipe: near-zero white fill so the backdrop shows through,
    heavy blur + saturation as the "glass body", inset bevels as ground
