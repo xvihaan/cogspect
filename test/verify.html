@@ -178,6 +178,16 @@ f.addEventListener('load', async () => {
   const lh=d.elementFromPoint(Math.round(lr.left+lr.width/2),Math.round(lr.top+lr.height/2));
   ok(!!(lh&&lh.closest('.void-link')),`archive link hit-testable (got ${desc(lh)})`);
   ok(d.body.classList.contains('on-dark'),'dark face inverts the chrome');
+  /* The signature has to survive the dark room: --muted is 3.5:1 on #101012,
+     which is the whole reason there is an on-dark override for it. Colour is a
+     TRANSITIONED property and virtual time never advances a transition, so
+     without killing it this reads the light-face value for ever. */
+  const credStill = d.createElement('style');
+  credStill.textContent = '.credit { transition: none !important }';
+  d.head.appendChild(credStill);
+  const credDark = w.getComputedStyle(d.querySelector('.credit')).color;
+  ok(credDark === 'rgb(134, 135, 143)',
+     `the signature lifts off the black face (${credDark})`);
   ok(w.getComputedStyle(face('bottom')).userSelect==='none','faces are not text-selectable (drag surface)');
 
   log('\n— tumble —');
@@ -203,11 +213,27 @@ f.addEventListener('load', async () => {
   d.getElementById('homeBtn').click(); await wait(1400);
   const before=fails;
   const inp=d.getElementById('chatInput'), cf=d.getElementById('chatForm'), gm=d.getElementById('ghostMsg');
+  /* The pending state and the sweep exist only while there is a model to wait
+     FOR: askCogspect() returns the retrieved answer synchronously when
+     MODEL.up is false, so with the server down there is no waiting to show and
+     these three assertions are about the machine, not the site.
+
+     Asked rather than assumed, and asked of the page itself — a fetch to
+     :8000 from here is cross-origin and comes back indistinguishable from
+     down. The '모델 상태' command reports what the page's own probe found. */
+  inp.value='모델 상태';
+  cf.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+  await wait(120);
+  const modelUp = /로컬 모델로/.test(gm.textContent);
+  log(`     (local model at :8000 — ${modelUp ? 'up' : 'down, 3 waiting-state checks skipped'})`);
+
   inp.value='AI 관련된 프로젝트가 있어?';
   cf.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
-  ok(gm.classList.contains('pending'),'a question puts the answer bubble into its pending state');
-  ok(cf.classList.contains('thinking'),'…and the chat bar shows the buffering sweep');
-  ok(w.getComputedStyle(d.querySelector('.chat-bar'),'::after').animationName==='cgSweep','the sweep animation is live');
+  if (modelUp) {
+    ok(gm.classList.contains('pending'),'a question puts the answer bubble into its pending state');
+    ok(cf.classList.contains('thinking'),'…and the chat bar shows the buffering sweep');
+    ok(w.getComputedStyle(d.querySelector('.chat-bar'),'::after').animationName==='cgSweep','the sweep animation is live');
+  }
   await wait(1500);
   ok(hud()==='portfolio',`the answer turned the cube to the relevant face (${hud()})`);
   ok(d.querySelectorAll('.cell--proj.mark').length>0,
@@ -831,6 +857,41 @@ f.addEventListener('load', async () => {
   ok(seenLines.every((l) => l.split('.').filter(Boolean).length <= 3),
      'and each is one line, not a queue of everything you passed');
 
+  /* The signature sits in the bottom-right HOT CORNER — the one that leans
+     toward minimalid. It is there on purpose, and it has to cost that corner
+     nothing, which is what pointer-events: none buys. This is the assertion
+     that keeps it bought.
+
+     glance() dispatches on the WINDOW, where e.target is the window and the
+     handler's `e.target.closest('.chat-dock, .glass-nav, .overlay')` guard
+     never runs — so glance() would pass here no matter what the credit did.
+     The event below goes to whatever the browser says is actually under the
+     point, which is the only version of this test worth having. */
+  const cred = d4.querySelector('.credit');
+  ok(!!cred && /Minhyeok/.test(cred.textContent), 'the page is signed');
+  ok(w4.getComputedStyle(cred).pointerEvents === 'none',
+     'and the signature takes no pointer');
+  glance(w4.innerWidth / 2, w4.innerHeight / 2);
+  await wait(240);
+  const credBox = cred.getBoundingClientRect();
+  const credX = Math.round(credBox.left + credBox.width / 2);
+  const credY = Math.round(credBox.top + credBox.height / 2);
+  ok(credX > w4.innerWidth - 150 && credY > w4.innerHeight - 150,
+     `it really is inside the hot zone (${credX},${credY} of ${w4.innerWidth}x${w4.innerHeight})`);
+  const under = d4.elementFromPoint(credX, credY);
+  ok(!!under && !under.closest('.credit'),
+     `the pointer passes straight through it (hits ${under && (under.className || under.tagName)})`);
+  under.dispatchEvent(new w4.PointerEvent('pointermove',
+    {clientX: credX, clientY: credY, bubbles: true}));
+  await wait(220);
+  ok(d4.body.classList.contains('peeking') &&
+     d4.getElementById('stage').style.getPropertyValue('--peek-ang').trim() === '180',
+     'and the corner under it still leans toward minimalid');
+  ok(litOf('bottom-right') > 0.5,
+     `with that corner lit as any other would be (${litOf('bottom-right')})`);
+  glance(w4.innerWidth / 2, w4.innerHeight / 2);
+  await wait(240);
+
   /* The lean has to REVEAL something. At fifteen degrees the arriving face
      projected as a sixteen-pixel sliver tucked inside the front face's own
      silhouette — so the peek was a tilt with nothing behind it, and no amount
@@ -940,7 +1001,18 @@ f.addEventListener('load', async () => {
   // the intro must always hand the page back: a stuck 'intro' class leaves
   // the visitor with no nav, no chat and no wordmark, which is unrecoverable
   ok(!d.getElementById('stage').classList.contains('intro'), 'intro released the stage');
-  for (const sel of ['.glass-nav', '.chat-dock', '.wordmark', '.hud']) {
+  /* Read the TARGET, not the frame. The chrome fades back in over .7s and
+     virtual time does not advance a transition, so a plain read here returns
+     whatever opacity the property started at — which passed for a long time by
+     luck and started failing the moment Chrome's timing shifted under it.
+     Killing the transition makes the read the computed target, which is what
+     this assertion was always about: a stuck `intro` class leaves every one of
+     these pinned at 0 by .stage.intro, and that still fails here. */
+  const introStill = d.createElement('style');
+  introStill.textContent =
+    '.glass-nav, .hud, .chat-dock, .wordmark, .credit { transition: none !important }';
+  d.head.appendChild(introStill);
+  for (const sel of ['.glass-nav', '.chat-dock', '.wordmark', '.hud', '.credit']) {
     ok(w.getComputedStyle(d.querySelector(sel)).opacity === '1', `intro restored ${sel}`);
   }
 
@@ -997,6 +1069,11 @@ f.addEventListener('load', async () => {
   await wait(1200);
   ok(hud() === LABELS.right, 'arrived at the portfolio');
   ok(face('right').classList.contains('reveal'), 'arrival lights the six projects');
+  // same reason as `intro restored` above: the label fade is a transition, and
+  // under virtual time an unkilled one reports its start value for ever
+  const labelStill = d.createElement('style');
+  labelStill.textContent = '.cell-label { transition: none !important }';
+  d.head.appendChild(labelStill);
   ok(w.getComputedStyle(labels[0]).opacity !== '0', 'labels are showing during the reveal');
   const off = labels.filter(l => { const r = l.getBoundingClientRect();
     return r.right < 2 || r.left > w.innerWidth - 2; });

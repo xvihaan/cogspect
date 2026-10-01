@@ -1706,6 +1706,65 @@ body.lens .project-card {
 
 body.on-dark { --fg: #e9ebf3; --fg-inv: #14151b; }   /* flips every keen surface */
 body.on-dark .wordmark { color: #f5f5f3; }
+
+/* ---------- the signature ----------
+
+   The same 30/36 inset as the wordmark, mirrored through the centre, so the
+   two read as one pair rather than as two things that happen to be in
+   corners. Smaller and fainter than anything else on screen: it is a credit,
+   and a credit that competes with the work is not doing its job.
+
+   pointer-events: none is load-bearing, not hygiene. The bottom-right corner
+   is a HOT CORNER — it leans the cube toward minimalid — and the peek handler
+   decides from e.target whether the pointer is over chrome, bailing out if it
+   is. A credit that answered the pointer would quietly kill the one corner
+   that reaches the dark face. Nobody needs to click their own name. */
+.credit {
+  position: fixed;
+  bottom: 30px;
+  right: 36px;
+  z-index: 60;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .015em;
+  /* --muted, not --faint. --faint on paper is about 2.7:1, and the bottom-right
+     corner GLOW lands directly behind this text — ink at up to .16 alpha, which
+     drags it to roughly 1.9:1 and makes the credit vanish at the exact moment
+     the pointer is nearest it. --muted reads 5.1:1 at rest and 3.7:1 under the
+     glow, and is still plainly quieter than the lede (#3a3a3e) above it. */
+  color: var(--muted);
+  transition: color .45s ease, opacity .7s ease .1s;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+/* Faint stays faint on the dark face. The wordmark brightens there because it
+   is the page's title; this one is not, and a credit that gets LOUDER when the
+   room goes dark is the opposite of what it is for. */
+body.on-dark .credit { color: #86878f; }
+
+/* Measured, not guessed: the chat dock is min(544px, 100vw - 32px) and centred,
+   so the gap between its right edge and the credit is vw/2 - 468. It runs out
+   at about 940px — at 900 the credit sits 18px INSIDE the dock — and 968 leaves
+   only 16px, which is touching without overlapping.
+
+   So below 1000px the signature stops being a corner and joins the wordmark
+   instead, which is where it belongs on a narrow screen anyway: "cogspect /
+   Developed by Minhyeok" reads as one lockup. The bottom-right corner is
+   simply not available on a phone — the dock occupies the entire bottom edge
+   (16..344 of 360) — and the fact is worth more than the position. */
+@media (max-width: 1000px) {
+  .credit {
+    /* 66, not 57: the nav pill is a fixed 169px and its bottom edge is at y61,
+       so at 375px and under it slides left far enough to clip a credit sitting
+       at 57. 66 clears it at every width down to 320 and still sits 13px under
+       the wordmark, close enough to read as one block. */
+    top: 66px;
+    left: 36px;
+    bottom: auto;
+    right: auto;
+  }
+}
 body.on-dark .chat-bar input { color: #f5f5f3; }
 body.on-dark input::placeholder { color: #7a7a82; }
 
@@ -2343,6 +2402,7 @@ body.lens .face-banner--handle[aria-pressed="true"] {
 .stage.intro .glass-nav,
 .stage.intro .hud,
 .stage.intro .chat-dock,
+.stage.intro .credit,
 .stage.intro .wordmark { opacity: 0; transition: opacity .5s ease; }
 .glass-nav, .hud, .chat-dock, .wordmark { transition: opacity .7s ease .1s; }
 
@@ -2363,6 +2423,7 @@ body.lens .face-banner--handle[aria-pressed="true"] {
   .stage.intro .glass-nav,
   .stage.intro .hud,
   .stage.intro .chat-dock,
+  .stage.intro .credit,
   .stage.intro .wordmark { opacity: 1; }
 }
 
