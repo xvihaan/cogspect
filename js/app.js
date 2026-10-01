@@ -2494,7 +2494,12 @@
 
   const ledeEl = document.getElementById('faceLede');
   const LEDE_TYPE_MS = 46;            // slower than cpt: this is a sign, not speech
-  const LEDE_HOLD = 5000;             // how long the finished line sits blinking
+  const LEDE_HOLD = 5000;             // how long a finished notice sits blinking
+  /* The hero line holds twice as long. It is the only one of these that is
+     the site saying what it is rather than how to use it, so it is the line
+     a visitor should have time to actually read — and it is also the one the
+     rotation keeps returning to. */
+  const LEDE_HOLD_HERO = 10000;
   const LEDE_LEAD = 260;              // caret back at the left, a beat, then type
   const LEDE_BUSY = 700;              // re-ask while cpt is mid-sentence
 
@@ -2566,7 +2571,7 @@
       ledeWrite(text.slice(0, i));
       if (i < text.length) { ledeTimer = setTimeout(step, LEDE_TYPE_MS); return; }
       ledeEl.classList.remove('typing');   // stopped — now the caret blinks
-      ledeHold(LEDE_HOLD);
+      ledeHold(ledeAt === 0 ? LEDE_HOLD_HERO : LEDE_HOLD);
     };
     ledeTimer = setTimeout(step, LEDE_LEAD);
   }

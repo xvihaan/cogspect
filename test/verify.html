@@ -1623,7 +1623,10 @@ f.addEventListener('load', async () => {
   for (let i = 0; i < 70; i++) {
     await wait(60);
     const box = d6.querySelector('.lede-box');
-    if (!box) continue;
+    // only once the hidden copy is in place: for one frame at the very start
+    // the box is empty and therefore zero-width, and sampling that frame adds
+    // a second left edge to an assertion about not moving WHILE TYPING
+    if (!box || !ghostEl() || !ghostEl().textContent) continue;
     boxLefts.add(Math.round(box.getBoundingClientRect().left));
     if (d6.getElementById('faceLede').classList.contains('typing')) sawTyping = true;
     lengths.push((typedEl().textContent || '').length);
@@ -1652,10 +1655,20 @@ f.addEventListener('load', async () => {
   d6.getElementById('ghostMsg').click();           // let the rotation run free
   await wait(300);
   const rounds = new Map();
-  for (let i = 0; i < 420; i++) {
+  /* Every time the line on screen FINISHES, in order. A map keyed by text
+     would lose the order and, worse, would stamp the hero line at the moment
+     this loop first looked at it rather than the moment it finished — it had
+     already been sitting there for seconds by then, which is exactly how a
+     ten-second hold measured as eight. Gaps are taken between OBSERVED
+     transitions, so every one of them is honest to the poll interval. */
+  const seq = [];
+  for (let i = 0; i < 620; i++) {   // past one full round: hero holds 10s, the rest 5s
     await wait(100);
     const g = ghostEl(), t = typedEl();
     if (!g || !g.textContent || t.textContent !== g.textContent) continue;
+    if (!seq.length || seq[seq.length - 1].text !== g.textContent) {
+      seq.push({ text: g.textContent, at: performance.now() });
+    }
     if (rounds.has(g.textContent)) continue;
     const lh = parseFloat(w6.getComputedStyle(g).lineHeight);
     // the cube's own zoom scales every rect, so the line count has to be
@@ -1665,13 +1678,29 @@ f.addEventListener('load', async () => {
       ghost: Math.round(g.getBoundingClientRect().height / (lh * scale)),
       typed: Math.round(t.getBoundingClientRect().height / (lh * scale))
     });
-    if (rounds.size >= srcLines.length) break;
+    if (rounds.size >= srcLines.length && seq.length > srcLines.length) break;
   }
   ok(rounds.size === srcLines.length,
      `it comes round to every notice in turn (${rounds.size} of ${srcLines.length})`);
   const wrapped = [...rounds.entries()].filter(([, v]) => v.ghost !== 1 || v.typed !== 1);
   ok(wrapped.length === 0,
      `and every one of them fits on a single line (${wrapped.map(([k]) => k).join(' / ') || 'all fit'})`);
+
+  /* The hero line is held twice as long as a notice. Measured as the gap from
+     one line finishing to the next finishing — the hold plus the next line's
+     typing, which is the same shape for every pair — so the comparison needs
+     neither number on its own to be exact. */
+  /* From the SECOND observed transition on. The first line in seq was already
+     finished when this loop opened its eyes, so its stamp is late by however
+     long that took and the gap after it measures short — a ten-second hold
+     reported as eight. Every later stamp is the moment the change was seen. */
+  const gaps = seq.slice(2).map((e, i) => ({ after: seq[i + 1].text, ms: e.at - seq[i + 1].at }));
+  const heroGap = gaps.find((g) => g.after === srcLines[0]);
+  const noticeGaps = gaps.filter((g) => g.after !== srcLines[0]).map((g) => g.ms);
+  ok(!!heroGap && noticeGaps.length > 0 &&
+     heroGap.ms > Math.max(...noticeGaps) + 3000,
+     `the hero line is held longer than a notice (hero ${heroGap ? (heroGap.ms / 1000).toFixed(1) : '?'}s, ` +
+     `notices ${noticeGaps.map((g) => (g / 1000).toFixed(1)).join('/')}s)`);
 
   /* It belongs to the front room: it stops when you leave and opens on the
      hero line when you come back, rather than resuming mid-rotation. */
