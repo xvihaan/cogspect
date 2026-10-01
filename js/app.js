@@ -608,8 +608,70 @@
     O = rest.M;
     setTwist(face, twistFor(O, face));
     if (rest.angle < 0.5 || reducedMotion.matches) { settle(face); return; }
+    // only when the drag actually arrives somewhere else: letting go and
+    // falling back onto the face you started from is not a turn
+    if (face !== cur) orbCube(ms);
     applyCube(true, ms, EASE_SNAP);
     snapTimer = setTimeout(() => settle(face), ms + 40);
+  }
+
+  /* ---------- cpt squares up when the cube turns ---------------------------
+
+     Every time the tesseract goes to another face, cpt's drop becomes a
+     square for the length of the turn and then melts back: a square inside a
+     square, which is the tesseract itself drawn as small as it can be.
+
+     Web Animations rather than a class, because the drop is already running
+     two CSS animations and a class cannot interpolate out of a keyframe —
+     switching animation-name snaps. A script animation composites OVER the
+     CSS ones, and keyframes that leave a property out at 0 and 1 take the
+     live underlying value there, so the shape leaves from wherever the morph
+     happens to be and returns to wherever it has got to. No seam either way.
+
+     The turn is the one thing that cannot be left implicit. A square at an
+     arbitrary angle is a diamond, so each layer is steered to the NEAREST
+     quarter turn from where its own spin has it, and handed back at the angle
+     the spin will have reached by then. Left to the underlying value, a layer
+     whose spin wrapped past 360° mid-morph would unwind a whole revolution on
+     the way home. */
+  function orbCube(turnMs) {
+    if (reducedMotion.matches) return;
+    const btn = document.getElementById('cptOrb');
+    if (!btn) return;
+    // outlast the turn slightly, so the drop melts back just after the landing
+    const dur = Math.max(640, turnMs + 240);
+    for (const [sel, radius, sign] of [['.orb-skin', '21%', 1], ['.orb-core', '19%', -1]]) {
+      const el = btn.querySelector(sel);
+      if (!el || !el.animate) continue;
+      for (const a of el.getAnimations()) if (a.id === 'orbCube') a.cancel();
+      const cs = getComputedStyle(el);
+      const m = /matrix\(([^)]+)\)/.exec(cs.transform);
+      const [ma, mb] = m ? m[1].split(',').map(Number) : [1, 0];
+      const now = Math.atan2(mb, ma) * 180 / Math.PI;
+      const square = Math.round(now / 90) * 90;
+      // the second duration is the spin's; reverse layers turn the other way
+      const spinS = parseFloat((cs.animationDuration.split(',')[1] || '12s')) || 12;
+      const then = now + sign * 360 * (dur / 1000) / spinS;
+      const sq = { borderRadius: radius, scale: '1', transform: `rotate(${square}deg)` };
+      /* Easing per SEGMENT, never on the effect. An effect-level curve bends
+         the whole timeline: with an ease-out there, half the duration was
+         already ninety percent of the progress, so the square came and went
+         in the first third and the "middle of the turn" was the way home.
+
+         The first keyframe states the live shape outright rather than leaving
+         it implicit, for the same reason: an implicit keyframe brings no
+         easing of its own, and the way IN is the segment that needs one. The
+         way out is eased from the keyframe before it, so its end can stay
+         implicit and land on wherever the morph has got to. */
+      const anim = el.animate([
+        { offset: 0, borderRadius: cs.borderRadius, scale: cs.scale,
+          transform: `rotate(${now}deg)`, easing: 'cubic-bezier(.3, .9, .3, 1)' },
+        { offset: .3, ...sq, easing: 'linear' },
+        { offset: .72, ...sq, easing: 'cubic-bezier(.4, 0, .3, 1)' },
+        { offset: 1, transform: `rotate(${then}deg)` }
+      ], { duration: dur });
+      anim.id = 'orbCube';
+    }
   }
 
   /* ---------- quarter-turn navigation (arrows / chat) ---------- */
@@ -635,6 +697,7 @@
     rotHold = true;
     haptic();
     applyCube(true);
+    orbCube(SETTLE_MS);
     settleTimer = setTimeout(() => settle(next), SETTLE_MS);
   }
 
@@ -675,6 +738,7 @@
     clearTimeout(pulseTimer);
     drag = null;
     stage.classList.remove('dragging');
+    if (cur !== 'front') orbCube(SETTLE_MS);
     O = ID; vx = 0; vy = 0;
     setTwist('front', 0);
     setFace('front');

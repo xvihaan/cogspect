@@ -678,7 +678,27 @@ f.addEventListener('load', async () => {
   const f4 = document.createElement('iframe');
   f4.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
   document.body.appendChild(f4);
-  await new Promise((r) => { f4.addEventListener('load', r, {once: true}); f4.src = '../index.html'; });
+  /* The zoom spring runs on requestAnimationFrame, which virtual time starves:
+     left alone the cube stops at whatever zoom the last frame that happened
+     to run left it at — a different one every run — and every rect measured
+     on this page is of a cube somewhere between 20% and 100%. The peek
+     assertions below claim things about the view AT 100%, so the spring is
+     given a clock that virtual time does advance.
+
+     It has to be in place BEFORE the app boots, which is why this page is
+     written in through srcdoc with the shim as its first script. Installed
+     after load it is a coin toss: the spring's first frame was already asked
+     of the native clock, and if that frame never comes the loop never gets
+     round to asking the new one — half the runs sat at 20% for ever. */
+  const pageHtml = await (await fetch('../index.html')).text();
+  const shim = '<base href="' + new URL('../', location.href).href + '">' +
+    '<script>window.requestAnimationFrame = function (cb) {' +
+    ' return setTimeout(function () { cb(performance.now()); }, 16); };' +
+    ' window.cancelAnimationFrame = clearTimeout;<\/script>';
+  await new Promise((r) => {
+    f4.addEventListener('load', r, {once: true});
+    f4.srcdoc = pageHtml.replace('<head>', '<head>' + shim);
+  });
   const w4 = f4.contentWindow, d4 = f4.contentDocument;
   if (w4.speechSynthesis) { w4.speechSynthesis.speak = () => {}; w4.speechSynthesis.cancel = () => {}; }
   const hud4 = () => d4.getElementById('faceIndicator').textContent;
@@ -1028,6 +1048,15 @@ f.addEventListener('load', async () => {
      And having gone to that trouble, the wash must not then erase it: the
      converging far edge is the whole point here, where sideways it was the
      thing to hide. */
+  /* Measured with the transitions off. The step back is a transition on
+     .persp and the lean is one on every .face, and virtual time advances
+     neither reliably — some runs caught them finished and some caught them
+     part-way, which is how this failed about one run in four with the top
+     face still 104px above the screen. Killed, the rect below is the TARGET
+     pose, which is what the assertion has always been about. */
+  const frameStill = d4.createElement('style');
+  frameStill.textContent = '.face, .persp { transition: none !important; }';
+  d4.head.appendChild(frameStill);
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
   await wait(250);
   glance(40, 40);                                // top-left: the face above
@@ -1040,6 +1069,7 @@ f.addEventListener('load', async () => {
   ok(topBox.top > 0 && topBox.left > 0 && topBox.right < w4.innerWidth,
      `so the whole face is in frame, corners and all (${Math.round(topBox.left)},` +
      `${Math.round(topBox.top)}→${Math.round(topBox.right)})`);
+  frameStill.remove();
   /* The shading aims AWAY, at the far edge. Up and down were inverted at
      first, which put the shadow on the fold — the one edge that must be
      lightest, since it is the nearest thing on screen. */
@@ -1762,8 +1792,56 @@ f.addEventListener('load', async () => {
 
   /* It belongs to the front room: it stops when you leave and opens on the
      hero line when you come back, rather than resuming mid-rotation. */
+  /* ---- cpt squares up when the cube turns ------------------------------
+     A square inside a square for the length of the turn: the tesseract, drawn
+     as small as it can be. Script animations do not advance under virtual
+     time any more than CSS ones do, so each is paused and SEEKED to the
+     moment being asserted, and finished by hand where a browser would simply
+     run it out. */
+  const skin6 = d6.querySelector('.orb-skin'), core6 = d6.querySelector('.orb-core');
+  const cubeOf = (el) => el.getAnimations().find((a) => a.id === 'orbCube');
+  const angleOf = (el) => {
+    const m = /matrix\(([^)]+)\)/.exec(w6.getComputedStyle(el).transform);
+    const [a, b] = m ? m[1].split(',').map(Number) : [1, 0];
+    return Math.atan2(b, a) * 180 / Math.PI;
+  };
+  ok(!cubeOf(skin6), 'at rest cpt is a drop and nothing else');
+  /* A lean is not a turn: the cube never leaves the face it is on. */
+  w6.dispatchEvent(new w6.PointerEvent('pointermove', {clientX: w6.innerWidth - 40, clientY: 40, bubbles: true}));
+  await wait(300);
+  ok(!cubeOf(skin6), 'peeking round a corner does not square it');
+  w6.dispatchEvent(new w6.PointerEvent('pointermove', {clientX: w6.innerWidth / 2, clientY: w6.innerHeight / 2, bubbles: true}));
+  await wait(500);
+
   w6.dispatchEvent(new w6.KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true}));
-  await wait(1600);
+  await wait(40);
+  ok(!!cubeOf(skin6) && !!cubeOf(core6), 'turning the cube squares both layers of the drop');
+  for (const [name, el] of [['the skin', skin6], ['the core', core6]]) {
+    const an = cubeOf(el);
+    if (!an) continue;
+    const dur = an.effect.getTiming().duration;
+    an.pause();
+    an.currentTime = dur * 0.5;
+    const mid = w6.getComputedStyle(el);
+    ok(parseFloat(mid.borderTopLeftRadius) < 25 && /%$/.test(mid.borderTopLeftRadius),
+       `${name} is a square at the middle of the turn (radius ${mid.borderTopLeftRadius})`);
+    /* A square at an arbitrary angle is a diamond. Each layer is steered to
+       the nearest quarter turn from wherever its own spin has it. */
+    const th = angleOf(el);
+    ok(Math.abs(th / 90 - Math.round(th / 90)) < 0.02,
+       `${name} is square to the page, not a diamond (${th.toFixed(1)}°)`);
+    /* No seam at either end: it leaves from the live blob and returns to it.
+       The easing is per segment for this reason — an effect-level curve had
+       the "middle" of the turn already most of the way home. */
+    an.currentTime = 0;
+    const r0 = parseFloat(w6.getComputedStyle(el).borderTopLeftRadius);
+    an.currentTime = dur * 0.999;
+    const r1 = parseFloat(w6.getComputedStyle(el).borderTopLeftRadius);
+    ok(r0 > 28 && r1 > 28, `${name} leaves from the blob and melts back into it (${r0.toFixed(0)}% … ${r1.toFixed(0)}%)`);
+    an.finish();
+  }
+  await wait(1560);
+  ok(!cubeOf(skin6), 'and it is a drop again once the cube has landed');
   const parked = typedEl().textContent;
   await wait(1400);
   ok(typedEl().textContent === parked, 'turning away stops it where it stood');
@@ -1772,6 +1850,13 @@ f.addEventListener('load', async () => {
   const home = typedEl().textContent;
   ok(home.length > 2 && srcLines[0].startsWith(home),
      `and coming home starts again from the first line (${JSON.stringify(home)})`);
+  for (const el of [skin6, core6]) { const a = cubeOf(el); if (a) a.finish(); }
+  await wait(60);
+  /* Only an actual change of face. Being sent to the room you are already in
+     is not a turn, and neither is pressing home while home. */
+  d6.getElementById('homeBtn').click();
+  await wait(60);
+  ok(!cubeOf(skin6), 'pressing home while home does not square it');
   f6.remove();
 
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
