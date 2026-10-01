@@ -1724,15 +1724,21 @@ body.on-dark .wordmark { color: #f5f5f3; }
   bottom: 30px;
   right: 36px;
   z-index: 60;
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 500;
   letter-spacing: .015em;
-  /* --muted, not --faint. --faint on paper is about 2.7:1, and the bottom-right
-     corner GLOW lands directly behind this text — ink at up to .16 alpha, which
-     drags it to roughly 1.9:1 and makes the credit vanish at the exact moment
-     the pointer is nearest it. --muted reads 5.1:1 at rest and 3.7:1 under the
-     glow, and is still plainly quieter than the lede (#3a3a3e) above it. */
-  color: var(--muted);
+  /* Transparency in the COLOUR, never in opacity: this element's opacity is
+     already spoken for by the intro, which fades the whole chrome in from 0,
+     and a second author for one property is how an element ends up stuck at
+     the wrong value.
+
+     --muted at 72%, not --faint at 100%. They land in much the same place on
+     paper, but the bottom-right corner's proximity glow paints ink directly
+     behind this text, and a colour that is already part transparent sinks into
+     that glow far more gracefully than a solid light grey does. Read plainly:
+     this is about 3.0:1 at rest and 2.4:1 under the glow — below the line for
+     body text, which is the deliberate choice for a signature. */
+  color: color-mix(in srgb, var(--muted) 72%, transparent);
   transition: color .45s ease, opacity .7s ease .1s;
   pointer-events: none;
   user-select: none;
@@ -1741,19 +1747,24 @@ body.on-dark .wordmark { color: #f5f5f3; }
 /* Faint stays faint on the dark face. The wordmark brightens there because it
    is the page's title; this one is not, and a credit that gets LOUDER when the
    room goes dark is the opposite of what it is for. */
-body.on-dark .credit { color: #86878f; }
+body.on-dark .credit { color: color-mix(in srgb, #9a9ba3 72%, transparent); }
 
 /* Measured, not guessed: the chat dock is min(544px, 100vw - 32px) and centred,
-   so the gap between its right edge and the credit is vw/2 - 468. It runs out
-   at about 940px — at 900 the credit sits 18px INSIDE the dock — and 968 leaves
-   only 16px, which is touching without overlapping.
+   and the credit is 88px wide at 36px inset, so the gap between them is
+   vw/2 - 396. It reaches zero at 792px.
 
-   So below 1000px the signature stops being a corner and joins the wordmark
-   instead, which is where it belongs on a narrow screen anyway: "cogspect /
-   Developed by Minhyeok" reads as one lockup. The bottom-right corner is
-   simply not available on a phone — the dock occupies the entire bottom edge
-   (16..344 of 360) — and the fact is worth more than the position. */
-@media (max-width: 1000px) {
+   860 is the breakpoint, which leaves 34px of air — the corner is worth
+   holding on to, so this is as low as it goes rather than a round number
+   picked for comfort. (In Latin the same line ran 160px wide and the gap
+   formula was vw/2 - 468, which forced this to 1000; the Korean name bought
+   back every screen between.)
+
+   Below it the signature stops being a corner and joins the wordmark, which is
+   where it belongs on a narrow screen anyway: "cogspect / Developed by 김민혁"
+   reads as one lockup. The bottom-right corner simply does not exist on a
+   phone — the dock occupies the entire bottom edge (16..344 of 360) — and the
+   fact is worth more than the position. */
+@media (max-width: 860px) {
   .credit {
     /* 66, not 57: the nav pill is a fixed 169px and its bottom edge is at y61,
        so at 375px and under it slides left far enough to clip a credit sitting

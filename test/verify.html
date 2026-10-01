@@ -186,7 +186,17 @@ f.addEventListener('load', async () => {
   credStill.textContent = '.credit { transition: none !important }';
   d.head.appendChild(credStill);
   const credDark = w.getComputedStyle(d.querySelector('.credit')).color;
-  ok(credDark === 'rgb(134, 135, 143)',
+  /* Compare channels, not the string. A color-mix() result serialises as
+     `color(srgb 0.6039 0.6078 0.6392 / 0.72)` in Chrome and as `rgba(154, 155,
+     163, 0.72)` elsewhere, and an assertion pinned to either spelling fails on
+     a correct value the first time the other engine runs it. */
+  const chans = (c) => {
+    const n = (c.match(/[\d.]+/g) || []).map(Number);
+    const rgb = n.slice(0, 3).map((v) => (n[0] <= 1 ? Math.round(v * 255) : v));
+    return { rgb: rgb.join(','), a: n.length > 3 ? n[3] : 1 };
+  };
+  const cdk = chans(credDark);
+  ok(cdk.rgb === '154,155,163' && Math.abs(cdk.a - 0.72) < 0.02,
      `the signature lifts off the black face (${credDark})`);
   ok(w.getComputedStyle(face('bottom')).userSelect==='none','faces are not text-selectable (drag surface)');
 
@@ -868,7 +878,7 @@ f.addEventListener('load', async () => {
      The event below goes to whatever the browser says is actually under the
      point, which is the only version of this test worth having. */
   const cred = d4.querySelector('.credit');
-  ok(!!cred && /Minhyeok/.test(cred.textContent), 'the page is signed');
+  ok(!!cred && /김민혁/.test(cred.textContent), 'the page is signed');
   ok(w4.getComputedStyle(cred).pointerEvents === 'none',
      'and the signature takes no pointer');
   glance(w4.innerWidth / 2, w4.innerHeight / 2);
