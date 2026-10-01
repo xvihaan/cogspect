@@ -1613,6 +1613,10 @@
   function paintControls() {
     if (!ctlToggle || !ctlStack) return;
     ctlStack.classList.toggle('open', ctlOpen);
+    // the dock, not the stack: the bar and the question row above it both
+    // change span when the button comes off, and they are the stack's siblings
+    const dock = ctlToggle.closest('.chat-dock');
+    if (dock) dock.classList.toggle('sound-out', ctlOpen);
     ctlToggle.setAttribute('aria-expanded', String(ctlOpen));
     ctlToggle.setAttribute('aria-label', ctlOpen ? '소리 설정 닫기' : '소리 설정 열기');
   }
