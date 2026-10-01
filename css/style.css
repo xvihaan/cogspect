@@ -1242,21 +1242,6 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
   display: flex;
   justify-content: center;
 }
-.control-toggle {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #b6b6bc;
-  --lift: 8px;
-  transition: color .3s ease, transform .3s cubic-bezier(.3, .9, .3, 1);
-}
-body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(150%); }
-.control-toggle:hover { color: var(--muted); }
 /* ---------- cpt, as a drop ----------
 
    An arrow said only that there was more below it. This says something is
@@ -1324,9 +1309,9 @@ body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(15
 
 /* Quicker as it gets nearer, quicker again while cpt is working, and quickest
    of all with the microphone open — the one state that must never be missed. */
-.control-toggle:hover .cpt-orb { scale: 1.14; }
-.control-toggle:hover { --orb-rate: 2.1; }
-body.cpt-talking .control-toggle { --orb-rate: 2.8; }
+.cpt-orb-btn:hover .cpt-orb { scale: 1.14; }
+.cpt-orb-btn:hover { --orb-rate: 2.1; }
+body.cpt-talking .cpt-orb-btn { --orb-rate: 2.8; }
 /* Faster was not enough — a quicker wobble at the same size reads as a nervous
    tic rather than as something speaking. While cpt is mid-sentence the whole
    drop swells as well, and on an uneven beat: a clean one-two is a heartbeat,
@@ -1340,14 +1325,69 @@ body.cpt-talking .cpt-orb { animation: orbSpeak 1.15s ease-in-out infinite; }
   67%  { scale: 1.28; }
   100% { scale: 1.04; }
 }
-.control-toggle.hot { --orb-rate: 3.4; }
-.control-toggle:active .cpt-orb { scale: .84; transition-duration: .12s; }
+.cpt-orb-btn[aria-pressed="true"] { --orb-rate: 3.4; }
+.cpt-orb-btn:active .cpt-orb { scale: .84; transition-duration: .12s; }
 /* Open, it settles. A control that opens has to say it also closes, and the
    drop says it by going quiet and small once it has given up its contents —
    the two switches standing above it are the rest of the sentence. */
-.control-toggle[aria-expanded="true"] { --orb-rate: .55; }
-.control-toggle[aria-expanded="true"] .cpt-orb { scale: .66; }
-.control-toggle[aria-expanded="true"] .orb-skin { opacity: .5; }
+/* Voice mode. Pressed, cpt is listening — the one state on this page a
+   visitor must never be wrong about, so it is the only place colour is used
+   for status rather than for material. The drop swells and quickens and keeps
+   a soft ring around it: an open microphone should be visible from across the
+   room, not a shade of grey away from being shut. */
+.cpt-orb-btn[aria-pressed="true"] .cpt-orb { scale: 1.1; }
+.cpt-orb-btn[aria-pressed="true"] .orb-skin { opacity: .46; }
+.cpt-orb-btn[aria-pressed="true"]::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #e0483f 34%, transparent);
+  animation: orbRing 1.9s ease-out infinite;
+}
+@keyframes orbRing {
+  0%   { transform: scale(.82); opacity: .9; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+/* The button is a hit target and nothing else. No fill, no edge, no glass:
+   a drop sitting on the page is cpt, and a drop inside a disc is a widget. */
+.cpt-orb-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: #b6b6bc;
+  transition: color .3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.cpt-orb-btn:hover { color: var(--muted); }
+.cpt-orb-btn:focus-visible { outline: 2px solid color-mix(in srgb, var(--fg) 28%, transparent);
+  outline-offset: 3px; border-radius: 999px; }
+body.on-dark .cpt-orb-btn { color: #6e7078; }
+body.on-dark .cpt-orb-btn:hover { color: #a9abb4; }
+
+/* LAST, and listed for both faces on purpose. `body.on-dark .cpt-orb-btn` is
+   one class heavier than `.cpt-orb-btn[aria-pressed]`, so written the obvious
+   way round the dark face quietly won and an open microphone stayed grey on
+   minimalid — the single state on this page a visitor must never be wrong
+   about, defeated by a theme rule. Brighter on the dark face, because #e0483f
+   against #101012 is a dull coal. */
+.cpt-orb-btn[aria-pressed="true"] { color: #e0483f; }
+body.on-dark .cpt-orb-btn[aria-pressed="true"] { color: #ff5f54; }
+/* it heard you — a beat of green, then back. Same ordering problem, same
+   place in the file: after the theme rule, or the theme wins. */
+.cpt-orb-btn.heard { color: #1a7f4b; }
+body.on-dark .cpt-orb-btn.heard { color: #3ddc8a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cpt-orb-btn[aria-pressed="true"]::after { animation: none; opacity: .8; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   /* still a drop, just not a moving one */
@@ -1356,40 +1396,8 @@ body.cpt-talking .cpt-orb { animation: orbSpeak 1.15s ease-in-out infinite; }
   .orb-core { border-radius: 42% 58% 63% 37% / 43% 63% 37% 57%; }
   .cpt-orb { transition: none; }
 }
-/* the mic being live has to be legible with the stack shut, or the one state
-   that must never be missed is hidden behind a chevron */
-.control-toggle.hot { color: #e0483f; }
-
-/* The stack. It grows UP out of the button, absolutely, so opening it moves
-   nothing else on the page. */
-.control-stack {
-  position: absolute;
-  bottom: calc(100% + 9px);
-  left: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%) translateY(8px) scale(.9);
-  transform-origin: 50% 100%;
-  transition: opacity .26s ease, transform .3s cubic-bezier(.2, .9, .25, 1.02);
-}
-.control-stack.open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0) scale(1);
-}
-/* they rise in order rather than as a block, which is what makes it read as
-   coming out of the button instead of appearing above it */
-.control-stack .voice-toggle { transition: opacity .24s ease, transform .28s ease; }
-.control-stack:not(.open) .voice-toggle { opacity: 0; transform: translateY(6px); }
-.control-stack.open .voice-toggle:nth-child(1) { transition-delay: .06s; }
-
 @media (max-width: 420px) {
   .chat-dock { --dock-gap: 9px; --side: 34px; }
-  .control-toggle { width: 30px; height: 30px; }
 }
 
 /* keen §2 "nav pill / floating chrome" — same recipe as the nav */
@@ -2643,81 +2651,3 @@ body.lens .face-banner--handle[aria-pressed="true"] {
   .stage.intro .wordmark { opacity: 1; }
 }
 
-/* ---------- cpt's voice toggle ----------
-   .hud is pointer-events:none so the cube stays draggable underneath it, so
-   the button has to opt back in. Same muted HUD type as its neighbours: it
-   is a control, not a feature to advertise. */
-.voice-toggle {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  color: #b6b6bc;
-  transition: color .3s ease, opacity .3s ease;
-}
-.voice-toggle svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-  overflow: visible;
-}
-.voice-toggle .vt-body { fill: currentColor; }
-.voice-toggle .vt-wave,
-.voice-toggle .vt-slash,
-.voice-toggle .mt-arc,
-.voice-toggle .mt-stem {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.4;
-  stroke-linecap: round;
-}
-/* the waves are the "on" state and the slash is the "off" one, so exactly
-   one of them is ever drawn */
-.voice-toggle .vt-slash { opacity: 0; }
-.voice-toggle .vt-wave { transition: opacity .25s ease; }
-.voice-toggle .vt-wave--far { opacity: .55; }
-.voice-toggle.off .vt-wave { opacity: 0; }
-.voice-toggle.off .vt-slash { opacity: 1; }
-.voice-toggle:hover { color: var(--muted); }
-.voice-toggle.off { opacity: .6; }
-/* The microphone. It shares .voice-toggle wholesale — same box, same colour,
-   same slash for "off" — because these two are one pair of controls and a
-   second visual language between them would say they are not.
-
-   What it does NOT share is which state is the resting one. The speaker is on
-   until you turn it off; the mic is off until you turn it on, and it never
-   remembers being on. A page that opens the microphone because it did last
-   time is a page that opens the microphone without being asked. */
-.mic-toggle .mt-body { fill: currentColor; }
-/* live: the one place these two controls are allowed to look different, since
-   "we are recording you" has to be legible from across the page */
-.mic-toggle.live { color: #e0483f; opacity: 1; }
-.mic-toggle.live .mt-body { animation: micLive 1.5s ease-in-out infinite; }
-@keyframes micLive {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .45; }
-}
-/* heard something: one flash, so a word that landed is confirmed by the
-   control rather than only by text appearing somewhere else */
-.mic-toggle.heard { color: #1a7f4b; }
-
-/* the icon breathes while the voice is live, so the control doubles as an
-   indicator of whether anything is speaking */
-.voice-toggle:not(.off) .vt-wave { animation: voicePulse 2.4s ease-in-out infinite; }
-.voice-toggle:not(.off) .vt-wave--far { animation-delay: .25s; }
-@keyframes voicePulse {
-  0%, 100% { opacity: .4; }
-  50%      { opacity: 1; }
-}
-body.on-dark .voice-toggle { color: #6e7078; }
-body.on-dark .voice-toggle:hover { color: #a9abb4; }
-
-@media (prefers-reduced-motion: reduce) {
-  .voice-toggle .vt-wave { animation: none; opacity: 1; }
-}

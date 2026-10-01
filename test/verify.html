@@ -248,9 +248,9 @@ f.addEventListener('load', async () => {
     '.cpt-orb { animation: none !important; scale: 1.34 !important; }';
   d.head.appendChild(orbSwellStill);
   const peak = orbNow.getBoundingClientRect();
-  const disc = d.getElementById('controlToggle').getBoundingClientRect();
+  const disc = d.getElementById('cptOrb').getBoundingClientRect();
   ok(peak.width <= disc.width - 2,
-     `at full swell it still fits its button (${peak.width.toFixed(1)} of ${disc.width.toFixed(1)})`);
+     `at full swell it still fits its hit target (${peak.width.toFixed(1)} of ${disc.width.toFixed(1)})`);
   orbSwellStill.remove();
   for (let i = 0; i < 60 && d.body.classList.contains('cpt-talking'); i++) await wait(100);
   ok(!d.body.classList.contains('cpt-talking'), 'and settles when the sentence ends');
@@ -353,41 +353,32 @@ f.addEventListener('load', async () => {
   ok(!haloOf('.chat-bar'), 'and it dropped the halo it wore instead of an edge');
   ok(edgeOf('.ghost-msg') === 0 && !!haloOf('.ghost-msg'),
      'while the bubble keeps the halo and no edge');
-  const vb = d.getElementById('voiceToggle');
-  ok(!!vb, 'the voice can be turned off');
-  ok(vb.getAttribute('aria-pressed') === 'true', 'and it starts on');
-  /* It used to live in .hud, which is pointer-events:none, and needed an
-     override to stay clickable. It is beside the chat bar now — the override
-     is harmless there, but what actually has to hold is that a click lands. */
-  ok(w.getComputedStyle(vb).pointerEvents === 'auto', 'the toggle takes a click');
-  const vbBox = vb.getBoundingClientRect();
-  const onTop = d.elementFromPoint(vbBox.left + vbBox.width / 2, vbBox.top + vbBox.height / 2);
-  ok(vb.contains(onTop), `and nothing covers it (${onTop && onTop.tagName})`);
-  vb.click();
-  await wait(60);
-  ok(vb.getAttribute('aria-pressed') === 'false' && vb.classList.contains('off'),
-     'clicking it mutes cpt');
-  ok(w.localStorage.getItem('cogspect.voice') === 'off', 'and the choice is remembered');
-  vb.click();
-  await wait(60);
-  ok(vb.getAttribute('aria-pressed') === 'true', 'and it turns back on');
-  ok(!!vb.querySelector('svg') && vb.textContent.trim() === '',
-     'the control is an icon, not the word "voice"');
-  ok(!!vb.querySelector('.vt-slash') && vb.querySelectorAll('.vt-wave').length === 2,
-     'and it carries both states — waves on, slash off');
+  /* ---- the only control beside the bar is cpt --------------------------
 
-  /* ---- the microphone ---------------------------------------------------
-
-     Sound in and sound out are one pair of controls, so they live together,
-     beside the thing they act on rather than in a corner of the page. */
-  const mb = d.getElementById('micToggle');
+     There were two switches in a fold-away: one for the microphone, one for
+     the speaker. Both are gone. Pressing cpt opens the microphone; the
+     speaker is turned off by SAYING so, which is the one control on a page
+     built around talking to it that had no business being a button. */
+  ok(!d.getElementById('micToggle') && !d.getElementById('voiceToggle'),
+     'the two switches are gone');
+  ok(!d.getElementById('controlStack') && !d.getElementById('controlToggle'),
+     'and so is the thing they folded into');
+  const mb = d.getElementById('cptOrb');
   const bar = d.getElementById('chatForm');
-  ok(!!mb, 'there is a microphone to talk into');
   const near = (el) => el.getBoundingClientRect();
-  /* They are folded into one round button now and rise out of it vertically,
-     so the pair reads top-to-bottom rather than left-to-right — same order. */
-  const ct = d.getElementById('controlToggle');
-  ok(!!ct, 'the two switches live in one round control');
+  ok(!!mb && !!mb.querySelector('.cpt-orb'), 'cpt itself is what sits beside the bar');
+  const orbCs = w.getComputedStyle(mb);
+  /* A SNAPSHOT, not the live declaration. getComputedStyle returns a view that
+     keeps re-reading the element, so comparing orbCs.color later compares the
+     current colour with itself and passes or fails for reasons of its own. */
+  const restColor = orbCs.color;
+  /* No disc. A drop sitting on the page is cpt; a drop inside a button is a
+     widget, and the glass around it was the last thing making it one. */
+  ok(orbCs.backgroundColor === 'rgba(0, 0, 0, 0)' &&
+     parseFloat(orbCs.borderTopWidth) === 0 &&
+     (orbCs.backdropFilter || orbCs.webkitBackdropFilter || 'none') === 'none',
+     `with nothing drawn around it (${orbCs.backgroundColor} / ${orbCs.borderTopWidth})`);
+  const ct = mb;
 
   /* ---- cpt, as a drop --------------------------------------------------
      An arrow said only that there was more below it. This says something is
@@ -413,100 +404,28 @@ f.addEventListener('load', async () => {
   ok(orb.getBoundingClientRect().width >= 18,
      `big enough for the bend to be visible (${Math.round(orb.getBoundingClientRect().width)}px)`);
 
-  const rate = (el) => Number(w.getComputedStyle(el).getPropertyValue('--orb-rate') || 1);
-  const restRate = rate(ct);
-  ct.classList.add('hot');
-  ok(rate(ct) > restRate, `the microphone being open quickens it (${restRate} → ${rate(ct)})`);
-  ct.classList.remove('hot');
-  ct.setAttribute('aria-expanded', 'true');
-  ok(rate(ct) < restRate, `and opening it settles it down (${rate(ct)})`);
-  /* scale is transitioned, and virtual time never advances a transition — read
-     without one or this reports the resting value for ever. */
-  const orbStill = d.createElement('style');
-  orbStill.textContent = '.cpt-orb { transition: none !important }';
-  d.head.appendChild(orbStill);
-  const openScale = Number(w.getComputedStyle(orb).scale);
-  ok(openScale > 0 && openScale < 1,
-     `it draws in once it has given up its contents (scale ${openScale})`);
-  ct.setAttribute('aria-expanded', 'false');
-  orbStill.remove();
-  /* The stack rises on a transform, and virtual time does not advance
-     transitions — so the rect measured after adding .open is still the SHUT
-     one, eight pixels low and at nine tenths scale. Kill the transition and
-     measure where it actually goes. */
-  const stackStill = d.createElement('style');
-  stackStill.textContent =
-    '.control-stack, .control-stack .voice-toggle { transition: none !important; }';
-  d.head.appendChild(stackStill);
-  d.getElementById('controlStack').classList.add('open');
-  await wait(60);
-  ok(near(mb).bottom <= near(vb).top + 1, 'the mic comes first, then the speaker');
-  ok(near(vb).bottom <= near(ct).top + 1, 'and both rise above the button that holds them');
-  ok(near(ct).right <= near(bar).left + 1, 'which sits to the left of the conversation bar');
-  /* And the bar is on the middle of the SCREEN. It used to be pushed right by
-     the width of the two switches sitting beside it, which is the whole reason
-     they were folded into one button with an empty column opposite. */
-  const barMid = (near(bar).left + near(bar).right) / 2;
-  ok(Math.abs(barMid - w.innerWidth / 2) < 1.5,
-     `and the bar is centred on the screen (${Math.round(barMid)} of ${w.innerWidth})`);
-  d.getElementById('controlStack').classList.remove('open');
-  stackStill.remove();
+  /* ---- pressing cpt is how you talk to it -------------------------------
 
-  /* It is a toggle, not a menu that only opens. */
-  const soundStack = d.getElementById('controlStack');
-  ok(!soundStack.classList.contains('open') && ct.getAttribute('aria-expanded') === 'false',
-     'the switches start folded away');
-  ct.click();
-  await wait(80);
-  ok(soundStack.classList.contains('open') && ct.getAttribute('aria-expanded') === 'true',
-     'one press brings them out');
-  ct.click();
-  await wait(80);
-  ok(!soundStack.classList.contains('open') && ct.getAttribute('aria-expanded') === 'false',
-     'and another puts them back');
-  /* ...and clicking away closes it too. A panel that can only be dismissed by
-     the control that opened it is a panel you have to remember how to shut. */
-  ct.click();
-  await wait(80);
-  d.getElementById('stage').dispatchEvent(new w.PointerEvent('pointerdown',
-    {clientX: 300, clientY: 300, bubbles: true}));
-  await wait(80);
-  ok(!soundStack.classList.contains('open'), 'and so does a press anywhere else');
-
-  /* Shut, the round button still has to say the microphone is open: that is
-     the one state a visitor must never be wrong about, and a chevron is not
-     allowed to hide it. */
-  ok(!ct.classList.contains('hot'), 'closed and quiet, the button is unmarked');
-  const realSR = w.SpeechRecognition;
-  w.SpeechRecognition = function () { this.start = () => {}; this.stop = () => {}; };
-  w.webkitSpeechRecognition = w.SpeechRecognition;
-  mb.click();
-  await wait(120);
-  ok(ct.classList.contains('hot'), 'and marked while the microphone is live, folded or not');
-  mb.click();
-  await wait(120);
-  w.SpeechRecognition = realSR;
-  ok(!ct.classList.contains('hot'), 'and unmarked again when it closes');
-  ok(Math.abs(near(mb).width - near(vb).width) < 1 &&
-     Math.abs(near(mb).height - near(vb).height) < 1,
-     `the two are the same size (${Math.round(near(mb).width)}px)`);
-  /* Moving them next to the bar must not have come out of the bar. */
-  ok(near(bar).width >= 439, `and the bar kept its own width (${Math.round(near(bar).width)}px)`);
-
-  /* The mic is OFF, and unlike the speaker it does not remember being on.
+     The mic is OFF, and unlike the speaker it does not remember being on.
      Leaving the speaker on costs a visitor nothing; a microphone that opens
      because it was open last time is one opened without being asked. */
-  ok(mb.getAttribute('aria-pressed') === 'false' && mb.classList.contains('off'),
-     'the mic starts off');
+  ok(mb.getAttribute('aria-pressed') === 'false', 'voice mode starts off');
   ok(!Object.keys(localStorage).concat(Object.keys(w.localStorage))
-      .some((k) => /mic|hear|listen/i.test(k)),
+      .some((k) => /mic|hear|listen|voicemode/i.test(k)),
      'and nothing on this browser remembers it being on');
+  /* Moving the controls off the bar must not have come out of the bar. */
+  ok(near(bar).width >= 439, `the bar kept its own width (${Math.round(near(bar).width)}px)`);
+  const barMid = (near(bar).left + near(bar).right) / 2;
+  ok(Math.abs(barMid - w.innerWidth / 2) < 1.5,
+     `and is still centred on the screen (${Math.round(barMid)} of ${w.innerWidth})`);
+  ok(near(ct).right <= near(bar).left + 1, 'with cpt to the left of it');
 
   /* Driving it. The constructor is looked up per attempt rather than captured
      at boot, so a stand-in can be installed here — which is the only way to
      test any of this without a microphone and a person to talk into it. */
   const spoken = [];
   let rec = null;
+  const realSR = w.SpeechRecognition;
   w.SpeechRecognition = function () {
     rec = this;
     this.start = () => { this.running = true; };
@@ -527,10 +446,36 @@ f.addEventListener('load', async () => {
      on purpose — cpt may have been speaking a moment ago — so a test that
      talks immediately is talking into the guard. */
   await wait(900);
-  ok(mb.getAttribute('aria-pressed') === 'true' && !mb.classList.contains('off'),
-     'clicking it turns listening on');
+  ok(mb.getAttribute('aria-pressed') === 'true', 'pressing cpt turns listening on');
   ok(rec && rec.running && rec.lang === 'ko-KR' && rec.continuous === true,
      'and it opens a Korean recognizer that keeps listening');
+  /* An open microphone is the one state a visitor must never be wrong about,
+     so it is the only place on this page colour carries status rather than
+     material — and the drop keeps a ring going while it listens. */
+  /* colour transitions, and virtual time never advances a transition — read
+     without one or this reports the resting grey for ever */
+  const liveStill = d.createElement('style');
+  liveStill.textContent = '.cpt-orb-btn { transition: none !important }';
+  d.head.appendChild(liveStill);
+  const liveCs = w.getComputedStyle(mb);
+  ok(liveCs.color !== restColor, `and says so in colour (${restColor} → ${liveCs.color})`);
+  /* On the dark face too. `body.on-dark .cpt-orb-btn` is one class heavier
+     than the pressed rule, so the theme quietly won and an open microphone
+     stayed grey on minimalid until the order was fixed. */
+  const wasDark = d.body.classList.contains('on-dark');
+  d.body.classList.add('on-dark');
+  mb.setAttribute('aria-pressed', 'false');
+  const darkOff = w.getComputedStyle(mb).color;
+  mb.setAttribute('aria-pressed', 'true');
+  const darkOn = w.getComputedStyle(mb).color;
+  if (!wasDark) d.body.classList.remove('on-dark');
+  ok(darkOn !== darkOff,
+     `on the dark face as well (${darkOff} → ${darkOn})`);
+  liveStill.remove();
+  ok(/orbRing/.test(w.getComputedStyle(mb, '::after').animationName || ''),
+     'with a ring that keeps going while it listens');
+  ok(/끄기/.test(mb.getAttribute('aria-label')),
+     `and the label says how to stop (${mb.getAttribute('aria-label')})`);
 
   /* A heard sentence goes down the same path a typed one does — into the
      field, then submit — so spoken commands route exactly like typed ones and
@@ -547,13 +492,11 @@ f.addEventListener('load', async () => {
   await wait(120);
   ok(spoken.includes('음소거해줘'),
      `a finished one goes through the chat, not around it (${JSON.stringify(spoken)})`);
-  ok(vb.getAttribute('aria-pressed') === 'false',
-     'so a spoken command works exactly as the typed one does');
+  ok(w.localStorage.getItem('cogspect.voice') === 'off',
+     'so a spoken command works exactly as a typed one does');
 
   /* The failure mode of voice input: an open mic beside a speaking page
      transcribes the page, answers itself, and speaks again. */
-  vb.click();                                  // voice back on
-  await wait(60);
   spoken.length = 0;
   const wasSpeaking = Object.getOwnPropertyDescriptor(w.speechSynthesis, 'speaking');
   Object.defineProperty(w.speechSynthesis, 'speaking', {configurable: true, get: () => true});
@@ -566,31 +509,39 @@ f.addEventListener('load', async () => {
   mb.click();
   await wait(80);
   ok(mb.getAttribute('aria-pressed') === 'false' && !rec.running,
-     'and clicking again closes the microphone');
+     'and pressing cpt again closes the microphone');
   w.removeEventListener('submit', onSubmit, true);
+  w.SpeechRecognition = realSR;
+  w.webkitSpeechRecognition = realSR;
 
-  /* A site you operate by talking to it has to answer to the chat where it
-     answers to the mouse, or the conversation is a search box in an agent's
-     clothes. The switch and the sentence go through one setter, so they
-     cannot end up disagreeing about what is on. */
+  /* ---- the speaker lives in the conversation now ------------------------
+
+     It had a switch; now it has sentences. On a page whose argument is that
+     you can talk to it, the one control for the one thing it says back was
+     the last thing that should have been a button. */
   const ask = (t) => {
     d.getElementById('chatInput').value = t;
     d.getElementById('chatForm').dispatchEvent(new w.Event('submit', {bubbles: true, cancelable: true}));
   };
-  ask('음소거해줘');
-  await wait(400);
-  ok(vb.getAttribute('aria-pressed') === 'false' && w.localStorage.getItem('cogspect.voice') === 'off',
-     'asking cpt to mute works the same switch the button does');
-  ok(/껐/.test(d.getElementById('ghostMsg').textContent), 'and it says so');
   ask('소리 켜줘');
   await wait(400);
-  ok(vb.getAttribute('aria-pressed') === 'true' && w.localStorage.getItem('cogspect.voice') === 'on',
+  ask('조용히 해');
+  await wait(400);
+  ok(w.localStorage.getItem('cogspect.voice') === 'off',
+     `"조용히 해" turns the speaker off (${w.localStorage.getItem('cogspect.voice')})`);
+  ok(/껐/.test(d.getElementById('ghostMsg').textContent), 'and it says so');
+  ask('스피커 꺼줘');
+  await wait(400);
+  ok(w.localStorage.getItem('cogspect.voice') === 'off', 'and so does "스피커 꺼줘"');
+  ask('소리 켜줘');
+  await wait(400);
+  ok(w.localStorage.getItem('cogspect.voice') === 'on',
      'and asking for it back turns it on again');
   // "음소거 해제" contains "음소거"; if the lists were tested the other way round
   // this would silence the site instead of unmuting it
   ask('음소거 해제');
   await wait(400);
-  ok(vb.getAttribute('aria-pressed') === 'true',
+  ok(w.localStorage.getItem('cogspect.voice') === 'on',
      'a request to UNDO the mute is not read as a request to mute');
 
   // speaking must never be the only channel: the bubble carries the text

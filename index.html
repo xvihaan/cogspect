@@ -307,40 +307,23 @@
          inside one round piece of glass now, and rise out of it when asked.
          The chevron turns over when they are out, because a control that
          opens has to say it also closes. -->
+    <!-- cpt itself, and the only control beside the bar.
+
+         Pressing it opens the microphone; pressing it again closes it. There
+         is no disc around it any more and no fold-out of switches: a drop
+         sitting on the page is cpt, and a drop inside a button is a widget.
+
+         The sound going OUT moved into the conversation, where it belongs on
+         a page whose whole argument is that you can talk to it — "조용히 해",
+         "스피커 꺼줘", "소리 켜". A site you operate by speaking to it should
+         not need a switch for the one thing it says back. -->
     <div class="chat-controls">
-      <div class="control-stack" id="controlStack">
-      <button class="voice-toggle mic-toggle off" id="micToggle" type="button"
-              aria-pressed="false" aria-label="음성 입력 켜기" title="음성 입력">
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-          <path class="mt-body" d="M10 3.2a2.1 2.1 0 0 1 2.1 2.1v4.4a2.1 2.1 0 0 1-4.2 0V5.3A2.1 2.1 0 0 1 10 3.2z"/>
-          <path class="mt-arc" d="M5.6 9.3a4.4 4.4 0 0 0 8.8 0"/>
-          <path class="mt-stem" d="M10 13.7v3"/>
-          <path class="vt-slash" d="M4.6 4.4 15.4 15.6"/>
-        </svg>
-      </button>
-      <button class="voice-toggle" id="voiceToggle" type="button" aria-pressed="true"
-              aria-label="음성 안내 끄기" title="음성 안내">
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-          <path class="vt-body" d="M3.6 7.6h3L10.4 4.5v11L6.6 12.4h-3z"/>
-          <path class="vt-wave" d="M12.9 7.6a3.4 3.4 0 0 1 0 4.8"/>
-          <path class="vt-wave vt-wave--far" d="M15.1 5.6a6.4 6.4 0 0 1 0 8.8"/>
-          <path class="vt-slash" d="M13.2 7.4 17.6 12.6"/>
-        </svg>
-      </button>
-      </div>
-      <button class="control-toggle liquid" id="controlToggle" type="button"
-              aria-expanded="false" aria-controls="controlStack"
-              aria-label="소리 설정 열기" title="소리 설정">
-        <!-- cpt itself, as a drop rather than an arrow. A chevron says only
-             "there is more below"; this says something is here and it is
-             listening. Two layers of the same lump, morphing and turning at
-             different rates and in opposite directions, so the outline never
-             repeats and never reads as a pulsing circle. -->
+      <button class="cpt-orb-btn" id="cptOrb" type="button"
+              aria-pressed="false" aria-label="음성 모드 켜기" title="음성 모드">
         <span class="cpt-orb" aria-hidden="true">
           <i class="orb-skin"></i>
           <i class="orb-core"></i>
         </span>
-        <span class="liquid-lens" aria-hidden="true"></span>
       </button>
     </div>
     <form class="chat-bar" id="chatForm" autocomplete="off">

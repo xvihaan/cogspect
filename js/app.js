@@ -1448,13 +1448,10 @@
   /* cpt speaks on its own, unprompted — so there has to be a way to stop it
      that does not involve muting the whole tab. The choice is remembered, so
      a visitor who turns it off never hears it again on this browser. */
-  const voiceBtn = document.getElementById('voiceToggle');
-  function paintVoiceBtn() {
-    if (!voiceBtn) return;
-    voiceBtn.classList.toggle('off', !voiceOn);
-    voiceBtn.setAttribute('aria-pressed', String(voiceOn));
-    voiceBtn.setAttribute('aria-label', voiceOn ? '음성 안내 끄기' : '음성 안내 켜기');
-  }
+  /* There is no speaker switch any more. On a page whose whole argument is
+     that you can talk to it, the one control for the one thing it says back
+     belongs in the conversation: "조용히 해", "스피커 꺼줘", "소리 켜" all
+     arrive here through COMMANDS, which were already wired for it. */
   /* The single place the voice state changes. The button and the chat both
      come through here, so a site you can talk to cannot end up disagreeing
      with its own controls about what is switched on. */
@@ -1462,13 +1459,7 @@
     voiceOn = !!on;
     localStorage.setItem(VOICE_KEY, voiceOn ? 'on' : 'off');
     if (!voiceOn) hushVoice();
-    paintVoiceBtn();
     return voiceOn;
-  }
-  if (voiceBtn) {
-    if (!TTS) voiceBtn.hidden = true;          // nothing to toggle
-    paintVoiceBtn();
-    voiceBtn.addEventListener('click', () => setVoice(!voiceOn));
   }
 
   /* ---------- listening ---------------------------------------------------
@@ -1492,12 +1483,10 @@
 
      Support is not universal — Firefox ships nothing here — so the control is
      removed rather than shown broken. */
-  const micBtn = document.getElementById('micToggle');
-  /* Declared up here rather than with the rest of the fold-away below, because
-     paintMicBtn() runs during boot and has to be able to mark it: shut, the
-     round button is the only thing saying whether the microphone is open, and
-     that is the one state a visitor must never be wrong about. */
-  const ctlToggle = document.getElementById('controlToggle');
+  /* The drop IS the microphone. Press it and cpt listens; press it again and
+     it stops. There is no separate switch and no fold-away holding one — the
+     only control beside the bar is cpt itself. */
+  const orbBtn = document.getElementById('cptOrb');
   // looked up per attempt, not captured at boot: the vendor-prefixed
   // constructor is not guaranteed to be there the moment this file runs
   const SR = () => window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1505,15 +1494,16 @@
   let hearingWanted = false;             // what the button says, not what the engine is doing
   let heardFlash = null;
 
-  if (micBtn && !SR()) micBtn.remove();   // nothing to switch on
+  /* The drop stays even where there is nothing to listen with. It is not a
+     microphone icon that would be a lie without one — it is cpt, and cpt is
+     still here on a browser that cannot hear. Pressing it says so. */
+  const canHear = () => !!SR();
 
   function paintMicBtn() {
-    if (ctlToggle) ctlToggle.classList.toggle('hot', hearingWanted);
-    if (!micBtn) return;
-    micBtn.classList.toggle('off', !hearingWanted);
-    micBtn.classList.toggle('live', hearingWanted);
-    micBtn.setAttribute('aria-pressed', String(hearingWanted));
-    micBtn.setAttribute('aria-label', hearingWanted ? '음성 입력 끄기' : '음성 입력 켜기');
+    if (!orbBtn) return;
+    orbBtn.setAttribute('aria-pressed', String(hearingWanted));
+    orbBtn.setAttribute('aria-label', hearingWanted ? '음성 모드 끄기' : '음성 모드 켜기');
+    orbBtn.setAttribute('title', hearingWanted ? '듣고 있습니다' : '음성 모드');
   }
 
   function heard(text) {
@@ -1522,10 +1512,10 @@
     // through the field and the form, so voice and typing share one router
     chatInput.value = said;
     chatForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    if (!micBtn) return;
-    micBtn.classList.add('heard');
+    if (!orbBtn) return;
+    orbBtn.classList.add('heard');
     clearTimeout(heardFlash);
-    heardFlash = setTimeout(() => micBtn.classList.remove('heard'), 900);
+    heardFlash = setTimeout(() => orbBtn.classList.remove('heard'), 900);
   }
 
   function startHearing() {
@@ -1595,48 +1585,16 @@
     return hearingWanted;
   }
   paintMicBtn();
-  if (micBtn) micBtn.addEventListener('click', () => setHearing(!hearingWanted));
-
-  /* ---------- the sound controls, folded away ------------------------------
-
-     Two switches hanging off the bar's left pushed the bar off centre by
-     exactly their width, and the bar is the thing this page is built around.
-     So they live inside one round piece of glass and rise out of it when
-     asked — vertically, absolutely, so opening them moves nothing else.
-
-     Shut, the button still has to say whether the microphone is open: that is
-     the one state a visitor must never be wrong about, and it cannot be
-     allowed to hide behind a chevron. */
-  const ctlStack = document.getElementById('controlStack');
-  let ctlOpen = false;
-
-  function paintControls() {
-    if (!ctlToggle || !ctlStack) return;
-    ctlStack.classList.toggle('open', ctlOpen);
-    ctlToggle.setAttribute('aria-expanded', String(ctlOpen));
-    ctlToggle.setAttribute('aria-label', ctlOpen ? '소리 설정 닫기' : '소리 설정 열기');
-  }
-  function setControls(open) {
-    ctlOpen = !!open;
-    paintControls();
-  }
-  if (ctlToggle && ctlStack) {
-    liquidEls.push(ctlToggle);
-    ctlToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setControls(!ctlOpen);
+  if (orbBtn) {
+    orbBtn.addEventListener('click', () => {
+      if (!canHear()) {
+        // said rather than hidden: a control that silently does nothing is
+        // worse than one that explains why
+        showToast('이 브라우저는 음성 입력을 지원하지 않아요.');
+        return;
+      }
+      setHearing(!hearingWanted);
     });
-    // clicking away puts them back: a panel that only closes by the button
-    // that opened it is a panel you have to remember how to dismiss
-    document.addEventListener('pointerdown', (e) => {
-      if (!ctlOpen) return;
-      if (e.target.closest && e.target.closest('.chat-controls')) return;
-      setControls(false);
-    }, { capture: true });
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && ctlOpen) setControls(false);
-    });
-    paintControls();
   }
 
   // first real interaction releases anything autoplay refused
