@@ -1680,6 +1680,7 @@
   function stopTyping() {
     clearInterval(typeTimer); typeTimer = null;
     ghost.classList.remove('typing');
+    document.body.classList.remove('cpt-talking');
     const cur = ghost.querySelector('.ghost-line.now');
     if (cur) cur.classList.remove('now');
   }
@@ -1838,6 +1839,8 @@
         }
       } else {
         ghost.classList.add('typing');
+        // ...and cpt's own drop quickens while it is working
+        document.body.classList.add('cpt-talking');
         let li = 0, ci = 0, el = null;
         typeTimer = setInterval(() => {
           if (!el) {

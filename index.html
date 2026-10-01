@@ -331,9 +331,15 @@
       <button class="control-toggle liquid" id="controlToggle" type="button"
               aria-expanded="false" aria-controls="controlStack"
               aria-label="소리 설정 열기" title="소리 설정">
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-          <path class="ct-chev" d="M6.4 11.6 10 8l3.6 3.6"/>
-        </svg>
+        <!-- cpt itself, as a drop rather than an arrow. A chevron says only
+             "there is more below"; this says something is here and it is
+             listening. Two layers of the same lump, morphing and turning at
+             different rates and in opposite directions, so the outline never
+             repeats and never reads as a pulsing circle. -->
+        <span class="cpt-orb" aria-hidden="true">
+          <i class="orb-skin"></i>
+          <i class="orb-core"></i>
+        </span>
         <span class="liquid-lens" aria-hidden="true"></span>
       </button>
     </div>

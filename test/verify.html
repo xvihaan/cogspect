@@ -368,6 +368,48 @@ f.addEventListener('load', async () => {
      so the pair reads top-to-bottom rather than left-to-right — same order. */
   const ct = d.getElementById('controlToggle');
   ok(!!ct, 'the two switches live in one round control');
+
+  /* ---- cpt, as a drop --------------------------------------------------
+     An arrow said only that there was more below it. This says something is
+     here and it is listening. */
+  ok(!d.querySelector('.ct-chev'), 'the arrow is gone');
+  const orb = ct.querySelector('.cpt-orb');
+  const skin = ct.querySelector('.orb-skin'), core = ct.querySelector('.orb-core');
+  ok(!!orb && !!skin && !!core, 'and a drop of two layers stands in its place');
+  const skinCs = w.getComputedStyle(skin), coreCs = w.getComputedStyle(core);
+  ok(/orbMorph/.test(skinCs.animationName) && /orbTurn/.test(skinCs.animationName),
+     `it morphs and it turns (${skinCs.animationName})`);
+  ok(skinCs.animationPlayState.split(',')[0].trim() === 'running', 'and it is actually running');
+  /* The two layers are the whole trick. One morphing blob reads as a circle
+     pulsing; two on different clocks, turning opposite ways, never present the
+     same outline twice. If they ever fall into step this stops being liquid. */
+  ok(skinCs.animationDuration !== coreCs.animationDuration,
+     `the two layers run on different clocks (${skinCs.animationDuration} vs ${coreCs.animationDuration})`);
+  ok(skinCs.animationDirection.split(',')[0].trim() !==
+     coreCs.animationDirection.split(',')[0].trim(),
+     `and turn opposite ways (${skinCs.animationDirection} vs ${coreCs.animationDirection})`);
+  /* The morph is a percentage of the drop's own box, so the box has to be big
+     enough for a percentage to amount to a pixel. At fifteen it was not. */
+  ok(orb.getBoundingClientRect().width >= 18,
+     `big enough for the bend to be visible (${Math.round(orb.getBoundingClientRect().width)}px)`);
+
+  const rate = (el) => Number(w.getComputedStyle(el).getPropertyValue('--orb-rate') || 1);
+  const restRate = rate(ct);
+  ct.classList.add('hot');
+  ok(rate(ct) > restRate, `the microphone being open quickens it (${restRate} → ${rate(ct)})`);
+  ct.classList.remove('hot');
+  ct.setAttribute('aria-expanded', 'true');
+  ok(rate(ct) < restRate, `and opening it settles it down (${rate(ct)})`);
+  /* scale is transitioned, and virtual time never advances a transition — read
+     without one or this reports the resting value for ever. */
+  const orbStill = d.createElement('style');
+  orbStill.textContent = '.cpt-orb { transition: none !important }';
+  d.head.appendChild(orbStill);
+  const openScale = Number(w.getComputedStyle(orb).scale);
+  ok(openScale > 0 && openScale < 1,
+     `it draws in once it has given up its contents (scale ${openScale})`);
+  ct.setAttribute('aria-expanded', 'false');
+  orbStill.remove();
   /* The stack rises on a transform, and virtual time does not advance
      transitions — so the rect measured after adding .open is still the SHUT
      one, eight pixels low and at nine tenths scale. Kill the transition and

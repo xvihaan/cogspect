@@ -1257,18 +1257,90 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
 }
 body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(150%); }
 .control-toggle:hover { color: var(--muted); }
-.control-toggle svg { width: 17px; height: 17px; display: block; }
-.control-toggle .ct-chev {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform .32s cubic-bezier(.3, .9, .3, 1);
-  transform-origin: 50% 50%;
+/* ---------- cpt, as a drop ----------
+
+   An arrow said only that there was more below it. This says something is
+   here: a lump of liquid that never holds the same outline twice, breathing
+   when nothing is happening and quickening when cpt is working.
+
+   Two layers of one shape. Each morphs its own border-radius and turns on its
+   own clock, in opposite directions, which is what stops the outline from
+   repeating — a single morphing blob reads as a circle pulsing, two out of
+   step with each other read as something made of liquid.
+
+   No library and no SVG filter. Morphing border-radius is the open-source
+   blob technique in its entirety, it composites on the GPU, and it costs no
+   frame budget on a page that already spends its own on the cube. */
+.cpt-orb {
+  position: relative;
+  display: block;
+  /* 19, not 15. The morph is a percentage of the element's own box, so at
+     fifteen pixels an eight-percent deviation is one pixel and the whole
+     effect is invisible — a blob has to be big enough to be seen bending. */
+  width: 19px;
+  height: 19px;
+  color: inherit;
+  /* State lives here and motion lives on the children, so a press or a hover
+     never fights a running keyframe for the same property. */
+  scale: 1;
+  transition: scale .42s cubic-bezier(.2, 1.35, .3, 1);
 }
-/* a control that opens has to say it also closes */
-.control-toggle[aria-expanded="true"] .ct-chev { transform: rotate(180deg); }
+.orb-skin,
+.orb-core {
+  position: absolute;
+  background: currentColor;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+.orb-skin {
+  inset: 0;
+  opacity: .32;
+  animation-name: orbMorph, orbTurn;
+  animation-duration: calc(7.4s / var(--orb-rate, 1)), calc(17s / var(--orb-rate, 1));
+}
+.orb-core {
+  inset: 4.2px;
+  opacity: .9;
+  /* the inner lump runs the other way: at the same rate the two would read as
+     one thick outline rather than as a skin with something inside it */
+  animation-name: orbMorph, orbTurn;
+  animation-duration: calc(5.2s / var(--orb-rate, 1)), calc(11s / var(--orb-rate, 1));
+  animation-direction: reverse, reverse;
+}
+/* border-radius and scale together — scale is its own property now, so the
+   breathing here and the turning in orbTurn never contend for `transform`. */
+/* The corners travel a long way on purpose — 32% against 68% rather than the
+   44/56 a large blob can afford. This one is nineteen pixels across, and a
+   deviation that reads as liquid at two hundred reads as nothing at all here. */
+@keyframes orbMorph {
+  0%, 100% { border-radius: 64% 36% 42% 58% / 58% 42% 58% 42%; scale: 1; }
+  25%      { border-radius: 34% 66% 70% 30% / 36% 70% 30% 64%; scale: 1.06; }
+  50%      { border-radius: 70% 30% 32% 68% / 68% 34% 66% 32%; scale: .95; }
+  75%      { border-radius: 32% 68% 62% 38% / 44% 30% 70% 56%; scale: 1.05; }
+}
+@keyframes orbTurn { to { transform: rotate(360deg); } }
+
+/* Quicker as it gets nearer, quicker again while cpt is working, and quickest
+   of all with the microphone open — the one state that must never be missed. */
+.control-toggle:hover .cpt-orb { scale: 1.14; }
+.control-toggle:hover { --orb-rate: 2.1; }
+body.cpt-talking .control-toggle { --orb-rate: 2.8; }
+.control-toggle.hot { --orb-rate: 3.4; }
+.control-toggle:active .cpt-orb { scale: .84; transition-duration: .12s; }
+/* Open, it settles. A control that opens has to say it also closes, and the
+   drop says it by going quiet and small once it has given up its contents —
+   the two switches standing above it are the rest of the sentence. */
+.control-toggle[aria-expanded="true"] { --orb-rate: .55; }
+.control-toggle[aria-expanded="true"] .cpt-orb { scale: .66; }
+.control-toggle[aria-expanded="true"] .orb-skin { opacity: .5; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* still a drop, just not a moving one */
+  .orb-skin, .orb-core { animation: none; }
+  .orb-skin { border-radius: 58% 42% 46% 54% / 54% 48% 52% 46%; }
+  .orb-core { border-radius: 42% 58% 63% 37% / 43% 63% 37% 57%; }
+  .cpt-orb { transition: none; }
+}
 /* the mic being live has to be legible with the stack shut, or the one state
    that must never be missed is hidden behind a chevron */
 .control-toggle.hot { color: #e0483f; }
