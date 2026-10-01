@@ -374,65 +374,20 @@ f.addEventListener('load', async () => {
      measure where it actually goes. */
   const stackStill = d.createElement('style');
   stackStill.textContent =
-    '.control-stack, .control-stack .voice-toggle, .chat-bar, .control-toggle,' +
-    '.chat-chips { transition: none !important; }';
+    '.control-stack, .control-stack .voice-toggle { transition: none !important; }';
   d.head.appendChild(stackStill);
-
-  /* ---- shut, the button is part of the bar ----------------------------
-     One pill, one shadow, one backdrop, with a chevron sitting on it — rather
-     than a disc parked beside a bar, which is two objects where the visitor
-     is only ever addressing one. */
-  const dock = d.querySelector('.chat-dock');
-  const alphaOfC = (c) => Number((/[/,]\s*([\d.]+)\s*\)\s*$/.exec(c) || [])[1] ?? 1);
-  ok(!dock.classList.contains('sound-out'), 'the sound button starts part of the bar');
-  const dockBox = near(dock), fusedBar = near(bar);
-  ok(Math.abs(fusedBar.left - dockBox.left) < 1.5 && Math.abs(fusedBar.right - dockBox.right) < 1.5,
-     `the bar reaches the full width of the dock (${Math.round(fusedBar.left)}–${Math.round(fusedBar.right)}` +
-     ` vs ${Math.round(dockBox.left)}–${Math.round(dockBox.right)})`);
-  ok(near(ct).left > fusedBar.left && near(ct).right < fusedBar.right,
-     'and the chevron sits ON it, inside its own left cap');
-  const fusedCs = w.getComputedStyle(ct);
-  ok(alphaOfC(fusedCs.backgroundColor) === 0 && alphaOfC(fusedCs.borderTopColor) === 0,
-     `with no fill or edge of its own (${fusedCs.backgroundColor} / ${fusedCs.borderTopColor})`);
-  /* No second backdrop-filter above all. A filtered box sitting on a filtered
-     box is exactly the seam this arrangement exists not to have. */
-  ok((fusedCs.backdropFilter || fusedCs.webkitBackdropFilter || 'none') === 'none' &&
-     fusedCs.boxShadow === 'none',
-     'and nothing of its own to cast a seam');
-  const fusedField = near(d.getElementById('chatInput'));
-  const fusedMid = (fusedBar.left + fusedBar.right) / 2;
-  ok(Math.abs(fusedMid - w.innerWidth / 2) < 1.5,
-     `the pill grows about its own centre (${Math.round(fusedMid)} of ${w.innerWidth})`);
-
-  /* ---- pressed, it comes off ------------------------------------------- */
-  ct.click();
-  await wait(80);
-  ok(dock.classList.contains('sound-out'), 'pressing the chevron takes it off the bar');
+  d.getElementById('controlStack').classList.add('open');
+  await wait(60);
   ok(near(mb).bottom <= near(vb).top + 1, 'the mic comes first, then the speaker');
   ok(near(vb).bottom <= near(ct).top + 1, 'and both rise above the button that holds them');
-  ok(near(ct).right <= near(bar).left + 1, 'which now sits clear of the conversation bar');
-  const outCs = w.getComputedStyle(ct);
-  ok(alphaOfC(outCs.backgroundColor) > 0 && alphaOfC(outCs.borderTopColor) > 0,
-     'and takes on glass of its own once it is loose');
+  ok(near(ct).right <= near(bar).left + 1, 'which sits to the left of the conversation bar');
   /* And the bar is on the middle of the SCREEN. It used to be pushed right by
      the width of the two switches sitting beside it, which is the whole reason
      they were folded into one button with an empty column opposite. */
   const barMid = (near(bar).left + near(bar).right) / 2;
   ok(Math.abs(barMid - w.innerWidth / 2) < 1.5,
      `and the bar is centred on the screen (${Math.round(barMid)} of ${w.innerWidth})`);
-  /* The one thing that must NOT move. The padding grows with the margin, so
-     the pill changes size around a field that stays exactly where it was —
-     otherwise opening the sound controls would shunt the visitor's own text
-     sideways while they were reading it. */
-  const outField = near(d.getElementById('chatInput'));
-  ok(Math.abs(outField.left - fusedField.left) < 1.5 &&
-     Math.abs(outField.right - fusedField.right) < 1.5,
-     `and what you type does not move when it comes off ` +
-     `(${Math.round(fusedField.left)}–${Math.round(fusedField.right)} → ` +
-     `${Math.round(outField.left)}–${Math.round(outField.right)})`);
-  ct.click();
-  await wait(80);
-  ok(!dock.classList.contains('sound-out'), 'and it goes back on');
+  d.getElementById('controlStack').classList.remove('open');
   stackStill.remove();
 
   /* It is a toggle, not a menu that only opens. */

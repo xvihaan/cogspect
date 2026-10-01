@@ -1160,9 +1160,7 @@ body.on-dark .ghost-msg {
   pointer-events: none;
   /* Visibility is what makes a chip reachable by Tab, so it has to wait out
      the longest exit lag: a chip still on its way out is still a chip. */
-  transition: visibility 0s linear .48s,
-              left .44s cubic-bezier(.3, .9, .25, 1),
-              right .44s cubic-bezier(.3, .9, .25, 1);
+  transition: visibility 0s linear .48s;
 }
 .chat-chips.show {
   visibility: visible;
@@ -1255,12 +1253,7 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
   cursor: pointer;
   color: #b6b6bc;
   --lift: 8px;
-  /* scale, not transform: .liquid already owns transform, and a second author
-     for one property is how a hover ends up fighting a state change. The
-     overshoot is the snap — it comes off the bar with a little too much. */
-  transition: color .3s ease, transform .3s cubic-bezier(.3, .9, .3, 1),
-              background .34s ease, border-color .34s ease, box-shadow .34s ease,
-              scale .44s cubic-bezier(.2, 1.35, .3, 1);
+  transition: color .3s ease, transform .3s cubic-bezier(.3, .9, .3, 1);
 }
 body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(150%); }
 .control-toggle:hover { color: var(--muted); }
@@ -1335,58 +1328,8 @@ body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(15
     0 26px 74px rgba(0, 0, 0, .13),
     0 2px 10px rgba(5, 10, 25, .05),
     inset 0 1px 0 rgba(255, 255, 255, .3);
-  /* ---------- the sound button is part of the bar until you ask for it ----
-
-     Shut, the bar reaches out over the control column on the left and over
-     the centring pad on the right, and the button has no surface of its own:
-     one pill, one shadow, one backdrop, with a chevron sitting on it. Pressed,
-     the bar draws back and the button takes on its own glass — it comes OFF
-     the bar rather than appearing beside it.
-
-     The bar's own margins do the moving, not the grid. A grid column cannot
-     be transitioned, and animating one would have meant animating the gap,
-     the centring pad and the question row in lockstep with it.
-
-     Both sides, by the same amount, so the pill grows about its own centre
-     and stays centred on the screen instead of sliding left by what it
-     gained. The padding grows with the margin, so the text inside does not
-     move at all: only the pill around it does. */
-  margin-left: calc(-1 * (var(--side) + var(--dock-gap)));
-  margin-right: calc(-1 * (var(--side) + var(--dock-gap)));
-  padding-left: calc(var(--side) + var(--dock-gap) + 20px);
-  padding-right: calc(var(--side) + var(--dock-gap) + 20px);
-  transition: background .25s linear,
-              margin .44s cubic-bezier(.3, .9, .25, 1),
-              padding .44s cubic-bezier(.3, .9, .25, 1);
+  transition: background .25s linear;
 }
-.chat-dock.sound-out .chat-bar {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 20px;
-  padding-right: 20px;
-}
-/* The chevron has to be ON the bar, not under it. The bar carries a
-   backdrop-filter, which paints it as its own layer over anything earlier in
-   the document — and the controls are earlier. */
-.chat-controls { z-index: 2; }
-/* No surface of its own while it is part of the bar: no fill, no edge, no
-   shadow and above all no backdrop-filter, since a second filtered box on top
-   of the first is exactly the seam this arrangement exists to avoid. */
-.chat-dock:not(.sound-out) .control-toggle,
-body.lens .chat-dock:not(.sound-out) .control-toggle {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  /* a touch under size, so taking on its own glass reads as coming loose
-     rather than as a fill switching on */
-  scale: .88;
-}
-.chat-dock:not(.sound-out) .control-toggle .liquid-lens { opacity: 0; }
-.chat-dock.sound-out .control-toggle { scale: 1; }
-/* The question row belongs to the bar, so it follows the bar's new span. */
-.chat-dock:not(.sound-out) .chat-chips { left: 0; right: 0; }
 .chat-bar:hover,
 .chat-bar:focus-within {
   background: rgba(244, 246, 250, .34);
@@ -2690,11 +2633,4 @@ body.on-dark .voice-toggle:hover { color: #a9abb4; }
 
 @media (prefers-reduced-motion: reduce) {
   .voice-toggle .vt-wave { animation: none; opacity: 1; }
-}
-
-
-/* Nothing springs for a visitor who asked for no motion: the button still
-   takes its own glass, it simply does not leap off the bar to do it. */
-@media (prefers-reduced-motion: reduce) {
-  .chat-bar, .control-toggle, .chat-chips { transition-duration: .01s; }
 }
