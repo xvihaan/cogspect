@@ -234,6 +234,26 @@ f.addEventListener('load', async () => {
   inp.value='모델 상태';
   cf.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
   await wait(120);
+  /* cpt's drop answers along with cpt. Faster alone read as a nervous tic, so
+     the whole thing swells while it is mid-sentence — and it has to stop when
+     the sentence does, or the page is left permanently agitated. */
+  const orbNow = d.querySelector('.cpt-orb');
+  ok(d.body.classList.contains('cpt-talking'), 'the drop knows cpt is talking');
+  ok(/orbSpeak/.test(w.getComputedStyle(orbNow).animationName),
+     `and swells while it is (${w.getComputedStyle(orbNow).animationName})`);
+  /* Big, but not out of its own button: the peak of the swell has to stay
+     inside the 34px disc it lives in. */
+  const orbSwellStill = d.createElement('style');
+  orbSwellStill.textContent =
+    '.cpt-orb { animation: none !important; scale: 1.34 !important; }';
+  d.head.appendChild(orbSwellStill);
+  const peak = orbNow.getBoundingClientRect();
+  const disc = d.getElementById('controlToggle').getBoundingClientRect();
+  ok(peak.width <= disc.width - 2,
+     `at full swell it still fits its button (${peak.width.toFixed(1)} of ${disc.width.toFixed(1)})`);
+  orbSwellStill.remove();
+  for (let i = 0; i < 60 && d.body.classList.contains('cpt-talking'); i++) await wait(100);
+  ok(!d.body.classList.contains('cpt-talking'), 'and settles when the sentence ends');
   const modelUp = /로컬 모델로/.test(gm.textContent);
   log(`     (local model at :8000 — ${modelUp ? 'up' : 'down, 3 waiting-state checks skipped'})`);
 

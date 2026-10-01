@@ -1274,11 +1274,13 @@ body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(15
 .cpt-orb {
   position: relative;
   display: block;
-  /* 19, not 15. The morph is a percentage of the element's own box, so at
-     fifteen pixels an eight-percent deviation is one pixel and the whole
-     effect is invisible — a blob has to be big enough to be seen bending. */
-  width: 19px;
-  height: 19px;
+  /* 23, not 15. The morph is a percentage of the element's own box, so at
+     fifteen pixels an eight-percent deviation was one pixel and the whole
+     effect was invisible — a perfectly circular dot that technically animated.
+     A blob has to be big enough to be seen bending, and this one has a 34px
+     button to live in, which leaves it a 5.5px ring to breathe into. */
+  width: 23px;
+  height: 23px;
   color: inherit;
   /* State lives here and motion lives on the children, so a press or a hover
      never fights a running keyframe for the same property. */
@@ -1299,7 +1301,7 @@ body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(15
   animation-duration: calc(7.4s / var(--orb-rate, 1)), calc(17s / var(--orb-rate, 1));
 }
 .orb-core {
-  inset: 4.2px;
+  inset: 5.2px;
   opacity: .9;
   /* the inner lump runs the other way: at the same rate the two would read as
      one thick outline rather than as a skin with something inside it */
@@ -1325,6 +1327,19 @@ body.lens .control-toggle { backdrop-filter: url(#lg-drop) blur(4px) saturate(15
 .control-toggle:hover .cpt-orb { scale: 1.14; }
 .control-toggle:hover { --orb-rate: 2.1; }
 body.cpt-talking .control-toggle { --orb-rate: 2.8; }
+/* Faster was not enough — a quicker wobble at the same size reads as a nervous
+   tic rather than as something speaking. While cpt is mid-sentence the whole
+   drop swells as well, and on an uneven beat: a clean one-two is a heartbeat,
+   and the gaps here are the length of syllables. It overrides the resting
+   scale on the container for exactly as long as cpt is talking. */
+body.cpt-talking .cpt-orb { animation: orbSpeak 1.15s ease-in-out infinite; }
+@keyframes orbSpeak {
+  0%   { scale: 1.04; }
+  21%  { scale: 1.34; }
+  43%  { scale: 1.10; }
+  67%  { scale: 1.28; }
+  100% { scale: 1.04; }
+}
 .control-toggle.hot { --orb-rate: 3.4; }
 .control-toggle:active .cpt-orb { scale: .84; transition-duration: .12s; }
 /* Open, it settles. A control that opens has to say it also closes, and the
@@ -1336,7 +1351,7 @@ body.cpt-talking .control-toggle { --orb-rate: 2.8; }
 
 @media (prefers-reduced-motion: reduce) {
   /* still a drop, just not a moving one */
-  .orb-skin, .orb-core { animation: none; }
+  .orb-skin, .orb-core, body.cpt-talking .cpt-orb { animation: none; }
   .orb-skin { border-radius: 58% 42% 46% 54% / 54% 48% 52% 46%; }
   .orb-core { border-radius: 42% 58% 63% 37% / 43% 63% 37% 57%; }
   .cpt-orb { transition: none; }
