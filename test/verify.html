@@ -684,9 +684,26 @@ f.addEventListener('load', async () => {
      rooms exist, and a bar underneath that reads as a search field rather
      than as something that answers. These two are the whole of the fix. */
   const chips = [...d4.querySelectorAll('.chip')];
+  const chipRow4 = d4.getElementById('chatChips');
+  const lagOf = () => chips.map((c) => w4.getComputedStyle(c).getPropertyValue('--chip-lag').trim());
   ok(chips.length === 3, `three questions are offered (${chips.length})`);
-  ok(d4.getElementById('chatChips').classList.contains('show'),
-     'and they are showing once the stage is handed over');
+  /* They belong to the BAR, not to the page. Standing there from the end of
+     the welcome until the first question meant standing there for most of a
+     visit; they unroll when the cursor goes into the bar and roll back up
+     when it leaves. */
+  ok(!chipRow4.classList.contains('show'),
+     'the stage being handed over is not enough on its own');
+  ok(w4.getComputedStyle(chipRow4).visibility === 'hidden',
+     'and while they are away nothing in the row can be tabbed to');
+  ok(lagOf().join(',') === '180ms,90ms,0ms',
+     `leaving, the last one goes first (${lagOf().join(' ')})`);
+  d4.getElementById('chatInput').focus();
+  await wait(140);
+  ok(chipRow4.classList.contains('show'), 'the cursor in the bar unrolls them');
+  ok(w4.getComputedStyle(chipRow4).visibility === 'visible',
+     'and they are reachable once they are there');
+  ok(lagOf().join(',') === '0ms,90ms,180ms',
+     `arriving, they come one then two then three (${lagOf().join(' ')})`);
   ok(chips.every((c) => c.classList.contains('liquid')),
      'they are made of the same glass as everything else');
   /* Thinner than the bars. These hover over whatever room you are in, and a
@@ -727,6 +744,24 @@ f.addEventListener('load', async () => {
   /* Answered from a table, not the model. The point is that it lands the
      instant you tap, so this must not wait on a network round trip — the
      fetch is left live on purpose: if a chip reached for it, this hangs. */
+  /* A press inside the row must not take the cursor out of the bar: the row
+     would start rolling up underneath the pointer and the chip would be gone
+     before the click landed on it. */
+  chips[0].focus();
+  await wait(140);
+  ok(chipRow4.classList.contains('show'), 'moving onto a chip keeps the row up');
+  d4.getElementById('chatInput').focus();
+  await wait(80);
+  chips[1].dispatchEvent(new w4.PointerEvent('pointerdown', {bubbles: true, cancelable: true}));
+  await wait(60);
+  ok(d4.activeElement === d4.getElementById('chatInput'),
+     'and pressing one does not pull the cursor out of the bar');
+  /* A press that is never released leaves the page believing a drag is still
+     in progress, and every pointermove after it bails — which is how this
+     silently put out the corner hints two hundred lines further down. */
+  chips[1].dispatchEvent(new w4.PointerEvent('pointerup', {bubbles: true}));
+  await wait(60);
+
   const chipT0 = Date.now();
   chips[1].click();                              // 포트폴리오 소개해
   // when the first character lands, not when the sentence finishes typing —
@@ -757,19 +792,29 @@ f.addEventListener('load', async () => {
      'and they do not follow you into the room they opened');
   d4.getElementById('homeBtn').click();
   await wait(1800);
-  ok(d4.getElementById('chatChips').classList.contains('show'),
+  d4.getElementById('chatInput').focus();
+  await wait(160);
+  ok(chipRow4.classList.contains('show'),
      'they are waiting again when you come back to the front');
 
-  /* Typing retires them. They were an opening; once the visitor has spoken to
-     the site they have learned what the chips existed to teach, and three
-     standing buttons on a page this quiet are clutter. */
+  /* Typing no longer retires them. That rule existed because three standing
+     buttons were clutter once their job was done — a row that is only there
+     while you are typing is not clutter, and a visitor who comes back to the
+     bar is exactly the one who might want them again. */
   d4.getElementById('chatInput').value = '음소거해줘';
   d4.getElementById('chatForm').dispatchEvent(new w4.Event('submit', {bubbles: true, cancelable: true}));
   await wait(1200);
   d4.getElementById('ghostMsg').click();
   await wait(900);
-  ok(!d4.getElementById('chatChips').classList.contains('show'),
-     'and once you have typed to it yourself, they retire');
+  d4.getElementById('chatInput').focus();
+  await wait(160);
+  ok(chipRow4.classList.contains('show'),
+     'and they come back for a visitor who returns to the bar');
+  d4.getElementById('chatInput').blur();
+  d4.body.focus();
+  await wait(200);
+  ok(!chipRow4.classList.contains('show'),
+     'taking the cursor away rolls them back up');
 
   /* The hot corners. A scroll page is intuitive because you can SEE there is
      more below — the cut-off next section IS the affordance. A cube has none,

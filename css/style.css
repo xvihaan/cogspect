@@ -1147,16 +1147,45 @@ body.on-dark .ghost-msg {
      on the dock's, which sits 34px to the left of it. */
   justify-content: center;
   gap: 8px;
-  opacity: 0;
+  /* The row sits back. These are an offer, not a toolbar: at full strength
+     three outlined pills under the conversation are the loudest thing on a
+     page whose argument is that it is quiet. Each one comes up to full on
+     hover, so the one you are reaching for is the one that is fully there.
+
+     Constant, because the row no longer fades as a block — the chips arrive
+     and leave one at a time, and a row fading over the top of that would flatten
+     the stagger back into a single movement. */
+  opacity: .72;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity .4s ease, transform .4s cubic-bezier(.2, .85, .2, 1);
+  /* Visibility is what makes a chip reachable by Tab, so it has to wait out
+     the longest exit lag: a chip still on its way out is still a chip. */
+  transition: visibility 0s linear .48s;
 }
-/* The row sits back. These are an offer, not a toolbar: at full strength
-   three outlined pills under the conversation are the loudest thing on a page
-   whose argument is that it is quiet. Each one comes up to full on hover, so
-   the one you are actually reaching for is the one that is fully there. */
-.chat-chips.show { opacity: .72; pointer-events: auto; }
-.chat-chips:not(.show) { transform: translateY(6px); }
+.chat-chips.show {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+/* They arrive 1·2·3 and leave 3·2·1 — the row unrolls from the bar and rolls
+   back up into it, rather than the three of them blinking at once.
+
+   The lag is a variable rather than transition-delay because a bare delay
+   applies to every property in the chip's transition, hover included: the
+   third chip would have taken 180ms to acknowledge the pointer. Only the
+   arrival and the leaving are staggered. */
+.chat-chips .chip { opacity: 0; transform: translateY(7px); }
+.chat-chips.show .chip { opacity: 1; transform: none; }
+.chat-chips .chip:nth-child(1) { --chip-lag: 180ms; }
+.chat-chips .chip:nth-child(2) { --chip-lag: 90ms; }
+.chat-chips .chip:nth-child(3) { --chip-lag: 0ms; }
+.chat-chips.show .chip:nth-child(1) { --chip-lag: 0ms; }
+.chat-chips.show .chip:nth-child(2) { --chip-lag: 90ms; }
+.chat-chips.show .chip:nth-child(3) { --chip-lag: 180ms; }
+@media (prefers-reduced-motion: reduce) {
+  .chat-chips .chip { --chip-lag: 0ms !important; }
+}
 
 .chip.liquid {
   --near: 0;
@@ -1183,7 +1212,8 @@ body.on-dark .ghost-msg {
     0 3px 9px rgba(5, 10, 25, .035),
     inset 0 1px 0 var(--sheen-low);
   transition: background .3s ease, border-color .3s ease, color .3s ease,
-              transform .25s cubic-bezier(.3, .9, .3, 1), opacity .3s ease;
+              transform .25s cubic-bezier(.3, .9, .3, 1) var(--chip-lag, 0ms),
+              opacity .3s ease var(--chip-lag, 0ms);
 }
 body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%); }
 .chip.liquid:hover {
@@ -1194,7 +1224,9 @@ body.lens .chip.liquid { backdrop-filter: url(#lg-drop) blur(3px) saturate(150%)
 .chip:active { transform: scale(.97); }
 /* used up: it fades where it stands rather than the row reflowing under the
    pointer, which would move the other two out from under the cursor */
-.chip.spent { opacity: 0; pointer-events: none; }
+/* ...and it has to out-rank the row's own `.show .chip { opacity: 1 }`, which
+   is one class heavier than a bare .chip.spent would be */
+.chat-chips .chip.spent { opacity: 0; pointer-events: none; }
 @media (max-width: 520px) {
   /* narrow enough that the row wraps, and space-between on a wrapped last
      line strands whatever is on it against one edge */

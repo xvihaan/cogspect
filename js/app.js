@@ -2172,7 +2172,18 @@
      were there to teach, and three standing buttons become clutter on a page
      whose whole argument is that it is quiet. They also step aside while cpt
      is talking rather than sitting under its answer. */
-  let chipsRetired = false;
+  /* Whether the visitor is actually talking to cpt. The chips used to stand
+     there from the end of the welcome until the first question, which is most
+     of the time a visitor spends on the front face — three pills under the
+     conversation, permanently. They belong to the bar now: they unroll when
+     the cursor goes into it and roll back up when it leaves.
+
+     That also retired the retirement rule. Chips used to disappear for good
+     at the first typed question, because three standing buttons were clutter
+     once their job was done; a row that is only there while you are typing is
+     not clutter, and a visitor who comes back to the bar is exactly the one
+     who might want them again. */
+  let chipsFocus = false;
   /* Not until cpt has finished introducing the place. The chips are the second
      thing a visitor is offered, not the first: three buttons appearing beside
      a greeting still being typed reads as an interface competing with itself.
@@ -2187,13 +2198,25 @@
        saying what it is — a second explanation underneath it is noise. */
     const atDoor = cur === 'front';
     chipRow.classList.toggle('show',
-      chipsArmed && atDoor && !chipsRetired && !busy && phase !== 'intro');
+      chipsArmed && atDoor && chipsFocus && !busy && phase !== 'intro');
   }
-  function retireChips() {
-    if (chipsRetired) return;
-    chipsRetired = true;
+
+  /* Focus, asked of the document rather than wired to the input alone: a chip
+     is part of the same group, so tabbing from the bar onto one must not pull
+     the row out from under the key that got there. focusout fires BEFORE the
+     next element takes focus, so the answer is read on the next tick. */
+  function chipGroupHasFocus() {
+    const node = document.activeElement;
+    return node === chatInput || !!(chipRow && chipRow.contains(node));
+  }
+  function syncChipFocus() {
+    const on = chipGroupHasFocus();
+    if (on === chipsFocus) return;
+    chipsFocus = on;
     paintChips();
   }
+  document.addEventListener('focusin', syncChipFocus);
+  document.addEventListener('focusout', () => setTimeout(syncChipFocus, 0));
 
   if (chipRow) {
     for (const c of CHIPS) {
@@ -2205,6 +2228,10 @@
       lens.className = 'liquid-lens';
       lens.setAttribute('aria-hidden', 'true');
       b.append(lens);
+      /* A press inside the bar's own row must not take the cursor out of the
+         bar — that would start the row rolling up underneath the pointer and
+         the chip would be gone before the click landed on it. */
+      b.addEventListener('pointerdown', (e) => e.preventDefault());
       b.addEventListener('click', () => {
         b.classList.add('spent');
         // the room it is about does not also introduce itself: this answer IS
@@ -2393,7 +2420,6 @@
     e.preventDefault();
     const q = chatInput.value.trim().toLowerCase();
     if (!q) return;
-    retireChips();                     // they were an opening; it is open now
     chatInput.value = '';
     const cmd = COMMANDS.find((c) => c.keys.some((k) => q.includes(k)));
     if (cmd) {
