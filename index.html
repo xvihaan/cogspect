@@ -81,7 +81,25 @@
       <div class="cube" id="cube">
 
         <section class="face face--front" data-face="front" aria-label="cogspect">
-          <p class="face-lede">지극히 담백하게. 전례없이 다이나믹하게.</p>
+          <!-- The welcome line is alive. It types itself out, stops under a
+               blinking caret, and after a breath gives way to the next line —
+               the notices this room has nowhere else to put — before coming
+               back round to the first and starting again.
+
+               THE COPY TO EDIT IS RIGHT HERE. Each .lede-line is one message
+               in the rotation, in order; add or remove one and the cycle
+               follows. The first is the hero line, and it is also what shows
+               if the script never runs, so it should read on its own.
+
+               Keep them to roughly one line. They are typed left to right in a
+               box held open at the finished width, so a message that wraps is
+               fine but a short one sits better. -->
+          <p class="face-lede" id="faceLede">
+            <span class="lede-line">지극히 담백하게. 전례없이 다이나믹하게.</span>
+            <span class="lede-line">방향키 또는 드래그로 다음 공간을 넘겨 보세요.</span>
+            <span class="lede-line">화면 모서리로 커서를 옮기면 옆 공간이 기울어요.</span>
+            <span class="lede-line">궁금한 건 아래 cpt에게 바로 물어보세요.</span>
+          </p>
         </section>
 
         <section class="face face--matrix" data-face="right" aria-label="portfolio">

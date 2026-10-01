@@ -544,8 +544,16 @@
      again only in setFace(), i.e. exactly on settle. */
   let introTimer = null;
 
+  /* Set once the welcome line exists, far below. Mutable rather than a direct
+     call because setLanded() runs at boot, long before that code — the same
+     trap that made `const keenFace = faceEls.back` capture undefined. */
+  let onLandedChange = null;
+
   function setLanded(face) {
     for (const n in faceEls) faceEls[n].classList.toggle('landed', n === face);
+    // the single place that knows whether a face's copy is on screen at all,
+    // which is exactly when the welcome line should be running
+    if (onLandedChange) onLandedChange(face);
   }
   function clearLanded() { setLanded(null); }
 
@@ -2474,6 +2482,115 @@
     // corners do — once, and only if the greeting was allowed to finish
     afterTyping = () => setTimeout(demoPeek, 550);
   }
+
+  /* ---------- the welcome line, alive ------------------------------------
+
+     The front face used to say one thing and then say nothing ever again. It
+     now types that line out, stops under a blinking caret, and after a breath
+     gives way to the next notice before coming back round to the first.
+
+     The copy is in index.html, not here: those are the words to edit, and
+     editing them should not mean opening the code. */
+
+  const ledeEl = document.getElementById('faceLede');
+  const LEDE_TYPE_MS = 46;            // slower than cpt: this is a sign, not speech
+  const LEDE_HOLD = 5000;             // how long the finished line sits blinking
+  const LEDE_LEAD = 260;              // caret back at the left, a beat, then type
+  const LEDE_BUSY = 700;              // re-ask while cpt is mid-sentence
+
+  const ledeLines = ledeEl
+    ? [...ledeEl.querySelectorAll('.lede-line')].map((n) => n.textContent.trim())
+        .filter(Boolean)
+    : [];
+
+  let ledeBox = null, ledeGhost = null, ledeTyped = null, ledeCaret = null;
+  let ledeAt = 0, ledeTimer = null, ledeOn = false;
+
+  function buildLede() {
+    if (ledeBox || !ledeEl || !ledeLines.length) return;
+    ledeBox = document.createElement('span');
+    ledeBox.className = 'lede-box';
+    // the .lede-line copies stay readable to a screen reader; this is paint
+    ledeBox.setAttribute('aria-hidden', 'true');
+    ledeGhost = document.createElement('span');
+    ledeGhost.className = 'lede-ghost';
+    ledeTyped = document.createElement('span');
+    ledeTyped.className = 'lede-typed';
+    ledeCaret = document.createElement('i');
+    ledeCaret.className = 'lede-caret';
+    ledeBox.append(ledeGhost, ledeTyped);
+    ledeEl.append(ledeBox);
+    ledeEl.classList.add('live');
+  }
+
+  /* Writing textContent DELETES the caret, which is a child of the same span —
+     the bug that ate the injected lens out of the ghost bubble. The text and
+     the caret are put back together, every time. */
+  function ledeWrite(text) {
+    ledeTyped.textContent = text;
+    ledeTyped.append(ledeCaret);
+  }
+
+  function ledeStop() {
+    clearTimeout(ledeTimer);
+    ledeTimer = null;
+    ledeOn = false;
+    if (ledeEl) ledeEl.classList.remove('typing');
+  }
+
+  function ledeStart() {
+    if (!ledeEl || ledeOn || !ledeLines.length) return;
+    buildLede();
+    if (!ledeBox) return;
+    ledeOn = true;
+    ledeAt = 0;                       // every arrival opens on the hero line
+    if (reducedMotion.matches) {
+      // no typing and no rotation: the line is simply there, and the caret
+      // sits still beside it
+      ledeGhost.textContent = ledeLines[0];
+      ledeWrite(ledeLines[0]);
+      return;
+    }
+    ledeTypeLine();
+  }
+
+  function ledeTypeLine() {
+    const text = ledeLines[ledeAt];
+    ledeGhost.textContent = text;     // holds the box open at the final width
+    ledeWrite('');                    // ...and the caret is back at the left
+    ledeEl.classList.add('typing');
+    let i = 0;
+    const step = () => {
+      if (!ledeOn) return;
+      i += 1;
+      ledeWrite(text.slice(0, i));
+      if (i < text.length) { ledeTimer = setTimeout(step, LEDE_TYPE_MS); return; }
+      ledeEl.classList.remove('typing');   // stopped — now the caret blinks
+      ledeHold(LEDE_HOLD);
+    };
+    ledeTimer = setTimeout(step, LEDE_LEAD);
+  }
+
+  function ledeHold(ms) {
+    ledeTimer = setTimeout(() => {
+      if (!ledeOn) return;
+      /* One moving thing at a time. While cpt is saying something the line
+         stays where it is rather than retyping itself underneath an answer
+         the visitor is still reading — asked again shortly, not deferred by
+         another full hold. */
+      if (ghost.classList.contains('show')) { ledeHold(LEDE_BUSY); return; }
+      ledeAt = (ledeAt + 1) % ledeLines.length;
+      ledeTypeLine();
+    }, ms);
+  }
+
+  /* It runs exactly while the front room's copy is on screen: not during the
+     intro tumble, not while the cube is between faces, and not at all once
+     you have turned away. */
+  onLandedChange = (face) => {
+    if (face === 'front' && !stage.classList.contains('intro')) ledeStart();
+    else ledeStop();
+  };
 
   const INTRO_LEG = 1080;
   let introTimers = [];

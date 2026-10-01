@@ -287,7 +287,20 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
 
 .face-lede {
   margin: 0;
-  max-width: 460px;
+  /* 560, not 460: the rotating notices are a few characters longer than the
+     hero line, and one that wraps to two lines in a box this narrow reads as
+     a paragraph rather than as a line being typed.
+
+     The width is DEFINITE, not shrink-to-fit, and that is the fix for a real
+     bug rather than tidiness. As a flex item this element sized itself from
+     its content, the content is a max-content box whose max-width is a
+     percentage of this element, and a browser resolving that circle lands on
+     the previous, narrower value — so the second notice wrapped to two lines
+     inside a box with room for one, while measuring 309px of a 512px line.
+     A definite width here breaks the circle. The face is a definite S×S box,
+     so the percentage has something real to resolve against. */
+  width: min(560px, 100%);
+  max-width: 560px;
   text-align: center;
   font-size: 17px;
   font-weight: 500;
@@ -295,6 +308,79 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
   color: #3a3a3e;
   text-wrap: pretty;
   padding: 0 24px;
+}
+
+/* ---------- the welcome line, alive ----------
+
+   Without the script the first .lede-line is simply the lede, exactly as it
+   was before any of this. */
+.lede-line { display: none; }
+.lede-line:first-child { display: inline; }
+
+/* Once the script takes over, every line stays in the document for a screen
+   reader — all of them, once, in order — rather than being announced over and
+   over as a live region would do. The visible box is aria-hidden; this is what
+   is actually read. */
+.face-lede.live .lede-line {
+  display: block;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The ghost carries the FINISHED line and so holds the box open at its final
+   size; the typed copy is laid over it. Without that the box would grow a
+   character at a time, and because the lede is centred the whole line would
+   slide sideways the entire way across — the one thing a typewriter must not
+   do. text-align goes left inside the box for the same reason: every
+   character has to land where it will stay. The box itself is still centred
+   on the face, so a one-line message reads as centred. */
+.lede-box {
+  position: relative;
+  display: inline-block;
+  text-align: left;
+  /* width: max-content is doing real work. Shrink-to-fit inside a flex item
+     that is ITSELF shrink-to-fit resolves narrow, and the hero line came out
+     broken over two lines in a box with room for one. max-content asks for the
+     unwrapped width and max-width puts the ceiling back. */
+  width: max-content;
+  max-width: 100%;
+  /* Room for the caret, and this is not cosmetic. The ghost sizes the box from
+     the TEXT, but the typed copy is text PLUS the caret — a real inline box of
+     its own — so the line was 3.5px too long for the width it had been given
+     and the caret wrapped, dragging the last word down with it under
+     word-break: keep-all. The box is padded by the caret's own width instead.
+
+     The typed copy is absolutely positioned, and an absolutely positioned box
+     resolves inset: 0 against its container's PADDING box — so this padding is
+     width the text can actually use, not a margin pushed in from the edge. */
+  --caret-w: 1.5px;
+  --caret-gap: 2px;
+  padding-right: calc(var(--caret-w) + var(--caret-gap) + 1px);
+}
+.lede-ghost { visibility: hidden; }
+.lede-typed { position: absolute; inset: 0; }
+
+.lede-caret {
+  display: inline-block;
+  /* kept in the box's variables so the room reserved for it above cannot
+     drift away from its actual size */
+  width: var(--caret-w, 1.5px);
+  height: 1.02em;
+  margin-left: var(--caret-gap, 2px);
+  background: currentColor;
+  vertical-align: -.14em;
+  animation: ledeBlink 1.06s step-end infinite;
+}
+/* It blinks only once the line has STOPPED. A caret flashing while characters
+   are still arriving reads as a fault rather than as a cursor. */
+.face-lede.typing .lede-caret { animation: none; opacity: 1; }
+@keyframes ledeBlink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) {
+  .lede-caret { animation: none; opacity: 1; }
 }
 
 
