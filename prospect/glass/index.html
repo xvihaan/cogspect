@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>glass — prospect</title>
+<!--
+  An experience page. It is a complete document of its own and shares nothing
+  with the cube: its own styles, its own scripts, whatever engine it needs.
+  The desk opens it in a frame laid over the cube and throws the whole frame
+  away on the way out, so nothing loaded here can outlive the visit.
+
+  The contract with the desk is one line, and optional: to ask to be closed
+  from inside, post { type: 'prospect:close' } to the parent. The desk already
+  draws the way back and already listens for Escape.
+
+  THIS ROOM IS EMPTY. It exists so the door can be walked through; the glasses
+  themselves are not built yet.
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; place-items: center;
+    background:
+      radial-gradient(60% 50% at 50% 42%, rgba(232, 235, 241, .95) 0%, rgba(251, 251, 252, 0) 70%),
+      #fbfbfc;
+    color: #15161c;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+  main { text-align: center; padding: 0 24px; }
+  .kicker { font-size: 10px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: #9a9aa0; }
+  h1 { margin: 14px 0 10px; font-size: 34px; font-weight: 700; letter-spacing: -.035em; }
+  p { margin: 0; font-size: 15px; line-height: 1.8; color: #6a6a70; }
+</style></head>
+<body>
+<main>
+  <span class="kicker">prospect · 제작 중</span>
+  <h1>glass</h1>
+  <p>이 방은 아직 비어 있습니다.<br>첫 경험이 여기에 지어집니다.</p>
+</main>
+</body></html>

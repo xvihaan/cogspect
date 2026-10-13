@@ -1,0 +1,14 @@
+{
+  "_guide": "prospect 책상 위의 제품 목록. 제품 추가 = 이 배열에 블록 하나 + prospect/<id>/ 폴더 하나. 폴더에는 index.html(경험 페이지, 완전히 독립된 문서)과 objet.svg(책상 위에 놓이는 모형)를 둔다. status: released=집어 들 수 있고 들어갈 수 있음 / making=유리로 된 기본 형태만 놓이고 눌리지 않음(shape: orb|slab|prism). x=가로 위치(0~1). depth=책상 위 앞뒤(0=맨 뒤, 작게 · 1=맨 앞, 크게) — 가장 최근 출시작을 1에 두고 이전 것들을 뒤로 물린다. size=맨 앞에 있을 때의 폭(px).",
+  "products": [
+    {
+      "id": "glass",
+      "name": "glass",
+      "tagline": "스마트 글래스 · 작업명",
+      "status": "released",
+      "x": 0.5,
+      "depth": 1,
+      "size": 230
+    }
+  ]
+}

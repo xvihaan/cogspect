@@ -213,9 +213,21 @@
         <section class="face face--vision" data-face="top" aria-label="prospect">
           <div class="face-banner">
             <span class="kicker">prospect</span>
-            <h2>모든 프로젝트는 하나의 근원에서 출발합니다.</h2>
-            <p><strong>cogspect</strong>는 극도의 미니멀리즘 경험을 쌓아 올립니다.</p>
+            <h2>Prospect desk</h2>
+            <p>cogspect의 제품을 미리 경험하다</p>
           </div>
+          <!-- The desk. Every product cogspect makes is put down here as an
+               object, and picking one up takes you inside it.
+
+               No desk is drawn. The objects cast shadows and a shadow is
+               enough to make the surface it falls on — furniture rendered in
+               glass and wood would be the loudest thing on a face whose
+               neighbours are made of almost nothing.
+
+               Built from data/prospects.json; nothing here is written by
+               hand. A product is one block in that file and one folder under
+               prospect/. -->
+          <div class="desk" id="desk"><div class="desk-plane" id="deskPlane"></div></div>
         </section>
 
         <section class="face face--void" data-face="bottom" aria-label="minimalid">

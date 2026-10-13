@@ -756,8 +756,15 @@
   function contactOpen() {
     return overlay.classList.contains('open');
   }
+  /* Declared here, not with the desk far below: overlayOpen() is called while
+     the page boots, and a `let` further down the file would still be in its
+     dead zone when that happens. */
+  let prospectRoom = null;
+  function roomOpen() {
+    return !!(prospectRoom && prospectRoom.classList.contains('open'));
+  }
   function overlayOpen() {
-    return contactOpen() || projectOpen();
+    return contactOpen() || projectOpen() || roomOpen();
   }
   function openContact() {
     setTimeout(paintChips, 40);
@@ -935,7 +942,10 @@
   /* ---------- keyboard ---------- */
 
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeContact(); closeProject(); chatInput.blur(); return; }
+    if (e.key === 'Escape') {
+      if (roomOpen()) { leaveRoom(); return; }
+      closeContact(); closeProject(); chatInput.blur(); return;
+    }
     if (document.activeElement === chatInput) return;
     if (drag || overlayOpen()) return;
     const map = { ArrowRight: 'right', ArrowLeft: 'left', ArrowUp: 'up', ArrowDown: 'down' };
@@ -1910,6 +1920,10 @@
     back: [
       'cogspect가 지향하는 디자인 공간입니다.',
       '위의 바를 누르면 흐릿한 공간이 또렷해져요.'
+    ],
+    top: [
+      'cogspect가 만든 제품이 놓이는 책상입니다.',
+      '오브제를 집어 들면 그 안으로 들어가요.'
     ]
   };
   const introSaid = new Set();
@@ -1961,7 +1975,7 @@
     right:  '민혁님의 포트폴리오 공간이에요. 잔디 속에 프로젝트가 숨어 있어요.',
     left:   '다른 공간으로 건너가는 다리예요. 색다른 이벤트를 경험할 수 있어요.',
     back:   'keen — 바를 누르면 흐릿한 것이 또렷해지는 공간이에요.',
-    top:    'prospect — cogspect가 향하는 방향을 담은 공간이에요.',
+    top:    'prospect — cogspect의 제품을 미리 경험하는 책상이에요.',
     bottom: 'minimalid — 최소한의 견고함. 아카이브로 이어져요.'
   };
   /* Corners, not edges. The four edges are where the chrome lives — the nav
@@ -2479,6 +2493,161 @@
   layout();
   setFace('front');                  // also makes the five hidden faces inert
   window.addEventListener('resize', () => { layout(); buildGrass(); });
+
+  /* ---------- prospect: the desk and the rooms behind it --------------------
+
+     Product + spectrum. Each thing cogspect makes is put down on the top face
+     as an object; picking one up dives through it into the experience.
+
+     The experience is NOT part of this file, or of this document. It is its
+     own page under prospect/<id>/, opened in a frame laid over the cube and
+     removed whole on the way out. That is the entire memory strategy: nothing
+     here has to remember to dispose of a renderer, a texture or a listener,
+     because the browser reclaims the frame's document and everything in it.
+     It also means one product can be built on one engine and the next on
+     another without either knowing the other exists. To a visitor it is one
+     page they zoomed into. */
+
+  const deskPlane = document.getElementById('deskPlane');
+  const ROOM_DIVE_MS = 300;           // how long the desk rushes before the room shows
+  const ROOM_OUT_MS = 520;            // the room's own fade, after which the frame goes
+  let PRODUCTS = [];
+  let roomFrame = null, roomTimer = null, roomFrom = null;
+
+  function buildDesk() {
+    if (!deskPlane) return;
+    deskPlane.textContent = '';
+    for (const p of PRODUCTS) {
+      const live = p.status === 'released';
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'objet';
+      b.dataset.id = p.id;
+      b.style.setProperty('--x', String(p.x ?? .5));
+      b.style.setProperty('--d', String(p.depth ?? 1));
+      b.style.setProperty('--size', String(p.size ?? 220));
+      // nearer things overlap further ones, as they would on a desk
+      b.style.zIndex = String(1 + Math.round((p.depth ?? 1) * 10));
+      const body = document.createElement('span');
+      body.className = 'objet-body';
+      if (live) {
+        const img = document.createElement('img');
+        img.src = `prospect/${p.id}/objet.svg`;
+        img.alt = '';
+        img.draggable = false;
+        body.append(img);
+      } else {
+        // a stand-in, and visibly one: a plain form rather than a likeness
+        b.dataset.shape = p.shape || 'orb';
+        b.setAttribute('aria-disabled', 'true');
+      }
+      const shadow = document.createElement('span');
+      shadow.className = 'objet-shadow';
+      const label = document.createElement('span');
+      label.className = 'objet-label';
+      const name = document.createElement('b');
+      name.textContent = p.name;
+      const sub = document.createElement('span');
+      sub.textContent = live ? (p.tagline || '') : '제작 중';
+      label.append(name, sub);
+      b.append(body, shadow, label);
+      b.setAttribute('aria-label', live ? `${p.name} 경험하기` : `${p.name} — 제작 중`);
+      if (live) b.addEventListener('click', () => enterRoom(p, b));
+      deskPlane.append(b);
+    }
+  }
+
+  function ensureRoom() {
+    if (prospectRoom) return prospectRoom;
+    prospectRoom = document.createElement('div');
+    prospectRoom.className = 'prospect-room';
+    prospectRoom.setAttribute('aria-hidden', 'true');
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'room-back';
+    back.textContent = '← desk';
+    back.setAttribute('aria-label', '책상으로 돌아가기');
+    back.addEventListener('click', leaveRoom);
+    prospectRoom.append(back);
+    // outside the stage, so locking the stage's chrome does not lock this
+    document.body.append(prospectRoom);
+    return prospectRoom;
+  }
+
+  function enterRoom(p, btn) {
+    if (phase !== 'idle' || overlayOpen() || cur !== 'top') return;
+    const room = ensureRoom();
+    clearTimeout(roomTimer);
+    roomFrom = btn;
+    /* The dive goes THROUGH the object that was pressed. The origin is that
+       object's centre in the plane's own coordinates — the plane may be drawn
+       smaller than its layout box if the cube is zoomed out, so the screen
+       distance is divided back by that scale. */
+    const pr = deskPlane.getBoundingClientRect();
+    const br = btn.querySelector('.objet-body').getBoundingClientRect();
+    const k = pr.width / (deskPlane.offsetWidth || pr.width) || 1;
+    deskPlane.style.transformOrigin =
+      `${(br.left + br.width / 2 - pr.left) / k}px ${(br.top + br.height / 2 - pr.top) / k}px`;
+    deskPlane.classList.add('diving');
+    faceEls.top.classList.add('diving');
+    setPeek(null);
+    clearHints();
+
+    if (roomFrame) roomFrame.remove();
+    roomFrame = document.createElement('iframe');
+    roomFrame.title = `${p.name} — prospect`;
+    roomFrame.src = `prospect/${p.id}/`;
+    /* Escape has to work from inside the frame too, and keys pressed in there
+       never reach this window. Same origin, so the listener can simply be
+       hung on the frame's own window once it exists. */
+    roomFrame.addEventListener('load', () => {
+      try {
+        roomFrame.contentWindow.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') leaveRoom();
+        });
+      } catch (err) { /* a cross-origin room closes by the button instead */ }
+    });
+    room.append(roomFrame);
+
+    roomTimer = setTimeout(() => {
+      room.classList.add('open');
+      room.setAttribute('aria-hidden', 'false');
+      lockChrome(true);
+      room.querySelector('.room-back').focus({ preventScroll: true });
+    }, reducedMotion.matches ? 0 : ROOM_DIVE_MS);
+    haptic();
+  }
+
+  function leaveRoom() {
+    if (!prospectRoom) return;
+    clearTimeout(roomTimer);
+    prospectRoom.classList.remove('open');
+    prospectRoom.setAttribute('aria-hidden', 'true');
+    deskPlane.classList.remove('diving');
+    if (faceEls.top) faceEls.top.classList.remove('diving');
+    releaseChrome();
+    if (roomFrom && roomFrom.isConnected) roomFrom.focus({ preventScroll: true });
+    roomFrom = null;
+    /* The frame goes once it is out of sight, and going is the point: its
+       document, its scripts and whatever it allocated go with it. */
+    const frame = roomFrame;
+    roomFrame = null;
+    roomTimer = setTimeout(() => { if (frame) frame.remove(); },
+      reducedMotion.matches ? 0 : ROOM_OUT_MS);
+  }
+
+  // a room may ask to be closed from the inside
+  window.addEventListener('message', (e) => {
+    // self.origin, not location.origin: the latter reads 'null' in a document
+    // written in through srcdoc, which is how the suite loads this page
+    if (e.origin !== self.origin) return;
+    if (e.data && e.data.type === 'prospect:close') leaveRoom();
+  });
+
+  fetch('data/prospects.json')
+    .then((r) => r.json())
+    .then((d) => { PRODUCTS = d.products || []; buildDesk(); })
+    .catch((err) => console.warn('prospects.json load failed:', err));
 
   fetch('data/projects.json')
     .then((r) => r.json())

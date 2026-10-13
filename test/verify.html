@@ -1656,7 +1656,9 @@ f.addEventListener('load', async () => {
     key3(k); await wait(3500);
     ok(want.test(roomText()), `${label} introduces itself (${roomText().slice(0, 24)})`);
   }
-  for (const [k, label] of [['ArrowUp', 'prospect'], ['ArrowDown', 'minimalid']]) {
+  // prospect has a desk on it now and says so; minimalid still has nothing
+  // settled to say
+  for (const [k, label] of [['ArrowDown', 'minimalid']]) {
     d3.getElementById('ghostMsg').click();
     await wait(900);
     d3.getElementById('homeBtn').click(); await wait(1500);
@@ -1858,6 +1860,111 @@ f.addEventListener('load', async () => {
   await wait(60);
   ok(!cubeOf(skin6), 'pressing home while home does not square it');
   f6.remove();
+
+  /* ---------- prospect: the desk ---------------------------------------- */
+
+  log('\n— the desk —');
+  const f7 = document.createElement('iframe');
+  f7.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
+  document.body.appendChild(f7);
+  // written in with a timer-backed frame clock as its first script, for the
+  // reason given where the peek page is loaded: the dive origin is measured
+  // from rects, and rects of a cube stuck at 20% zoom are of another page
+  await new Promise((r) => {
+    f7.addEventListener('load', r, {once: true});
+    f7.srcdoc = pageHtml.replace('<head>', '<head>' + shim);
+  });
+  const d7 = f7.contentDocument, w7 = f7.contentWindow;
+  if (w7.speechSynthesis) { w7.speechSynthesis.speak = () => {}; w7.speechSynthesis.cancel = () => {}; }
+  const deskStill = d7.createElement('style');
+  deskStill.textContent =
+    '.face, .face *, .prospect-room, .desk-plane { transition: none !important; }';
+  d7.head.appendChild(deskStill);
+  await wait(6500);
+  d7.getElementById('ghostMsg').click();
+  await wait(400);
+  w7.dispatchEvent(new w7.KeyboardEvent('keydown', {key: 'ArrowUp', bubbles: true}));
+  // waited for, not timed: the line starts a beat after the landing and then
+  // types itself out at its own pace
+  const deskLine = () => [...d7.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
+  for (let i = 0; i < 60 && !/책상/.test(deskLine()); i++) await wait(100);
+  ok(/책상/.test(deskLine()), 'cpt says what the top face is now');
+  await wait(600);
+  d7.getElementById('ghostMsg').click();
+  await wait(300);
+
+  const catalogue = (await (await fetch('../data/prospects.json')).json()).products;
+  const objets = [...d7.querySelectorAll('.objet')];
+  ok(objets.length === catalogue.length && objets.length > 0,
+     `everything in prospects.json is on the desk (${objets.length} of ${catalogue.length})`);
+  /* Back is higher and smaller; front is lower and larger. Position and size
+     come from one number, so an object cannot be drawn large and placed far. */
+  const byDepth = objets.map((o) => ({
+    d: Number(o.style.getPropertyValue('--d')), r: o.getBoundingClientRect(),
+    k: o.getBoundingClientRect().width / Number(o.style.getPropertyValue('--size'))
+  })).sort((a, b) => a.d - b.d);
+  ok(byDepth.every((o, i) => i === 0 ||
+       (o.d === byDepth[i - 1].d) || (o.r.top > byDepth[i - 1].r.top && o.k > byDepth[i - 1].k)),
+     'nearer objects sit lower and larger than further ones');
+  ok(objets.every((o) => { const r = o.getBoundingClientRect();
+       return r.left >= 0 && r.right <= w7.innerWidth && r.top > 130 && r.bottom < w7.innerHeight - 70; }),
+     'and all of them clear the banner above and the bar below');
+
+  const liveObj = objets.find((o) => o.getAttribute('aria-disabled') !== 'true');
+  ok(!!liveObj, 'at least one can be picked up');
+  const liveImg = liveObj.querySelector('img');
+  ok(liveImg && liveImg.naturalWidth > 0, 'its model comes from the product\'s own folder');
+  const lr7 = liveObj.querySelector('.objet-body').getBoundingClientRect();
+  const hit7 = d7.elementFromPoint(lr7.left + lr7.width / 2, lr7.top + lr7.height / 2);
+  ok(!!hit7 && hit7.closest('.objet') === liveObj, 'and the pointer reaches it');
+  ok(!d7.querySelector('.prospect-room iframe'), 'no room exists until one is entered');
+  // before the dive: afterwards the plane is six and a half times its size
+  // and its rect is of the dive, not of the desk
+  const plane7 = d7.getElementById('deskPlane').getBoundingClientRect();
+
+  liveObj.click();
+  await wait(500);
+  const room7 = d7.querySelector('.prospect-room');
+  ok(!!room7 && room7.classList.contains('open'), 'picking an object up opens its room');
+  const frame7 = room7.querySelector('iframe');
+  ok(!!frame7 && new RegExp('prospect/' + liveObj.dataset.id + '/$').test(frame7.src),
+     'which is that product\'s own document, not part of this one');
+  /* The dive goes through the object that was pressed, not through the
+     middle of the desk. */
+  const origin7 = d7.getElementById('deskPlane').style.transformOrigin.split(' ').map(parseFloat);
+  ok(Math.abs(origin7[0] - (lr7.left + lr7.width / 2 - plane7.left)) < 3 &&
+     Math.abs(origin7[1] - (lr7.top + lr7.height / 2 - plane7.top)) < 3,
+     `the desk dives through that object (${origin7.map(Math.round).join(',')})`);
+  await wait(600);
+  ok(d7.querySelector('.chat-dock').inert, 'the cube underneath is put out of reach');
+  w7.dispatchEvent(new w7.KeyboardEvent('keydown', {key: 'ArrowDown', bubbles: true}));
+  await wait(900);
+  ok(d7.getElementById('faceIndicator').textContent === 'prospect',
+     'and cannot be turned from inside a room');
+  /* Keys pressed inside the frame never reach the page that owns it. */
+  frame7.contentWindow.dispatchEvent(
+    new frame7.contentWindow.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+  await wait(200);
+  ok(!room7.classList.contains('open'), 'Escape pressed INSIDE the room leaves it');
+  await wait(700);
+  /* The whole memory strategy: the frame is removed, and its document and
+     everything that document allocated go with it. */
+  ok(!d7.querySelector('.prospect-room iframe'), 'and the room is thrown away whole');
+  ok(!d7.querySelector('.chat-dock').inert &&
+     !d7.getElementById('deskPlane').classList.contains('diving'),
+     'leaving puts the cube and the desk back as they were');
+  liveObj.click();
+  await wait(500);
+  room7.querySelector('.room-back').click();
+  await wait(800);
+  ok(!room7.classList.contains('open') && !room7.querySelector('iframe'),
+     'the way back on screen does the same');
+  liveObj.click();
+  await wait(700);
+  w7.postMessage({type: 'prospect:close'}, '*');
+  await wait(300);
+  ok(!room7.classList.contains('open'), 'and a room can ask to be closed from inside');
+  f7.remove();
 
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');

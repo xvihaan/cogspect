@@ -2651,3 +2651,176 @@ body.lens .face-banner--handle[aria-pressed="true"] {
   .stage.intro .wordmark { opacity: 1; }
 }
 
+
+/* ---------- prospect · the desk ----------
+
+   Every product cogspect makes is put down on this face as an object. There
+   is no desk drawn: the objects cast shadows, and a shadow is enough to make
+   the surface it falls on.
+
+   Two layers, and they are two for a reason. .desk is the face's direct child
+   and so belongs to the .landed gate, which owns its opacity; .desk-plane is
+   what dives when a product is entered. One element doing both would have two
+   rules writing one property. */
+.desk {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+}
+.desk-plane {
+  position: absolute;
+  inset: 0;
+  transition: transform .72s cubic-bezier(.55, 0, .2, 1), opacity .46s ease .14s;
+}
+/* Entering a product: the desk rushes past, toward the object that was
+   pressed — the origin is set to that object from script — and is gone by the
+   time the room has come up over it. Leaving is this, backwards. */
+.desk-plane.diving {
+  transform: scale(6.5);
+  opacity: 0;
+  transition: transform .72s cubic-bezier(.6, 0, .75, .3), opacity .4s ease .2s;
+}
+.face.landed.diving .face-banner { opacity: 0; }
+
+/* Arranged by depth, not on a grid. Further back is higher and smaller,
+   which is all perspective is; the newest product sits at the front, so the
+   order is time and adding one never needs a layout decision. Position and
+   size both come from the same --d, so an object cannot be drawn large and
+   placed far away. */
+.objet {
+  position: absolute;
+  left: calc(var(--x, .5) * 100%);
+  top: calc(41% + var(--d, 1) * 24%);
+  width: calc(var(--size, 220) * 1px * (.56 + var(--d, 1) * .44));
+  max-width: 62vw;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.objet-body {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  transition: transform .5s cubic-bezier(.2, 1.2, .3, 1);
+}
+.objet-body img { display: block; width: 100%; height: auto; pointer-events: none; }
+/* The shadow is the desk. It sits where the object touches down, and it is
+   the thing that changes when the object is picked up: lifted, a thing's
+   shadow gets smaller, softer and fainter, and that — not a glow, not an
+   outline — is what says this can be picked up. */
+.objet-shadow {
+  width: 78%;
+  height: 16px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(12, 14, 22, .26), rgba(12, 14, 22, 0));
+  filter: blur(3px);
+  transition: transform .5s cubic-bezier(.2, 1.2, .3, 1), opacity .5s ease, filter .5s ease;
+}
+.objet:not([aria-disabled="true"]):hover .objet-body,
+.objet:not([aria-disabled="true"]):focus-visible .objet-body { transform: translateY(-13px); }
+.objet:not([aria-disabled="true"]):hover .objet-shadow,
+.objet:not([aria-disabled="true"]):focus-visible .objet-shadow {
+  transform: scale(.82);
+  opacity: .5;
+  filter: blur(7px);
+}
+.objet:not([aria-disabled="true"]):active .objet-body { transform: translateY(-5px); transition-duration: .12s; }
+.objet:focus-visible { outline: none; }
+.objet:focus-visible .objet-label { color: var(--ink); }
+
+.objet-label {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: color .3s ease;
+}
+.objet-label b { font-size: 13px; font-weight: 600; letter-spacing: -.01em; color: #3a3a3e; }
+.objet-label span { font-size: 11px; color: var(--faint); }
+.objet:not([aria-disabled="true"]):hover .objet-label b { color: var(--ink); }
+
+/* Not made yet. A plain form in glass holds the place — it has a name and a
+   position on the desk but it cannot be picked up, and it does not pretend
+   to be the thing it is standing in for. */
+.objet[aria-disabled="true"] { cursor: default; }
+.objet[aria-disabled="true"] .objet-body {
+  width: 46%;
+  aspect-ratio: 1;
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  backdrop-filter: blur(5px) saturate(150%);
+  -webkit-backdrop-filter: blur(5px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+.objet[data-shape="orb"] .objet-body { border-radius: 50%; }
+.objet[data-shape="slab"] .objet-body { width: 62%; aspect-ratio: 1.9; border-radius: 12px; }
+.objet[data-shape="prism"] .objet-body { border-radius: 9px; transform: rotate(45deg) scale(.78); }
+.objet[aria-disabled="true"] .objet-shadow { opacity: .55; }
+
+/* ---------- prospect · the room ----------
+
+   The experience itself: another document entirely, laid over the cube in a
+   frame and thrown away whole on the way out. Above every piece of chrome,
+   because inside a product there is no cube to navigate. */
+.prospect-room {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--paper);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1.035);
+  transition: opacity .42s ease, transform .6s cubic-bezier(.2, .85, .2, 1);
+}
+.prospect-room.open { opacity: 1; pointer-events: auto; transform: none; }
+.prospect-room iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.room-back {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px 9px 13px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg) 10%, transparent);
+  background: color-mix(in srgb, var(--fg-inv) 46%, transparent);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #3a3a3e;
+  cursor: pointer;
+  transition: background .25s ease, color .25s ease;
+}
+.room-back:hover { background: color-mix(in srgb, var(--fg-inv) 70%, transparent); color: var(--ink); }
+
+@media (max-width: 520px) {
+  .objet-label b { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desk-plane, .desk-plane.diving { transition: opacity .2s ease; transform: none; }
+  .prospect-room { transform: none; transition: opacity .2s ease; }
+  .objet-body, .objet-shadow { transition: none; }
+}
