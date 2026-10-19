@@ -1959,6 +1959,21 @@ f.addEventListener('load', async () => {
   await wait(800);
   ok(!room7.classList.contains('open') && !room7.querySelector('iframe'),
      'the way back on screen does the same');
+  /* Coming back with a MOUSE must not leave the object focused: it matched
+     :focus-visible and stayed lifted off its shadow, "picked up", after the
+     pointer had gone. A keyboard visitor does get it back — it is where they
+     are. Both are clicks; only the keyboard's has detail 0. */
+  liveObj.dispatchEvent(new w7.MouseEvent('click', {bubbles: true, detail: 1}));
+  await wait(500);
+  room7.querySelector('.room-back').click();
+  await wait(800);
+  ok(d7.activeElement !== liveObj && !liveObj.matches(':focus-visible'),
+     `back from a mouse visit, nothing is left picked up (focus on ${d7.activeElement && (d7.activeElement.className || d7.activeElement.tagName)})`);
+  liveObj.click();
+  await wait(500);
+  room7.querySelector('.room-back').click();
+  await wait(800);
+  ok(d7.activeElement === liveObj, 'back from a keyboard visit, focus returns to the object');
   liveObj.click();
   await wait(700);
   w7.postMessage({type: 'prospect:close'}, '*');

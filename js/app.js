@@ -2512,7 +2512,7 @@
   const ROOM_DIVE_MS = 300;           // how long the desk rushes before the room shows
   const ROOM_OUT_MS = 520;            // the room's own fade, after which the frame goes
   let PRODUCTS = [];
-  let roomFrame = null, roomTimer = null, roomFrom = null;
+  let roomFrame = null, roomTimer = null, roomFrom = null, roomByKey = false;
 
   function buildDesk() {
     if (!deskPlane) return;
@@ -2564,7 +2564,8 @@
       label.append(name, sub);
       b.append(body, shadow, label);
       b.setAttribute('aria-label', live ? `${p.name} 경험하기` : `${p.name} — 제작 중`);
-      if (live) b.addEventListener('click', () => enterRoom(p, b));
+      // detail is 0 for a click synthesised from Enter or Space
+      if (live) b.addEventListener('click', (e) => enterRoom(p, b, e.detail === 0));
       deskPlane.append(b);
     }
   }
@@ -2586,11 +2587,12 @@
     return prospectRoom;
   }
 
-  function enterRoom(p, btn) {
+  function enterRoom(p, btn, byKey) {
     if (phase !== 'idle' || overlayOpen() || cur !== 'top') return;
     const room = ensureRoom();
     clearTimeout(roomTimer);
     roomFrom = btn;
+    roomByKey = !!byKey;
     /* The dive goes THROUGH the object that was pressed. The origin is that
        object's centre in the plane's own coordinates — the plane may be drawn
        smaller than its layout box if the cube is zoomed out, so the screen
@@ -2638,8 +2640,22 @@
     deskPlane.classList.remove('diving');
     if (faceEls.top) faceEls.top.classList.remove('diving');
     releaseChrome();
-    if (roomFrom && roomFrom.isConnected) roomFrom.focus({ preventScroll: true });
+    /* Focus goes back to the object only for someone who got in by keyboard,
+       for whom it is where they are. Given to a mouse visitor it matched
+       :focus-visible — the page had just been driven by Escape or the back
+       button — and the object stayed "picked up", lifted off its shadow, long
+       after the pointer had gone. Everyone else gets the page back: the frame
+       that held focus is about to be removed, and a window whose focused
+       frame disappears is left focused on nothing, so the arrow keys stopped
+       turning the cube until the visitor clicked somewhere. */
+    if (roomByKey && roomFrom && roomFrom.isConnected) {
+      roomFrom.focus({ preventScroll: true });
+    } else {
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+      window.focus();
+    }
     roomFrom = null;
+    roomByKey = false;
     /* The frame goes once it is out of sight, and going is the point: its
        document, its scripts and whatever it allocated go with it. */
     const frame = roomFrame;

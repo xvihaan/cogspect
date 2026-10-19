@@ -2693,10 +2693,12 @@ body.lens .face-banner--handle[aria-pressed="true"] {
    --back-l/--back-r/--back-t/--back-b frame the far wall; every other plane
    is a trapezoid from a screen corner to the far wall's corner. */
 .room {
-  --back-l: 19%;
-  --back-r: 81%;
-  --back-t: 15%;
-  --back-b: 63%;
+  /* A smaller far wall is a deeper room: the side walls, ceiling and floor
+     all get longer to reach it. */
+  --back-l: 28%;
+  --back-r: 72%;
+  --back-t: 21%;
+  --back-b: 55%;
   position: absolute;
   inset: 0;
   overflow: hidden;
