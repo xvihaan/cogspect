@@ -263,11 +263,10 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
     radial-gradient(60% 50% at 50% 40%, rgba(236, 238, 242, .9) 0%, rgba(251, 251, 252, 0) 70%),
     var(--paper);
 }
-.face--vision {
-  background:
-    radial-gradient(60% 50% at 50% 60%, rgba(236, 238, 242, .9) 0%, rgba(251, 251, 252, 0) 70%),
-    var(--paper);
-}
+/* prospect is a room, not a page: dimmer than the other faces even while the
+   cube turns, so arriving here reads as walking out of daylight. The bulb and
+   everything it lights are in .room, inside the desk. */
+.face--vision { background: #c4c1bb; }
 .face--void {
   background:
     radial-gradient(70% 60% at 50% 30%, rgba(52, 52, 58, .6) 0%, rgba(16, 16, 18, 0) 70%),
@@ -1960,6 +1959,10 @@ body.on-dark .wordmark { color: #f5f5f3; }
 /* Faint stays faint on the dark face. The wordmark brightens there because it
    is the page's title; this one is not, and a credit that gets LOUDER when the
    room goes dark is the opposite of what it is for. */
+/* The prospect room's floor is a mid warm grey, which is exactly where the
+   resting grey of the signature disappears. Darker there, not lighter: it is
+   still a dim room, not a dark one. */
+body.on-room .credit { color: color-mix(in srgb, #3d3a35 72%, transparent); }
 body.on-dark .credit { color: color-mix(in srgb, #9a9ba3 72%, transparent); }
 
 /* Measured, not guessed: the chat dock is min(544px, 100vw - 32px) and centred,
@@ -2677,6 +2680,124 @@ body.lens .face-banner--handle[aria-pressed="true"] {
   inset: 0;
   transition: transform .72s cubic-bezier(.55, 0, .2, 1), opacity .46s ease .14s;
 }
+/* ---------- prospect · the room ----------
+
+   A dim white storeroom: a back wall, a side wall on the left that makes the
+   corner, a floor, and one bare bulb hanging off-centre to the right. Every
+   coordinate is a fraction of the SCREEN (.desk is viewport-sized), because
+   the face itself is a square larger than the screen and its percentages
+   would put the corner off the edge on a wide monitor.
+
+   The light has one source and everything agrees with it: the wash on the
+   wall and the pool on the floor are centred under the bulb, the side wall
+   faces away from it and is the darkest surface, and the product renders are
+   lit from this same direction, which is why their shadows fall left, into
+   the corner. --lamp-x is the one number that places all of it. */
+.room {
+  --lamp-x: 67%;
+  --horizon: 61%;
+  --corner: 15%;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(110% 85% at var(--lamp-x) 32%, rgba(0, 0, 0, 0) 30%, rgba(34, 28, 22, .34) 100%),
+    linear-gradient(180deg, #aaa69f 0%, #bab6af var(--horizon), #b1aca4 var(--horizon), #918c83 100%);
+}
+.room > i { position: absolute; display: block; pointer-events: none; }
+/* the side wall: a trapezoid whose bottom edge runs down to the left, which
+   is the floor seam going toward the viewer */
+.room-wall-left {
+  inset: 0;
+  background: linear-gradient(90deg, #8c8881 0%, #9f9b94 100%);
+  clip-path: polygon(0 0, var(--corner) 0, var(--corner) var(--horizon), 0 calc(var(--horizon) + 24%));
+}
+/* the seams, drawn as the faintest edge where two planes meet */
+.room-floor {
+  left: var(--corner);
+  right: 0;
+  top: var(--horizon);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(60, 52, 44, .22), rgba(60, 52, 44, .1) 60%, rgba(60, 52, 44, .04));
+  box-shadow: 0 -10px 22px rgba(40, 34, 28, .06);
+}
+.room-floor::before {
+  /* the vertical seam of the corner */
+  content: '';
+  position: absolute;
+  left: -1px;
+  bottom: 0;
+  width: 1px;
+  height: 100vh;
+  background: linear-gradient(0deg, rgba(60, 52, 44, .2), rgba(60, 52, 44, 0));
+}
+/* light the bulb throws on the back wall */
+.room-wash {
+  left: calc(var(--lamp-x) - 44%);
+  top: -14%;
+  width: 88%;
+  height: 92%;
+  /* screen, not soft-light: a lit wall gets BRIGHTER and warmer, and
+     soft-light on a mid grey barely moves it */
+  background: radial-gradient(closest-side, rgba(255, 196, 120, .42), rgba(255, 190, 110, .15) 48%, rgba(255, 190, 110, 0));
+  mix-blend-mode: screen;
+}
+/* and the pool it leaves on the floor */
+.room-pool {
+  left: calc(var(--lamp-x) - 30%);
+  top: calc(var(--horizon) - 4%);
+  width: 60%;
+  height: 34%;
+  background: radial-gradient(closest-side, rgba(255, 200, 128, .4), rgba(255, 196, 120, .13) 55%, rgba(255, 196, 120, 0));
+  mix-blend-mode: screen;
+}
+.room-cord {
+  left: var(--lamp-x);
+  top: 0;
+  width: 1.5px;
+  height: 21%;
+  margin-left: -.75px;
+  background: linear-gradient(180deg, #3a3631, #2a2724);
+}
+/* a bare bulb: a warm hot core, a glass envelope, and the glow bleeding off it */
+.room-bulb {
+  left: var(--lamp-x);
+  top: 21%;
+  width: 22px;
+  height: 29px;
+  margin-left: -11px;
+  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
+  background: radial-gradient(48% 42% at 50% 56%, #fff8e6 0%, #ffd98f 38%, #f2b356 70%, rgba(242, 179, 86, .55) 100%);
+  box-shadow:
+    0 0 14px 4px rgba(255, 206, 128, .75),
+    0 0 46px 16px rgba(255, 196, 110, .38),
+    0 0 120px 50px rgba(255, 190, 100, .16);
+}
+.room-bulb::before {
+  /* the socket */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -7px;
+  width: 11px;
+  height: 9px;
+  margin-left: -5.5px;
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(90deg, #2c2925, #57524b 45%, #2c2925);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .face--vision.landed .room-bulb { animation: bulbHum 6.5s ease-in-out infinite; }
+}
+/* an old bulb on old wiring: almost steady, with one small dip now and then */
+@keyframes bulbHum {
+  0%, 100% { filter: brightness(1); }
+  71% { filter: brightness(1); }
+  72% { filter: brightness(.86); }
+  74% { filter: brightness(1.02); }
+  76% { filter: brightness(.94); }
+  78% { filter: brightness(1); }
+}
+
 /* Entering a product: the desk rushes past, toward the object that was
    pressed — the origin is set to that object from script — and is gone by the
    time the room has come up over it. Leaving is this, backwards. */
@@ -2695,9 +2816,11 @@ body.lens .face-banner--handle[aria-pressed="true"] {
 .objet {
   position: absolute;
   left: calc(var(--x, .5) * 100%);
-  top: calc(41% + var(--d, 1) * 24%);
+  top: var(--y, calc(41% + var(--d, 1) * 24%));
   width: calc(var(--size, 220) * 1px * (.56 + var(--d, 1) * .44));
-  max-width: 62vw;
+  /* 44vw: an object placed in the corner sits a quarter of the way in, and at
+     any wider share of a phone screen half of it hangs off the left edge */
+  max-width: 44vw;
   transform: translate(-50%, -50%);
   padding: 0;
   border: 0;
@@ -2719,6 +2842,23 @@ body.lens .face-banner--handle[aria-pressed="true"] {
   transition: transform .5s cubic-bezier(.2, 1.2, .3, 1);
 }
 .objet-body img { display: block; width: 100%; height: auto; pointer-events: none; }
+/* A rendered model brings its own shadow, cast by the same light as the room,
+   in a separate image registered to the same box. Separate so that picking
+   the object up lifts the object and leaves the shadow on the floor. */
+.objet-cast {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  transition: opacity .5s ease, filter .5s ease;
+}
+.objet[data-render] .objet-shadow { display: none; }
+.objet[data-render]:hover .objet-cast,
+.objet[data-render]:focus-visible .objet-cast { opacity: .55; filter: blur(3px); }
+.objet[data-render] .objet-label b { color: #2f2d2a; }
+.objet[data-render] .objet-label span { color: #6f6a62; }
 /* The shadow is the desk. It sits where the object touches down, and it is
    the thing that changes when the object is picked up: lifted, a thing's
    shadow gets smaller, softer and fainter, and that — not a glow, not an

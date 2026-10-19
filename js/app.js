@@ -575,6 +575,7 @@
     introTimer = setTimeout(() => faceIntro(face), 800);
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
+    document.body.classList.toggle('on-room', face === 'top');
     // Faces pointing away are still in the DOM, so without this the Tab key
     // walks into tiles and links the visitor cannot see.
     for (const name in faceEls) faceEls[name].inert = name !== face;
@@ -2516,7 +2517,8 @@
 
   function buildDesk() {
     if (!deskPlane) return;
-    deskPlane.textContent = '';
+    // the room lives in the plane too; only the objects are rebuilt
+    for (const o of deskPlane.querySelectorAll('.objet')) o.remove();
     for (const p of PRODUCTS) {
       const live = p.status === 'released';
       const b = document.createElement('button');
@@ -2526,16 +2528,27 @@
       b.style.setProperty('--x', String(p.x ?? .5));
       b.style.setProperty('--d', String(p.depth ?? 1));
       b.style.setProperty('--size', String(p.size ?? 220));
+      if (p.y != null) b.style.setProperty('--y', (p.y * 100) + '%');
       // nearer things overlap further ones, as they would on a desk
       b.style.zIndex = String(1 + Math.round((p.depth ?? 1) * 10));
       const body = document.createElement('span');
       body.className = 'objet-body';
       if (live) {
+        // objet.png over shadow.png: rendered in prospect/<id>/render.html
+        const cast = document.createElement('img');
+        cast.className = 'objet-cast';
+        cast.src = `prospect/${p.id}/shadow.png`;
+        cast.alt = '';
+        cast.draggable = false;
         const img = document.createElement('img');
-        img.src = `prospect/${p.id}/objet.svg`;
+        img.src = `prospect/${p.id}/objet.png`;
         img.alt = '';
         img.draggable = false;
+        b.dataset.render = '';
         body.append(img);
+        // the shadow belongs to the floor, so it sits beside the body rather
+        // than inside it — lifting the body must not lift the shadow
+        b.append(cast);
       } else {
         // a stand-in, and visibly one: a plain form rather than a likeness
         b.dataset.shape = p.shape || 'orb';
