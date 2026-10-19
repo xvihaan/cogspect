@@ -575,7 +575,6 @@
     introTimer = setTimeout(() => faceIntro(face), 800);
     indicator.textContent = LABELS[face];
     document.body.classList.toggle('on-dark', face === 'bottom');
-    document.body.classList.toggle('on-room', face === 'top');
     // Faces pointing away are still in the DOM, so without this the Tab key
     // walks into tiles and links the visitor cannot see.
     for (const name in faceEls) faceEls[name].inert = name !== face;

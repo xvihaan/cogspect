@@ -263,10 +263,10 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
     radial-gradient(60% 50% at 50% 40%, rgba(236, 238, 242, .9) 0%, rgba(251, 251, 252, 0) 70%),
     var(--paper);
 }
-/* prospect is a room, not a page: dimmer than the other faces even while the
-   cube turns, so arriving here reads as walking out of daylight. The bulb and
-   everything it lights are in .room, inside the desk. */
-.face--vision { background: #c4c1bb; }
+/* prospect is a room: the same white as the other faces, a shade down so
+   that while the cube turns this side already reads as an interior. The walls
+   and the light are in .room, inside the desk. */
+.face--vision { background: #e9e8e5; }
 .face--void {
   background:
     radial-gradient(70% 60% at 50% 30%, rgba(52, 52, 58, .6) 0%, rgba(16, 16, 18, 0) 70%),
@@ -1959,10 +1959,6 @@ body.on-dark .wordmark { color: #f5f5f3; }
 /* Faint stays faint on the dark face. The wordmark brightens there because it
    is the page's title; this one is not, and a credit that gets LOUDER when the
    room goes dark is the opposite of what it is for. */
-/* The prospect room's floor is a mid warm grey, which is exactly where the
-   resting grey of the signature disappears. Darker there, not lighter: it is
-   still a dim room, not a dark one. */
-body.on-room .credit { color: color-mix(in srgb, #3d3a35 72%, transparent); }
 body.on-dark .credit { color: color-mix(in srgb, #9a9ba3 72%, transparent); }
 
 /* Measured, not guessed: the chat dock is min(544px, 100vw - 32px) and centred,
@@ -2682,120 +2678,82 @@ body.lens .face-banner--handle[aria-pressed="true"] {
 }
 /* ---------- prospect · the room ----------
 
-   A dim white storeroom: a back wall, a side wall on the left that makes the
-   corner, a floor, and one bare bulb hanging off-centre to the right. Every
-   coordinate is a fraction of the SCREEN (.desk is viewport-sized), because
-   the face itself is a square larger than the screen and its percentages
-   would put the corner off the edge on a wide monitor.
+   A white room seen from its open end: the far wall in the middle, and the
+   ceiling, both side walls and the floor running back to it. One-point
+   perspective and nothing else — five planes, told apart only by how much of
+   the light each one catches.
 
-   The light has one source and everything agrees with it: the wash on the
-   wall and the pool on the floor are centred under the bulb, the side wall
-   faces away from it and is the darkest surface, and the product renders are
-   lit from this same direction, which is why their shadows fall left, into
-   the corner. --lamp-x is the one number that places all of it. */
+   The light is one soft source in the middle of the ceiling. The far wall
+   faces it most squarely and is the brightest surface; the ceiling around the
+   source is bright and darkens toward you; the side walls darken toward you;
+   the floor has a soft pool under the light. Every coordinate is a fraction
+   of the SCREEN (.desk is viewport-sized) — the face is a square larger than
+   the screen and its own percentages would put the corners off-edge.
+
+   --back-l/--back-r/--back-t/--back-b frame the far wall; every other plane
+   is a trapezoid from a screen corner to the far wall's corner. */
 .room {
-  --lamp-x: 67%;
-  --horizon: 61%;
-  --corner: 15%;
+  --back-l: 19%;
+  --back-r: 81%;
+  --back-t: 15%;
+  --back-b: 63%;
   position: absolute;
   inset: 0;
   overflow: hidden;
+  /* the far wall is the room's own background */
   background:
-    radial-gradient(110% 85% at var(--lamp-x) 32%, rgba(0, 0, 0, 0) 30%, rgba(34, 28, 22, .34) 100%),
-    linear-gradient(180deg, #aaa69f 0%, #bab6af var(--horizon), #b1aca4 var(--horizon), #918c83 100%);
+    radial-gradient(70% 60% at 50% 18%, #fdfdfc 0%, #f3f3f1 55%, #e7e6e2 100%);
 }
-.room > i { position: absolute; display: block; pointer-events: none; }
-/* the side wall: a trapezoid whose bottom edge runs down to the left, which
-   is the floor seam going toward the viewer */
+.room > i { position: absolute; inset: 0; display: block; pointer-events: none; }
+.room-ceiling {
+  clip-path: polygon(0 0, 100% 0, var(--back-r) var(--back-t), var(--back-l) var(--back-t));
+  background: linear-gradient(180deg, #d8d7d3 0%, #eeedea var(--back-t));
+}
 .room-wall-left {
-  inset: 0;
-  background: linear-gradient(90deg, #8c8881 0%, #9f9b94 100%);
-  clip-path: polygon(0 0, var(--corner) 0, var(--corner) var(--horizon), 0 calc(var(--horizon) + 24%));
+  clip-path: polygon(0 0, var(--back-l) var(--back-t), var(--back-l) var(--back-b), 0 100%);
+  background: linear-gradient(90deg, #d2d1cd 0%, #e7e6e3 var(--back-l));
 }
-/* the seams, drawn as the faintest edge where two planes meet */
+.room-wall-right {
+  clip-path: polygon(100% 0, var(--back-r) var(--back-t), var(--back-r) var(--back-b), 100% 100%);
+  background: linear-gradient(270deg, #d2d1cd 0%, #e7e6e3 calc(100% - var(--back-r)));
+}
 .room-floor {
-  left: var(--corner);
-  right: 0;
-  top: var(--horizon);
-  height: 1px;
-  background: linear-gradient(90deg, rgba(60, 52, 44, .22), rgba(60, 52, 44, .1) 60%, rgba(60, 52, 44, .04));
-  box-shadow: 0 -10px 22px rgba(40, 34, 28, .06);
+  clip-path: polygon(var(--back-l) var(--back-b), var(--back-r) var(--back-b), 100% 100%, 0 100%);
+  background: linear-gradient(180deg, #efeeeb var(--back-b), #e0dfdb 84%, #d6d4cf 100%);
 }
-.room-floor::before {
-  /* the vertical seam of the corner */
-  content: '';
-  position: absolute;
-  left: -1px;
-  bottom: 0;
-  width: 1px;
-  height: 100vh;
-  background: linear-gradient(0deg, rgba(60, 52, 44, .2), rgba(60, 52, 44, 0));
-}
-/* light the bulb throws on the back wall */
-.room-wash {
-  left: calc(var(--lamp-x) - 44%);
-  top: -14%;
-  width: 88%;
-  height: 92%;
-  /* screen, not soft-light: a lit wall gets BRIGHTER and warmer, and
-     soft-light on a mid grey barely moves it */
-  background: radial-gradient(closest-side, rgba(255, 196, 120, .42), rgba(255, 190, 110, .15) 48%, rgba(255, 190, 110, 0));
-  mix-blend-mode: screen;
-}
-/* and the pool it leaves on the floor */
-.room-pool {
-  left: calc(var(--lamp-x) - 30%);
-  top: calc(var(--horizon) - 4%);
-  width: 60%;
-  height: 34%;
-  background: radial-gradient(closest-side, rgba(255, 200, 128, .4), rgba(255, 196, 120, .13) 55%, rgba(255, 196, 120, 0));
-  mix-blend-mode: screen;
-}
-.room-cord {
-  left: var(--lamp-x);
-  top: 0;
-  width: 1.5px;
-  height: 21%;
-  margin-left: -.75px;
-  background: linear-gradient(180deg, #3a3631, #2a2724);
-}
-/* a bare bulb: a warm hot core, a glass envelope, and the glow bleeding off it */
-.room-bulb {
-  left: var(--lamp-x);
-  top: 21%;
-  width: 22px;
-  height: 29px;
-  margin-left: -11px;
-  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
-  background: radial-gradient(48% 42% at 50% 56%, #fff8e6 0%, #ffd98f 38%, #f2b356 70%, rgba(242, 179, 86, .55) 100%);
+/* Where the planes meet. Light reaches into a corner least, so every inner
+   edge of a real room carries a faint shadow — and without it the floor and
+   the far wall, both bright under the light, ran into each other and the
+   floor had no beginning. An inset shadow around the far wall's frame puts
+   that shading on all four of its edges at once. */
+/* room-far, not room-back: .room-back is the "← desk" button inside an open
+   experience, and borrowing its name borrowed its pill too. */
+.room > .room-far {
+  inset: auto;
+  left: var(--back-l);
+  right: calc(100% - var(--back-r));
+  top: var(--back-t);
+  bottom: calc(100% - var(--back-b));
   box-shadow:
-    0 0 14px 4px rgba(255, 206, 128, .75),
-    0 0 46px 16px rgba(255, 196, 110, .38),
-    0 0 120px 50px rgba(255, 190, 100, .16);
+    inset 0 -14px 26px -10px rgba(60, 54, 46, .13),
+    inset 0 12px 30px -12px rgba(60, 54, 46, .08),
+    inset 14px 0 30px -14px rgba(60, 54, 46, .08),
+    inset -14px 0 30px -14px rgba(60, 54, 46, .08);
 }
-.room-bulb::before {
-  /* the socket */
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: -7px;
-  width: 11px;
-  height: 9px;
-  margin-left: -5.5px;
-  border-radius: 2px 2px 1px 1px;
-  background: linear-gradient(90deg, #2c2925, #57524b 45%, #2c2925);
+.objet[data-render] .objet-cast { opacity: .82; }
+
+/* The light: soft, warm-white, from the middle of the ceiling. Screen, so it
+   only ever brightens what is under it, and broad, so it is a glow on every
+   surface rather than a spot anyone could point at. */
+.room-light {
+  background: radial-gradient(48% 46% at 50% var(--back-t), rgba(255, 249, 236, .9) 0%,
+              rgba(255, 246, 228, .42) 38%, rgba(255, 244, 224, 0) 100%);
+  mix-blend-mode: screen;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .face--vision.landed .room-bulb { animation: bulbHum 6.5s ease-in-out infinite; }
-}
-/* an old bulb on old wiring: almost steady, with one small dip now and then */
-@keyframes bulbHum {
-  0%, 100% { filter: brightness(1); }
-  71% { filter: brightness(1); }
-  72% { filter: brightness(.86); }
-  74% { filter: brightness(1.02); }
-  76% { filter: brightness(.94); }
-  78% { filter: brightness(1); }
+.room-pool {
+  background: radial-gradient(34% 16% at 50% calc(var(--back-b) + 9%), rgba(255, 248, 234, .75) 0%,
+              rgba(255, 246, 230, .25) 50%, rgba(255, 246, 230, 0) 100%);
+  mix-blend-mode: screen;
 }
 
 /* Entering a product: the desk rushes past, toward the object that was
