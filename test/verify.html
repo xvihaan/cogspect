@@ -2004,6 +2004,50 @@ f.addEventListener('load', async () => {
   ok(!room7.classList.contains('open'), 'and a room can ask to be closed from inside');
   f7.remove();
 
+  /* ---------- the voice is off until asked for ------------------------- */
+
+  log('\n— a silent first visit —');
+  // a first visit: nothing remembered on this browser
+  localStorage.removeItem('cogspect.voice');
+  const f8 = document.createElement('iframe');
+  f8.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
+  document.body.appendChild(f8);
+  await new Promise((r) => {
+    f8.addEventListener('load', r, {once: true});
+    f8.srcdoc = pageHtml.replace('<head>', '<head>' + shim);
+  });
+  const d8 = f8.contentDocument, w8 = f8.contentWindow;
+  const heardAloud = [];
+  if (w8.speechSynthesis) {
+    w8.speechSynthesis.speak = (u) => { if (u.volume !== 0) heardAloud.push(u.text); };
+    w8.speechSynthesis.cancel = () => {};
+  }
+  await wait(6500);
+  d8.getElementById('ghostMsg').click();
+  await wait(400);
+  // a room introducing itself is exactly where cpt used to start talking
+  w8.dispatchEvent(new w8.KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true}));
+  for (let i = 0; i < 40 && !d8.getElementById('ghostMsg').classList.contains('show'); i++) await wait(100);
+  await wait(1500);
+  ok(d8.getElementById('ghostMsg').classList.contains('show') && heardAloud.length === 0,
+     `cpt talks in text but says nothing aloud until asked (${heardAloud.length} spoken)`);
+  const say8 = async (t) => {
+    d8.getElementById('ghostMsg').click();
+    await wait(300);
+    d8.getElementById('chatInput').value = t;
+    d8.getElementById('chatForm').dispatchEvent(new w8.Event('submit', {bubbles: true, cancelable: true}));
+    await wait(400);
+    return w8.localStorage.getItem('cogspect.voice');
+  };
+  ok(await say8('음성도 출력해') === 'on', '"음성도 출력해" turns the voice on');
+  ok(heardAloud.length > 0, `and cpt answers aloud from then on (${JSON.stringify(heardAloud.slice(-1))})`);
+  ok(await say8('목소리 꺼줘') === 'off',
+     '"목소리 꺼줘" turns it off — the word that switched it on does not win over "꺼"');
+  ok(await say8('목소리로 말해줘') === 'on', '"목소리로 말해줘" turns it back on');
+  ok(await say8('음성으로 말하지 마') === 'off', 'and "음성으로 말하지 마" off again');
+  ok(await say8('소리 내서 읽어줘') === 'on', '"소리 내서 읽어줘" on');
+  f8.remove();
+
   log(fails?`\n${fails} FAILURES`:'\nALL PASS');
   log('DONE');
 });

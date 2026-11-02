@@ -1358,7 +1358,11 @@
      does not read as a dead bubble. */
   const SPEAK_LEAD_MAX = 550;
   const VOICE_KEY = 'cogspect.voice';
-  let voiceOn = localStorage.getItem(VOICE_KEY) !== 'off';
+  /* Silent until asked. cpt used to speak from the first room on, and a page
+     that starts talking by itself is one people reach for the mute on — so
+     the voice is OFF unless the visitor has asked for it ("음성도 출력해",
+     "소리 켜", "말로 해줘"…), and once asked it is remembered on this browser. */
+  let voiceOn = localStorage.getItem(VOICE_KEY) === 'on';
   let parkedSpeech = null;              // blocked by autoplay, waiting for a gesture
   let beatTimer = null, waveEnd = null;
 
@@ -2431,7 +2435,13 @@
     },
     {
       keys: ['음소거 해제', '음소거해제', '소리 켜', '소리켜', '음성 켜', '음성켜',
-             '소리 on', '말해 줘', '말해줘', 'unmute', 'voice on', 'sound on'],
+             '소리 on', '말해 줘', '말해줘', 'unmute', 'voice on', 'sound on',
+             // the ways people actually ask for it to speak
+             '음성도', '음성으로', '음성 출력', '음성출력', '목소리', '소리 내', '소리내',
+             '소리로', '말로', '읽어 줘', '읽어줘', '스피커 켜', '스피커켜', '스피커 on'],
+      /* Broad keys catch the opposite request too — "목소리 꺼줘", "음성으로 말하지
+         마" — so anything that says stop is left for the mute command below. */
+      unless: /꺼|끄|끈|하지\s*마|그만|조용|off/,
       run: () => {
         setVoice(true);
         return '음성 안내를 켰습니다.';
@@ -2439,7 +2449,8 @@
     },
     {
       keys: ['음소거', '소리 꺼', '소리꺼', '음성 꺼', '음성꺼', '조용히', '조용해',
-             '말하지 마', '말하지마', 'mute', 'voice off', 'sound off'],
+             '말하지 마', '말하지마', 'mute', 'voice off', 'sound off',
+             '스피커 꺼', '스피커꺼', '목소리 꺼', '목소리꺼', '음성 끄', '소리 끄', '그만 말해'],
       run: () => {
         const said = '음성 안내를 껐습니다.';
         setVoice(false);
@@ -2460,7 +2471,7 @@
     const q = chatInput.value.trim().toLowerCase();
     if (!q) return;
     chatInput.value = '';
-    const cmd = COMMANDS.find((c) => c.keys.some((k) => q.includes(k)));
+    const cmd = COMMANDS.find((c) => c.keys.some((k) => q.includes(k)) && !(c.unless && c.unless.test(q)));
     if (cmd) {
       // answered through the bubble rather than a toast: with the voice back
       // on you HEAR that it worked, which is the confirmation that counts
