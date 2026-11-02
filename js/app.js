@@ -2514,60 +2514,78 @@
   let PRODUCTS = [];
   let roomFrame = null, roomTimer = null, roomFrom = null, roomByKey = false;
 
+  let SLOTS = 3;
+
+  /* The lineup: SLOTS plinths in a row, products placed from the middle
+     outward in the order they are listed — so the newest, listed first, takes
+     the centre. Plinths without a product stay, empty: the next places. */
   function buildDesk() {
     if (!deskPlane) return;
-    // the room lives in the plane too; only the objects are rebuilt
-    for (const o of deskPlane.querySelectorAll('.objet')) o.remove();
-    for (const p of PRODUCTS) {
-      const live = p.status === 'released';
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'objet';
-      b.dataset.id = p.id;
-      b.style.setProperty('--x', String(p.x ?? .5));
-      b.style.setProperty('--d', String(p.depth ?? 1));
-      b.style.setProperty('--size', String(p.size ?? 220));
-      if (p.y != null) b.style.setProperty('--y', (p.y * 100) + '%');
-      // nearer things overlap further ones, as they would on a desk
-      b.style.zIndex = String(1 + Math.round((p.depth ?? 1) * 10));
-      const body = document.createElement('span');
-      body.className = 'objet-body';
+    const old = deskPlane.querySelector('.lineup');
+    if (old) old.remove();
+    const n = Math.max(SLOTS, PRODUCTS.length);
+    const mid = (n - 1) / 2;
+    // centre, then one either side, alternating, outward
+    const order = [...Array(n).keys()].sort((a, b) =>
+      Math.abs(a - mid) - Math.abs(b - mid) || a - b);
+    const placed = new Array(n).fill(null);
+    PRODUCTS.forEach((p, i) => { placed[order[i]] = p; });
+
+    const row = document.createElement('div');
+    row.className = 'lineup';
+    for (const p of placed) {
+      const stand = document.createElement('div');
+      stand.className = 'stand';
+      const live = !!p && p.status === 'released';
+      let objet = null;
       if (live) {
-        // objet.png over shadow.png: rendered in prospect/<id>/render.html
+        objet = document.createElement('button');
+        objet.type = 'button';
+        objet.className = 'objet';
+        objet.dataset.id = p.id;
+        objet.setAttribute('aria-label', `${p.name} 경험하기`);
+        // objet.png over shadow.png: rendered in prospect/<id>/render.html.
+        // The shadow sits beside the body, not in it, so lifting the body
+        // leaves the shadow on the plinth.
         const cast = document.createElement('img');
         cast.className = 'objet-cast';
         cast.src = `prospect/${p.id}/shadow.png`;
         cast.alt = '';
         cast.draggable = false;
+        const body = document.createElement('span');
+        body.className = 'objet-body';
         const img = document.createElement('img');
         img.src = `prospect/${p.id}/objet.png`;
         img.alt = '';
         img.draggable = false;
-        b.dataset.render = '';
         body.append(img);
-        // the shadow belongs to the floor, so it sits beside the body rather
-        // than inside it — lifting the body must not lift the shadow
-        b.append(cast);
+        objet.append(cast, body);
+        // detail is 0 for a click synthesised from Enter or Space
+        objet.addEventListener('click', (e) => enterRoom(p, objet, e.detail === 0));
+        stand.append(objet);
       } else {
-        // a stand-in, and visibly one: a plain form rather than a likeness
-        b.dataset.shape = p.shape || 'orb';
-        b.setAttribute('aria-disabled', 'true');
+        stand.classList.add('empty');
       }
-      const shadow = document.createElement('span');
-      shadow.className = 'objet-shadow';
-      const label = document.createElement('span');
-      label.className = 'objet-label';
-      const name = document.createElement('b');
-      name.textContent = p.name;
-      const sub = document.createElement('span');
-      sub.textContent = live ? (p.tagline || '') : '제작 중';
-      label.append(name, sub);
-      b.append(body, shadow, label);
-      b.setAttribute('aria-label', live ? `${p.name} 경험하기` : `${p.name} — 제작 중`);
-      // detail is 0 for a click synthesised from Enter or Space
-      if (live) b.addEventListener('click', (e) => enterRoom(p, b, e.detail === 0));
-      deskPlane.append(b);
+      const plinth = document.createElement('div');
+      plinth.className = 'plinth';
+      const label = document.createElement('div');
+      label.className = 'stand-label';
+      // an empty plinth is a place, not an item: it carries no name at all
+      if (p) {
+        const name = document.createElement('b');
+        name.textContent = p.name;
+        label.append(name);
+      }
+      if (p) {
+        const sub = document.createElement('span');
+        sub.textContent = live ? (p.tagline || '') : '제작 중';
+        label.append(sub);
+      }
+      if (!live) label.setAttribute('aria-hidden', p ? 'false' : 'true');
+      stand.append(plinth, label);
+      row.append(stand);
     }
+    deskPlane.append(row);
   }
 
   function ensureRoom() {
@@ -2674,7 +2692,7 @@
 
   fetch('data/prospects.json')
     .then((r) => r.json())
-    .then((d) => { PRODUCTS = d.products || []; buildDesk(); })
+    .then((d) => { PRODUCTS = d.products || []; SLOTS = d.slots || SLOTS; buildDesk(); })
     .catch((err) => console.warn('prospects.json load failed:', err));
 
   fetch('data/projects.json')

@@ -2742,7 +2742,6 @@ body.lens .face-banner--handle[aria-pressed="true"] {
     inset 14px 0 30px -14px rgba(60, 54, 46, .08),
     inset -14px 0 30px -14px rgba(60, 54, 46, .08);
 }
-.objet[data-render] .objet-cast { opacity: .82; }
 
 /* The light: soft, warm-white, from the middle of the ceiling. Screen, so it
    only ever brightens what is under it, and broad, so it is a glow on every
@@ -2768,30 +2767,86 @@ body.lens .face-banner--handle[aria-pressed="true"] {
 }
 .face.landed.diving .face-banner { opacity: 0; }
 
-/* Arranged by depth, not on a grid. Further back is higher and smaller,
-   which is all perspective is; the newest product sits at the front, so the
-   order is time and adding one never needs a layout decision. Position and
-   size both come from the same --d, so an object cannot be drawn large and
-   placed far away. */
-.objet {
+/* ---------- the lineup ----------
+
+   Products stand on plinths in a row at the far end of the room, centred and
+   evenly spaced, the newest in the middle — a lineup, the way a range of
+   products is shown, rather than things put down wherever. Empty plinths
+   stand in the row too: the places the next products go, and the reason a
+   lineup of one still reads as a lineup.
+
+   Every coordinate is a fraction of the screen, like the room's. */
+.lineup {
   position: absolute;
-  left: calc(var(--x, .5) * 100%);
-  top: var(--y, calc(41% + var(--d, 1) * 24%));
-  width: calc(var(--size, 220) * 1px * (.56 + var(--d, 1) * .44));
-  /* 44vw: an object placed in the corner sits a quarter of the way in, and at
-     any wider share of a phone screen half of it hangs off the left edge */
-  max-width: 44vw;
-  transform: translate(-50%, -50%);
+  left: 50%;
+  bottom: 26%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(18px, 5vw, 76px);
+}
+.stand {
+  position: relative;
+  width: clamp(92px, 15vw, 210px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* The plinth: a short white drum, top lit by the ceiling, sides falling off
+   into shade, resting on its own soft contact shadow. */
+.plinth {
+  position: relative;
+  width: 100%;
+  height: clamp(30px, 4.6vw, 64px);
+  margin-top: -14%;
+  border-radius: 0 0 50% 50% / 0 0 22% 22%;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .07), rgba(0, 0, 0, 0) 22%, rgba(0, 0, 0, 0) 70%, rgba(0, 0, 0, .09)),
+    linear-gradient(180deg, #f2f1ee, #dddbd6);
+}
+.plinth::before {
+  /* the top, lit */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  padding-top: 22%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(70% 70% at 50% 40%, #ffffff, #f2f1ee 70%, #e8e6e2);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .05);
+}
+.plinth::after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -14%;
+  height: 34%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(40, 36, 30, .22), rgba(40, 36, 30, 0));
+  filter: blur(4px);
+}
+.stand.empty .plinth { opacity: .72; }
+
+.objet {
+  position: relative;
+  z-index: 1;
+  width: 118%;
   padding: 0;
   border: 0;
   background: none;
   font: inherit;
   color: inherit;
   cursor: pointer;
+  /* The desk lets the pointer through so the cube stays draggable under it;
+     the objects have to opt back in. Lost once when this rule was rewritten,
+     and the glasses could not be clicked at all. */
   pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   -webkit-tap-highlight-color: transparent;
 }
 .objet-body {
@@ -2802,79 +2857,48 @@ body.lens .face-banner--handle[aria-pressed="true"] {
   transition: transform .5s cubic-bezier(.2, 1.2, .3, 1);
 }
 .objet-body img { display: block; width: 100%; height: auto; pointer-events: none; }
-/* A rendered model brings its own shadow, cast by the same light as the room,
-   in a separate image registered to the same box. Separate so that picking
-   the object up lifts the object and leaves the shadow on the floor. */
+/* The render brings its own shadow, cast by a light above like the room's,
+   in a separate image registered to the same box — so picking the object up
+   lifts the object and leaves the shadow on the plinth. */
 .objet-cast {
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   height: auto;
+  opacity: .9;
   pointer-events: none;
   transition: opacity .5s ease, filter .5s ease;
 }
-.objet[data-render] .objet-shadow { display: none; }
-.objet[data-render]:hover .objet-cast,
-.objet[data-render]:focus-visible .objet-cast { opacity: .55; filter: blur(3px); }
-.objet[data-render] .objet-label b { color: #2f2d2a; }
-.objet[data-render] .objet-label span { color: #6f6a62; }
-/* The shadow is the desk. It sits where the object touches down, and it is
-   the thing that changes when the object is picked up: lifted, a thing's
-   shadow gets smaller, softer and fainter, and that — not a glow, not an
-   outline — is what says this can be picked up. */
-.objet-shadow {
-  width: 78%;
-  height: 16px;
-  margin-top: -9px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(12, 14, 22, .26), rgba(12, 14, 22, 0));
-  filter: blur(3px);
-  transition: transform .5s cubic-bezier(.2, 1.2, .3, 1), opacity .5s ease, filter .5s ease;
-}
-.objet:not([aria-disabled="true"]):hover .objet-body,
-.objet:not([aria-disabled="true"]):focus-visible .objet-body { transform: translateY(-13px); }
-.objet:not([aria-disabled="true"]):hover .objet-shadow,
-.objet:not([aria-disabled="true"]):focus-visible .objet-shadow {
-  transform: scale(.82);
-  opacity: .5;
-  filter: blur(7px);
-}
-.objet:not([aria-disabled="true"]):active .objet-body { transform: translateY(-5px); transition-duration: .12s; }
+.objet:hover .objet-body,
+.objet:focus-visible .objet-body { transform: translateY(-12%); }
+.objet:hover .objet-cast,
+.objet:focus-visible .objet-cast { opacity: .45; filter: blur(3px); }
+.objet:active .objet-body { transform: translateY(-5%); transition-duration: .12s; }
 .objet:focus-visible { outline: none; }
-.objet:focus-visible .objet-label { color: var(--ink); }
 
-.objet-label {
+.stand-label {
   margin-top: 16px;
+  /* Two lines tall whether or not there is a second line. The row aligns its
+     stands at the bottom, so a one-line label under an empty plinth and a
+     two-line one under a product put the plinths on two different floors. */
+  min-height: 34px;
+  justify-content: flex-start;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
   white-space: nowrap;
-  color: var(--muted);
-  transition: color .3s ease;
+  text-align: center;
 }
-.objet-label b { font-size: 13px; font-weight: 600; letter-spacing: -.01em; color: #3a3a3e; }
-.objet-label span { font-size: 11px; color: var(--faint); }
-.objet:not([aria-disabled="true"]):hover .objet-label b { color: var(--ink); }
-
-/* Not made yet. A plain form in glass holds the place — it has a name and a
-   position on the desk but it cannot be picked up, and it does not pretend
-   to be the thing it is standing in for. */
-.objet[aria-disabled="true"] { cursor: default; }
-.objet[aria-disabled="true"] .objet-body {
-  width: 46%;
-  aspect-ratio: 1;
-  background: color-mix(in srgb, var(--fg) 4%, transparent);
-  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
-  backdrop-filter: blur(5px) saturate(150%);
-  -webkit-backdrop-filter: blur(5px) saturate(150%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+.stand-label b { font-size: 13px; font-weight: 600; letter-spacing: -.01em; color: #2f2f33; }
+.stand-label span { font-size: 11px; color: #7a7a80; }
+.stand.empty .stand-label b { color: #a6a5a1; font-weight: 500; }
+.stand:has(.objet:hover) .stand-label b { color: var(--ink); }
+@media (max-width: 520px) {
+  .stand-label b { font-size: 12px; }
+  .stand-label span { font-size: 10.5px; }
 }
-.objet[data-shape="orb"] .objet-body { border-radius: 50%; }
-.objet[data-shape="slab"] .objet-body { width: 62%; aspect-ratio: 1.9; border-radius: 12px; }
-.objet[data-shape="prism"] .objet-body { border-radius: 9px; transform: rotate(45deg) scale(.78); }
-.objet[aria-disabled="true"] .objet-shadow { opacity: .55; }
 
 /* ---------- prospect · the room ----------
 
@@ -2916,11 +2940,8 @@ body.lens .face-banner--handle[aria-pressed="true"] {
 }
 .room-back:hover { background: color-mix(in srgb, var(--fg-inv) 70%, transparent); color: var(--ink); }
 
-@media (max-width: 520px) {
-  .objet-label b { font-size: 12px; }
-}
 @media (prefers-reduced-motion: reduce) {
   .desk-plane, .desk-plane.diving { transition: opacity .2s ease; transform: none; }
   .prospect-room { transform: none; transition: opacity .2s ease; }
-  .objet-body, .objet-shadow { transition: none; }
+  .objet-body, .objet-cast { transition: none; }
 }

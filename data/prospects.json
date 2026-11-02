@@ -1,15 +1,12 @@
 {
-  "_guide": "prospect 책상 위의 제품 목록. 제품 추가 = 이 배열에 블록 하나 + prospect/<id>/ 폴더 하나. 폴더에는 index.html(경험 페이지, 완전히 독립된 문서)과 objet.png + shadow.png(책상 위에 놓이는 모형과 그 그림자 — 같은 폴더의 render.html로 렌더링, test/tools/render-objet.py <id>)를 둔다. status: released=집어 들 수 있고 들어갈 수 있음 / making=유리로 된 기본 형태만 놓이고 눌리지 않음(shape: orb|slab|prism). x=가로 위치(0~1). y=바닥에 닿는 높이(0~1, 선택 — 지정하면 depth 곡선 대신 이 위치) · depth=책상 위 앞뒤(0=맨 뒤, 작게 · 1=맨 앞, 크게) — 가장 최근 출시작을 1에 두고 이전 것들을 뒤로 물린다. size=맨 앞에 있을 때의 폭(px).",
+  "_guide": "prospect 라인업. 방 안쪽에 진열대(stand)가 slots 개 나란히 서고, products가 가운데부터 바깥으로 순서대로 올라간다 — 배열 맨 앞이 가장 최근 출시작으로 가운데 진열대를 차지한다. 빈 진열대는 다음 제품 자리로 비워 둔다. 제품 추가 = 이 배열에 블록 하나 + prospect/<id>/ 폴더 하나(index.html = 경험 페이지, objet.png + shadow.png = 진열대 위 모형, render.html로 렌더링: python3 test/tools/render-objet.py <id>). status: released = 집어 들고 들어갈 수 있음 / making = 진열대에 이름만 놓이고 눌리지 않음.",
+  "slots": 3,
   "products": [
     {
       "id": "glass",
       "name": "glass",
       "tagline": "스마트 글래스 · 작업명",
-      "status": "released",
-      "x": 0.33,
-      "y": 0.63,
-      "depth": 1,
-      "size": 200
+      "status": "released"
     }
   ]
 }

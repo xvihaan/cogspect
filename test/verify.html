@@ -1691,7 +1691,14 @@ f.addEventListener('load', async () => {
   const f6 = document.createElement('iframe');
   f6.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
   document.body.appendChild(f6);
-  await new Promise((r) => { f6.addEventListener('load', r, {once: true}); f6.src = '../index.html'; });
+  /* With the frame clock in place before boot, for the reason given where the
+     peek page is loaded. Without it the zoom spring ran a frame now and then,
+     the cube grew under the welcome line, and "the box never slides" failed
+     about one run in three measuring the zoom rather than the typing. */
+  await new Promise((r) => {
+    f6.addEventListener('load', r, {once: true});
+    f6.srcdoc = pageHtml.replace('<head>', '<head>' + shim);
+  });
   const d6 = f6.contentDocument, w6 = f6.contentWindow;
   const typedEl = () => d6.querySelector('.lede-typed');
   const ghostEl = () => d6.querySelector('.lede-ghost');
@@ -1717,7 +1724,13 @@ f.addEventListener('load', async () => {
     // the box is empty and therefore zero-width, and sampling that frame adds
     // a second left edge to an assertion about not moving WHILE TYPING
     if (!box || !ghostEl() || !ghostEl().textContent) continue;
-    boxLefts.add(Math.round(box.getBoundingClientRect().left));
+    /* Relative to the FACE, as a fraction of its width. The cube is still
+       zooming in from the intro while the hero line types — it does in a real
+       browser too — so on screen the whole face, the line with it, grows
+       from 583 to 502 and a screen coordinate measures the zoom. What must
+       not happen is the line moving across its face. */
+    const faceBox = d6.querySelector('.face--front').getBoundingClientRect();
+    boxLefts.add(((box.getBoundingClientRect().left - faceBox.left) / faceBox.width).toFixed(3));
     if (d6.getElementById('faceLede').classList.contains('typing')) sawTyping = true;
     lengths.push((typedEl().textContent || '').length);
   }
@@ -1897,18 +1910,28 @@ f.addEventListener('load', async () => {
   const objets = [...d7.querySelectorAll('.objet')];
   ok(objets.length === catalogue.length && objets.length > 0,
      `everything in prospects.json is on the desk (${objets.length} of ${catalogue.length})`);
-  /* Back is higher and smaller; front is lower and larger. Position and size
-     come from one number, so an object cannot be drawn large and placed far. */
-  const byDepth = objets.map((o) => ({
-    d: Number(o.style.getPropertyValue('--d')), r: o.getBoundingClientRect(),
-    k: o.getBoundingClientRect().width / Number(o.style.getPropertyValue('--size'))
-  })).sort((a, b) => a.d - b.d);
-  ok(byDepth.every((o, i) => i === 0 ||
-       (o.d === byDepth[i - 1].d) || (o.r.top > byDepth[i - 1].r.top && o.k > byDepth[i - 1].k)),
-     'nearer objects sit lower and larger than further ones');
-  ok(objets.every((o) => { const r = o.getBoundingClientRect();
+  /* A lineup: every plinth on one floor line, evenly spaced, the row centred
+     on the room, and the newest product (listed first) in the middle. Empty
+     plinths stand in the row as the places the next products go. */
+  const stands = [...d7.querySelectorAll('.stand')];
+  const lineupData = await (await fetch('../data/prospects.json')).json();
+  ok(stands.length === Math.max(lineupData.slots || 0, catalogue.length),
+     `the lineup has a plinth for every slot (${stands.length})`);
+  const floors = stands.map((st) => Math.round(st.querySelector('.plinth').getBoundingClientRect().bottom));
+  ok(Math.max(...floors) - Math.min(...floors) <= 1,
+     `every plinth stands on the same floor line (${floors.join(', ')})`);
+  const mids = stands.map((st) => { const r = st.getBoundingClientRect(); return (r.left + r.right) / 2; });
+  const steps = mids.slice(1).map((m, i) => m - mids[i]);
+  ok(steps.every((g) => Math.abs(g - steps[0]) < 1.5), `evenly spaced (${steps.map(Math.round).join(', ')})`);
+  ok(Math.abs((mids[0] + mids[mids.length - 1]) / 2 - w7.innerWidth / 2) < 1.5, 'and centred in the room');
+  const centre = stands[Math.floor((stands.length - 1) / 2)];
+  ok(!!centre.querySelector(`.objet[data-id="${catalogue[0].id}"]`),
+     'the newest product takes the middle plinth');
+  ok(stands.filter((st) => st.classList.contains('empty')).every((st) => !st.querySelector('.objet')),
+     'and an empty plinth holds nothing that can be pressed');
+  ok(stands.every((st) => { const r = st.getBoundingClientRect();
        return r.left >= 0 && r.right <= w7.innerWidth && r.top > 130 && r.bottom < w7.innerHeight - 70; }),
-     'and all of them clear the banner above and the bar below');
+     'and the whole row clears the banner above and the bar below');
 
   const liveObj = objets.find((o) => o.getAttribute('aria-disabled') !== 'true');
   ok(!!liveObj, 'at least one can be picked up');

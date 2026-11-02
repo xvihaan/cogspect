@@ -34,7 +34,7 @@ renderer.setPixelRatio(1);
 renderer.setSize(W, H);
 renderer.setClearColor(0x000000, 0);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.12;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;   // honours shadow.radius; Soft ignores it
@@ -45,11 +45,13 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 const env = pmrem.fromScene(new RoomEnvironment(), 0.03).texture;
 scene.environment = env;
 // a dim room: the environment is only there for reflections, the bulb lights it
-scene.environmentIntensity = 0.32;
+// a bright white studio, the same white as the room it will be shown in
+scene.environmentIntensity = 0.9;
 
 const camera = new THREE.PerspectiveCamera(24, W / H, 1, 2000);
-camera.position.set(-70, 205, 520);
-camera.lookAt(-6, 10, -30);
+// a product shot: square on, a little above, the way a lineup is photographed
+camera.position.set(0, 120, 520);
+camera.lookAt(0, 18, -40);
 
 /* ---- the bulb: warm, high and off to the right, level with the object —
    which is where it hangs relative to the corner the glasses sit in. From in
@@ -58,24 +60,27 @@ camera.lookAt(-6, 10, -30);
    object and its falloff left the glasses themselves nearly unlit; what the
    render needs from the bulb is a direction and a shadow, and the warm pool
    around it is drawn by the room, not here. */
-const bulb = new THREE.DirectionalLight(0xffc98a, 3.4);
-bulb.position.set(330, 250, -10);
+/* From above and slightly in front — the room's light is in the middle of
+   its ceiling, so the shadow falls straight down onto the stand, under the
+   object, and not off to one side as if lit from another room. */
+const bulb = new THREE.DirectionalLight(0xfff4e6, 2.2);
+bulb.position.set(20, 420, 140);
 bulb.target.position.set(0, 0, 0);
 bulb.castShadow = true;
 bulb.shadow.mapSize.set(2048, 2048);
 Object.assign(bulb.shadow.camera, { left: -220, right: 220, top: 220, bottom: -220, near: 1, far: 1200 });
-bulb.shadow.radius = 16;
+bulb.shadow.radius = 22;
 bulb.shadow.bias = -0.0005;
 scene.add(bulb, bulb.target);
 // the room itself bounces a little cool grey back into the shadow side
-const fill = new THREE.HemisphereLight(0xdfe3ea, 0x2a2622, 0.42);
+const fill = new THREE.HemisphereLight(0xffffff, 0xd8d6d2, 0.9);
 scene.add(fill);
 
 // ---- the glasses ----------------------------------------------------------
 const frameMat = new THREE.MeshPhysicalMaterial({
-  color: 0xc6c9cf, metalness: 1, roughness: 0.3, clearcoat: 0.4, clearcoatRoughness: 0.25 });
+  color: 0xdfe1e5, metalness: 1, roughness: 0.26, clearcoat: 0.4, clearcoatRoughness: 0.25 });
 const lensMat = new THREE.MeshPhysicalMaterial({
-  color: 0x07080b, metalness: 0.15, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.02,
+  color: 0x1b1f26, metalness: 0.15, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.02,
   reflectivity: 0.9, iridescence: 0.35, iridescenceIOR: 1.3, iridescenceThicknessRange: [180, 420] });
 const padMat = new THREE.MeshPhysicalMaterial({ color: 0x1b1c20, roughness: 0.65 });
 
@@ -117,7 +122,7 @@ glasses.add(frame, lens);
    envMapIntensity is ignored — which is how the first renders came out as a
    black plate. */
 lensMat.envMap = env;
-lensMat.envMapIntensity = 1.6;
+lensMat.envMapIntensity = 1.3;
 lensMat.roughness = 0.07;
 frameMat.envMap = env;
 frameMat.envMapIntensity = 0.9;
@@ -138,13 +143,13 @@ glasses.traverse((m) => { if (m.isMesh) { m.castShadow = true; } });
 // tipped back so the front stands on its lower rim and the arm ends touch
 // down behind it — the way a pair of glasses actually sits on a table
 glasses.rotation.x = -0.235;
-glasses.rotation.y = 0.42;
+glasses.rotation.y = 0.3;
 glasses.position.y = 28;
 scene.add(glasses);
 
 // ---- the floor, which exists only to receive a shadow ----
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000),
-  new THREE.ShadowMaterial({ opacity: 0.4, color: 0x1a120a }));
+  new THREE.ShadowMaterial({ opacity: 0.3, color: 0x2a2620 }));
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = 1;
 floor.receiveShadow = true;
