@@ -263,13 +263,14 @@ body.peeking .stage::after { opacity: var(--peek-wash, 1); }
     radial-gradient(60% 50% at 50% 40%, rgba(236, 238, 242, .9) 0%, rgba(251, 251, 252, 0) 70%),
     var(--paper);
 }
-/* prospect: the same paper as the other faces, a shade down, so the white
-   models on the reel have something to stand out from. */
+/* prospect: the same paper as every other face. The reel's pane is the one
+   surface a shade down, so the white models still have something behind
+   them; the face itself is not tinted. */
 .face--vision {
   background:
-    radial-gradient(46% 52% at 30% 50%, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, 0) 72%),
-    radial-gradient(70% 60% at 80% 80%, rgba(226, 228, 234, .8) 0%, rgba(240, 240, 242, 0) 70%),
-    #eeeeed;
+    radial-gradient(46% 52% at 30% 50%, rgba(236, 238, 242, .9) 0%, rgba(251, 251, 252, 0) 72%),
+    radial-gradient(55% 55% at 78% 72%, rgba(232, 234, 239, .85) 0%, rgba(251, 251, 252, 0) 65%),
+    var(--paper);
 }
 .face--void {
   background:
