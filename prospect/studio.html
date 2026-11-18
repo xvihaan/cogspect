@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>prospect — model studio</title>
+<!--
+  Not part of the site. This is the studio the desk model was photographed in.
+
+  The object on the desk is a still image, because a 3D engine on the cube
+  for one object nobody has picked up yet would be the heaviest thing on the
+  page. The image is rendered here, once, with physical materials and lit from
+  the same place as the bulb in the prospect room, so the object and the room
+  share one light. Run it again whenever the model changes:
+
+    Chrome --headless=new --use-angle=metal --virtual-time-budget=8000
+           --dump-dom 'http://127.0.0.1:4173/prospect/studio.html?id=<product>'
+  then decode the two data URLs it prints into prospect/<product>/objet.png and shadow.png
+  (test/tools/render-objet.py does exactly that).
+
+  Two passes, same camera, same frame: the object alone, and its shadow alone.
+  They are stacked on the desk, and kept apart so that picking the object up
+  can lift it off a shadow that stays on the floor.
+-->
+<style>html,body{margin:0;background:#888}canvas{display:block}</style>
+</head><body>
+<pre id="out" style="display:none"></pre>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const W = 1200, H = 760;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.setClearColor(0x000000, 0);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.96;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;   // honours shadow.radius; Soft ignores it
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+const env = pmrem.fromScene(new RoomEnvironment(), 0.03).texture;
+scene.environment = env;
+// a dim room: the environment is only there for reflections, the bulb lights it
+// a bright white studio, the same white as the room it will be shown in
+scene.environmentIntensity = 0.9;
+
+const camera = new THREE.PerspectiveCamera(24, W / H, 1, 2000);
+// a product shot: square on, a little above, the way a lineup is photographed
+camera.position.set(0, 120, 520);
+camera.lookAt(0, 18, -40);
+
+/* ---- the bulb: warm, high and off to the right, level with the object —
+   which is where it hangs relative to the corner the glasses sit in. From in
+   front it buried the shadow behind the object, where nobody could see it. */
+/* Directional, not a spot. The spot's pool landed off to one side of the
+   object and its falloff left the glasses themselves nearly unlit; what the
+   render needs from the bulb is a direction and a shadow, and the warm pool
+   around it is drawn by the room, not here. */
+/* From above and slightly in front — the room's light is in the middle of
+   its ceiling, so the shadow falls straight down onto the stand, under the
+   object, and not off to one side as if lit from another room. */
+const bulb = new THREE.DirectionalLight(0xfff4e6, 1.7);
+bulb.position.set(20, 420, 140);
+bulb.target.position.set(0, 0, 0);
+bulb.castShadow = true;
+bulb.shadow.mapSize.set(2048, 2048);
+Object.assign(bulb.shadow.camera, { left: -220, right: 220, top: 220, bottom: -220, near: 1, far: 1200 });
+bulb.shadow.radius = 22;
+bulb.shadow.bias = -0.0005;
+scene.add(bulb, bulb.target);
+// the room itself bounces a little cool grey back into the shadow side
+const fill = new THREE.HemisphereLight(0xffffff, 0xb9b7b2, 0.75);
+scene.add(fill);
+
+// ---- the models ------------------------------------------------------------
+/* One studio, every product: ?id=<product> picks the model. They share the
+   light, the camera and the finish — white body, a little glass — which is
+   what makes three unrelated objects read as one range. */
+const id = new URLSearchParams(location.search).get('id') || 'glasspect';
+const mat = (o) => { const m = new THREE.MeshPhysicalMaterial(o); m.envMap = env; if (m.envMapIntensity === 1) m.envMapIntensity = 1.0; return m; };
+/* envMap is given directly: with only scene.environment set, the scene's own
+   intensity wins and a material's envMapIntensity is ignored (three r169). */
+const white = mat({ color: 0xeeeeec, roughness: 0.26, clearcoat: 1, clearcoatRoughness: 0.12 });
+const whiteSoft = mat({ color: 0xf1f1ee, roughness: 0.55 });
+const clear = mat({ color: 0xa9c3d8, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02,
+  transparent: true, opacity: 0.42, envMapIntensity: 1.6 });
+const smoke = mat({ color: 0x1c222b, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02,
+  transparent: true, opacity: 0.86, envMapIntensity: 1.5 });
+const dark = mat({ color: 0x17181c, roughness: 0.6 });
+const steel = mat({ color: 0xdfe1e5, metalness: 1, roughness: 0.28 });
+
+const model = new THREE.Group();
+const add = (geo, m, x = 0, y = 0, z = 0, shadow = true) => {
+  const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); mesh.castShadow = shadow; model.add(mesh); return mesh; };
+
+/* A rounded quadrilateral, wider at the top than the bottom when wt > wb:
+   the lens shape of an ordinary horn-rimmed pair. */
+function rim(wt, wb, h, r, path = new THREE.Shape()) {
+  const pts = [[-wt, h], [wt, h], [wb, -h], [-wb, -h]];
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const [px, py] = pts[i], [ax, ay] = pts[(i + n - 1) % n], [bx, by] = pts[(i + 1) % n];
+    const la = Math.hypot(ax - px, ay - py), lb = Math.hypot(bx - px, by - py);
+    const sx = px + (ax - px) / la * r, sy = py + (ay - py) / la * r;
+    const ex = px + (bx - px) / lb * r, ey = py + (by - py) / lb * r;
+    if (i === 0) path.moveTo(sx, sy); else path.lineTo(sx, sy);
+    path.quadraticCurveTo(px, py, ex, ey);
+  }
+  path.closePath();
+  return path;
+}
+
+const BUILD = {
+  /* glasspect: an everyday horn-rimmed pair. White frame, clear lenses, and
+     the front third of each temple in glass. */
+  glasspect() {
+    for (const side of [-1, 1]) {
+      const outer = rim(33, 28.5, 23, 15);
+      outer.holes.push(rim(29, 24.5, 19, 11.5, new THREE.Path()));
+      const g = new THREE.ExtrudeGeometry(outer, { depth: 5, bevelEnabled: true, bevelThickness: 1.5,
+        bevelSize: 1.3, bevelSegments: 6, curveSegments: 32 });
+      g.translate(side * 39, 0, -3);
+      add(g, white);
+      const l = new THREE.ExtrudeGeometry(rim(29.6, 25, 19.5, 11.8), { depth: 1.6, bevelEnabled: false, curveSegments: 32 });
+      l.translate(side * 39, 0, -0.8);
+      add(l, clear, 0, 0, 0, false);
+      // temple: a glass front section, then white back to the ear
+      const hinge = add(new RoundedBoxGeometry(8, 11, 9, 4, 2.6), white, side * 72.5, 12, -5);
+      const glassArm = add(new RoundedBoxGeometry(4.6, 8.5, 46, 4, 2.1), clear, side * 74.5, 12, -31, false);
+      const arm = add(new RoundedBoxGeometry(4.8, 8.8, 74, 4, 2.2), white, side * 77.5, 11, -89);
+      const tip = add(new RoundedBoxGeometry(5, 9.4, 24, 4, 2.4), white, side * 79.2, 6, -132);
+      for (const m of [glassArm, arm, tip]) m.rotation.y = side * -0.05;
+      tip.rotation.x = -0.32;
+      void hinge;
+    }
+    // the bridge: a short arch between the rims
+    const arch = new THREE.TorusGeometry(8.5, 2.7, 12, 24, Math.PI);
+    add(arch, white, 0, 7, 0);
+    // resting on the table the way a pair is put down: on its lower rims and
+    // the ends of its arms
+    model.rotation.x = -0.2;
+    model.rotation.y = 0.42;
+    model.position.y = 27;
+  },
+
+  /* eddwatch: a white watch standing on its closed band, face tipped up, and
+     edd — the assistant — standing over the glass as a small hologram. */
+  eddwatch() {
+    const R = 44, T = 4.5, BW = 30;                // band loop radius, thickness, width
+    const ring = new THREE.Shape();
+    ring.absellipse(0, 0, R, R * 0.92, 0, Math.PI * 2);
+    const hole = new THREE.Path();
+    hole.absellipse(0, 0, R - T, R * 0.92 - T, 0, Math.PI * 2, true);
+    ring.holes.push(hole);
+    const band = new THREE.ExtrudeGeometry(ring, { depth: BW, bevelEnabled: true, bevelThickness: 1.4,
+      bevelSize: 1.2, bevelSegments: 4, curveSegments: 64 });
+    band.translate(0, 0, -BW / 2);
+    band.rotateY(Math.PI / 2);                      // the loop's axis runs left-right
+    add(band, whiteSoft, 0, R * 0.92, 0);
+    // the case sits on the loop, tipped back so the face looks up at you
+    const phi = 0.95;                               // from straight ahead, up
+    const head = new THREE.Group();
+    head.position.set(0, R * 0.92 + Math.sin(phi) * (R * 0.92 + 3), Math.cos(phi) * (R + 3));
+    head.rotation.x = -phi;
+    const part = (geo, m, x, y, z, shadow = true) => { const mesh = new THREE.Mesh(geo, m);
+      mesh.position.set(x, y, z); mesh.castShadow = shadow; head.add(mesh); return mesh; };
+    part(new RoundedBoxGeometry(46, 54, 12, 6, 5.5), white, 0, 0, 0);
+    part(new RoundedBoxGeometry(40, 48, 3, 6, 1.4), smoke, 0, 0, 5.4, false);
+    const crown = part(new THREE.CylinderGeometry(3.6, 3.6, 5, 24), steel, 25, 8, 0);
+    crown.rotation.z = Math.PI / 2;
+    part(new RoundedBoxGeometry(2.4, 12, 4, 3, 1), steel, 23.6, -9, 0);
+    /* edd. A hologram cannot be drawn as light on a white page — added light
+       on white is white — so it is drawn as tinted glass: a faint beam
+       opening from the face and a small iridescent body standing in it. */
+    const holo = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o,
+      side: THREE.DoubleSide, depthWrite: false });
+    const beam = part(new THREE.CylinderGeometry(30, 13, 62, 48, 1, true), holo(0x7fb4ff, 0.13), 0, 0, 38, false);
+    beam.rotation.x = Math.PI / 2;
+    for (const [z, r, o] of [[22, 17, 0.34], [44, 24, 0.24], [66, 30, 0.16]]) {
+      const hoop = part(new THREE.TorusGeometry(r, 0.55, 8, 64), holo(0x5f9dff, o), 0, 0, z, false);
+      void hoop;
+    }
+    const eddMat = mat({ color: 0xcfe2ff, roughness: 0.08, clearcoat: 1, transparent: true, opacity: 0.9,
+      iridescence: 1, iridescenceIOR: 1.6, iridescenceThicknessRange: [200, 520],
+      emissive: 0x5c9cff, emissiveIntensity: 0.35, envMapIntensity: 1.4 });
+    part(new THREE.SphereGeometry(8.5, 48, 32), eddMat, 0, 0, 48, false);
+    const halo = part(new THREE.TorusGeometry(13, 0.9, 10, 64), holo(0x4f8fff, 0.5), 0, 0, 48, false);
+    halo.rotation.x = 1.15;
+    model.add(head);
+    model.rotation.y = 0.5;
+    model.scale.setScalar(0.8);
+  },
+
+  /* harnesspect: a concept car. One smooth white body, a glass canopy over
+     the whole cabin, covered wheels, and a line of light at each end. */
+  harnesspect() {
+    const L = 122, H = 30, W = 96, WR = 18.5, AX = 76;   // half length, belt height, width, wheel radius, axle offset
+    const body = new THREE.Shape();
+    body.moveTo(-L + 10, 10);
+    body.lineTo(-AX - WR - 2.5, 10);
+    body.absarc(-AX, 12, WR + 2.5, Math.PI, 0, true);
+    body.lineTo(AX - WR - 2.5, 10);
+    body.absarc(AX, 12, WR + 2.5, Math.PI, 0, true);
+    body.lineTo(L - 8, 10);
+    body.quadraticCurveTo(L, 11, L, 20);
+    body.quadraticCurveTo(L - 1, H + 3, L - 22, H + 5);
+    body.lineTo(-L + 26, H + 5);
+    body.quadraticCurveTo(-L + 2, H + 4, -L, 20);
+    body.quadraticCurveTo(-L, 11, -L + 10, 10);
+    const bg = new THREE.ExtrudeGeometry(body, { depth: W - 16, bevelEnabled: true, bevelThickness: 8,
+      bevelSize: 6, bevelSegments: 10, curveSegments: 48 });
+    bg.translate(0, 0, -(W - 16) / 2);
+    add(bg, white);
+    // the canopy: one arc of glass from nose to tail
+    const top = new THREE.Shape();
+    top.moveTo(-L + 30, H + 4);
+    top.bezierCurveTo(-L + 52, H + 34, -30, H + 42, 8, H + 41);
+    top.bezierCurveTo(48, H + 40, 78, H + 26, L - 26, H + 4);
+    top.closePath();
+    const tg = new THREE.ExtrudeGeometry(top, { depth: W - 34, bevelEnabled: true, bevelThickness: 9,
+      bevelSize: 5, bevelSegments: 10, curveSegments: 48 });
+    tg.translate(0, 0, -(W - 34) / 2);
+    add(tg, smoke);
+    // what the arches would otherwise show straight through
+    add(new THREE.BoxGeometry(L * 2 - 30, 14, W - 30), dark, 0, 17, 0);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const tyre = add(new THREE.CylinderGeometry(WR, WR, 15, 48), dark, sx * AX, WR, sz * (W / 2 - 6.5));
+      tyre.rotation.x = Math.PI / 2;
+      const cap = add(new THREE.CylinderGeometry(WR - 4.5, WR - 4.5, 1.6, 48), white, sx * AX, WR, sz * (W / 2 + 1.4));
+      cap.rotation.x = Math.PI / 2;
+      const hub = add(new THREE.CylinderGeometry(3.2, 3.2, 1.4, 24), steel, sx * AX, WR, sz * (W / 2 + 2.4));
+      hub.rotation.x = Math.PI / 2;
+    }
+    // light bars: warm at the nose, red at the tail
+    const bar = (c) => new THREE.MeshBasicMaterial({ color: c });
+    add(new RoundedBoxGeometry(1.6, 2.6, W - 30, 3, 0.8), bar(0xfff6dc), L + 0.4, 25, 0, false);
+    add(new RoundedBoxGeometry(1.6, 2.6, W - 30, 3, 0.8), bar(0xff5a4a), -L - 0.4, 25, 0, false);
+    model.rotation.y = -0.62;
+    model.scale.setScalar(0.78);
+  }
+};
+BUILD[id]();
+scene.add(model);
+const glasses = model;
+
+// ---- the floor, which exists only to receive a shadow ----
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000),
+  new THREE.ShadowMaterial({ opacity: 0.3, color: 0x2a2620 }));
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = 1;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const shoot = () => { const c = document.createElement('canvas'); c.width = W; c.height = H;
+  c.getContext('2d').drawImage(renderer.domElement, 0, 0); return c; };
+// pass 1: the object alone
+floor.visible = false;
+renderer.render(scene, camera);
+const objet = shoot();
+// pass 2: the shadow alone. The object still casts — the shadow map is drawn
+// from the light, not the camera — but writes nothing the camera can see.
+floor.visible = true;
+glasses.traverse((m) => { if (m.isMesh) { m.material = m.material.clone(); m.material.colorWrite = false; m.material.depthWrite = false; } });
+renderer.render(scene, camera);
+const shadow = shoot();
+/* Cropped to the union of both passes' visible pixels, plus a margin, so the
+   pair stays registered — the desk stacks them at the same box. */
+let x0 = W, y0 = H, x1 = 0, y1 = 0;
+for (const c of [objet, shadow]) {
+  const px = c.getContext('2d').getImageData(0, 0, W, H).data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (px[(y * W + x) * 4 + 3] > 6) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+}
+const m = 12; x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m);
+x1 = Math.min(W - 1, x1 + m); y1 = Math.min(H - 1, y1 + m);
+const crop = (c) => { const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+  o.getContext('2d').drawImage(c, -x0, -y0); return o.toDataURL('image/png'); };
+document.getElementById('out').textContent = JSON.stringify({ objet: crop(objet), shadow: crop(shadow) });
+document.title = 'DONE';
+</script></body></html>

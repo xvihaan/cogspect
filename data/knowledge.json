@@ -43,13 +43,59 @@
         "제품",
         "프로덕트",
         "product",
-        "책상",
-        "데스크",
-        "오브제",
-        "글래스",
-        "스마트글래스"
+        "라인업",
+        "룰렛",
+        "lineup"
       ],
-      "text": "prospect는 Product와 spectrum을 합친 말로, cogspect가 만든 가상의 제품을 미리 경험하는 공간입니다. 면 전체가 하나의 책상이고, 제품이 만들어질 때마다 그 위에 오브제가 하나씩 놓입니다. 오브제를 집어 들면 그 제품의 경험 안으로 들어갑니다. 첫 오브제는 스마트 글래스이며 아직 제작 중입니다."
+      "text": "prospect는 Product와 spectrum을 합친 말로, cogspect가 상상한 제품을 미리 경험하는 공간입니다. 왼쪽 룰렛에 제품이 감겨 있어 위아래로 포인터를 두거나 눌러서 돌리면, 오른쪽 설명이 가운데 제품을 따라 바뀝니다. 지금 라인업은 XR 안경 glasspect, AI 워치 eddwatch, 컨셉카 harnesspect 세 가지이며 모두 가상의 제품입니다."
+    },
+    {
+      "id": "glasspect",
+      "face": "top",
+      "product": "glasspect",
+      "title": "glasspect (글래스펙트)",
+      "keys": [
+        "glasspect",
+        "글래스펙트",
+        "안경",
+        "글래스",
+        "스마트글래스",
+        "xr안경",
+        "공간컴퓨팅"
+      ],
+      "text": "glasspect는 cogspect가 상상한 XR 안경입니다. 평범한 뿔테 안경처럼 쓰지만 렌즈 너머로 화면이 끝없이 펼쳐지는 공간 컴퓨팅 웨어러블로, 창을 시야 어디에나 띄워 고정하고 시선·손끝·말로 조작합니다. 화이트 프레임에 유리 마감을 더한 가상의 제품입니다."
+    },
+    {
+      "id": "eddwatch",
+      "face": "top",
+      "product": "eddwatch",
+      "title": "eddwatch (에드워치)",
+      "keys": [
+        "eddwatch",
+        "에드워치",
+        "워치",
+        "시계",
+        "edd",
+        "에드",
+        "홀로그램"
+      ],
+      "text": "eddwatch는 cogspect가 상상한 XR environment watch입니다. 시계의 기본 기능은 그대로 두고, 필요할 때 인공지능 비서 edd가 홀로그램으로 떠올라 주변 환경을 읽고 길과 할 일을 한 단계씩 안내합니다. 가상의 제품입니다."
+    },
+    {
+      "id": "harnesspect",
+      "face": "top",
+      "product": "harnesspect",
+      "title": "harnesspect (하네스펙트)",
+      "keys": [
+        "harnesspect",
+        "하네스펙트",
+        "자동차",
+        "컨셉카",
+        "전기차",
+        "자율주행",
+        "시뮬레이션"
+      ],
+      "text": "harnesspect는 cogspect가 상상한 XR 컨셉카입니다. 전기로 달리는 미니멀한 차로, 실내의 모든 조작을 자연어로 하고 자율주행에 맞춘 AI 디스플레이를 제공합니다. 수동 주행도 가능하며, 처음 가는 길을 출발 전에 미리 달려 보는 시뮬레이션 주행이 대표 기능입니다. 아직 컨셉 단계의 가상 제품입니다."
     },
     {
       "id": "portfolio",

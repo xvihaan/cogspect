@@ -213,36 +213,20 @@
         <section class="face face--vision" data-face="top" aria-label="prospect">
           <div class="face-banner">
             <span class="kicker">prospect</span>
-            <h2>Prospect desk</h2>
-            <p>cogspect의 제품을 미리 경험하다</p>
+            <h2>Prospect lineup</h2>
+            <p>상상한 제품을 미리 경험하다</p>
           </div>
-          <!-- The desk. Every product cogspect makes is put down here as an
-               object, and picking one up takes you inside it.
-
-               No desk is drawn. The objects cast shadows and a shadow is
-               enough to make the surface it falls on — furniture rendered in
-               glass and wood would be the loudest thing on a face whose
-               neighbours are made of almost nothing.
+          <!-- The lineup. Left, a reel: the products wound on a drum that
+               turns one place at a time. Right, a sheet: what the product in
+               the middle is. Pointing below or above the middle leans the
+               drum that way and, held, turns it.
 
                Built from data/prospects.json; nothing here is written by
                hand. A product is one block in that file and one folder under
-               prospect/. -->
-          <div class="desk" id="desk"><div class="desk-plane" id="deskPlane">
-            <!-- The room: white walls on three sides, a ceiling and a floor,
-                 all running back to one far wall — a room you are standing at
-                 the open end of. Lit from one soft source in the middle of the
-                 ceiling. Inside the plane, so entering a product rushes the
-                 whole room past rather than leaving it standing. -->
-            <div class="room" aria-hidden="true">
-              <i class="room-ceiling"></i>
-              <i class="room-wall-left"></i>
-              <i class="room-wall-right"></i>
-              <i class="room-floor"></i>
-              <i class="room-far"></i>
-              <i class="room-light"></i>
-              <i class="room-pool"></i>
-            </div>
-          </div></div>
+               prospect/. .desk is the screen, not the face: the face is a
+               square larger than the screen. .desk-plane is what dives when
+               a product is entered. -->
+          <div class="desk" id="desk"><div class="desk-plane" id="deskPlane"></div></div>
         </section>
 
         <section class="face face--void" data-face="bottom" aria-label="minimalid">

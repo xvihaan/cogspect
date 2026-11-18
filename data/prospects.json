@@ -1,12 +1,50 @@
 {
-  "_guide": "prospect 라인업. 방 안쪽에 진열대(stand)가 slots 개 나란히 서고, products가 가운데부터 바깥으로 순서대로 올라간다 — 배열 맨 앞이 가장 최근 출시작으로 가운데 진열대를 차지한다. 빈 진열대는 다음 제품 자리로 비워 둔다. 제품 추가 = 이 배열에 블록 하나 + prospect/<id>/ 폴더 하나(index.html = 경험 페이지, objet.png + shadow.png = 진열대 위 모형, render.html로 렌더링: python3 test/tools/render-objet.py <id>). status: released = 집어 들고 들어갈 수 있음 / making = 진열대에 이름만 놓이고 눌리지 않음.",
-  "slots": 3,
+  "_guide": "prospect 라인업. 왼쪽 룰렛에 products가 배열 순서대로 감기고(맨 앞이 처음 가운데에 온다), 오른쪽 설명이 가운데 제품을 따라 바뀐다. 제품 추가 = 이 배열에 블록 하나 + prospect/<id>/ 폴더 하나(objet.png + shadow.png = 룰렛 위 모형. prospect/studio.html에 모델을 더하고 python3 test/tools/render-objet.py <id> 로 렌더링. index.html = 경험 페이지, released일 때만 필요). status: released = '미리 경험하기'로 들어갈 수 있음 / concept = 설명만 보이고 들어갈 수 없음. kind = 영문 분류, ko = 한글 이름, tagline = 한 줄, desc = 두세 문장, points = 핵심 기능 3개(제목 — 설명), spec = [항목, 값] 3쌍.",
   "products": [
     {
-      "id": "glass",
-      "name": "glass",
-      "tagline": "스마트 글래스 · 작업명",
+      "id": "glasspect",
+      "name": "glasspect",
+      "ko": "글래스펙트",
+      "kind": "XR Glasses",
+      "tagline": "보는 곳이 곧 작업 공간이 되는 안경",
+      "desc": "평범한 뿔테 안경처럼 쓰지만, 렌즈 너머로 화면이 끝없이 펼쳐지는 공간 컴퓨팅 웨어러블입니다. 책상도 모니터도 없이 시야 전체를 작업 공간으로 씁니다.",
+      "points": [
+        "무한 캔버스 — 창을 시야 어디에나 띄우고 그 자리에 고정",
+        "시선 · 손끝 · 말 — 세 가지로 조작하는 공간 인터페이스",
+        "화이트 프레임과 유리 마감 — 하루 종일 쓰는 안경의 무게"
+      ],
+      "spec": [["형태", "뿔테 안경"], ["디스플레이", "양안 공간 디스플레이"], ["조작", "시선 · 제스처 · 음성"]],
       "status": "released"
+    },
+    {
+      "id": "eddwatch",
+      "name": "eddwatch",
+      "ko": "에드워치",
+      "kind": "XR Environment Watch",
+      "tagline": "손목 위로 떠오르는 가이드, edd",
+      "desc": "시계의 기본은 그대로 두고, 필요한 순간에는 인공지능 비서 edd가 홀로그램으로 떠올라 길과 할 일을 짚어 줍니다. 화면을 들여다보는 대신 edd가 눈앞에서 안내합니다.",
+      "points": [
+        "홀로그램 edd — 손목 위에 나타나 말하고 가리키는 AI 비서",
+        "환경 가이드 — 주변을 읽고 길과 작업을 한 단계씩 지도",
+        "워치의 기본기 — 시간 · 건강 · 알림은 평소처럼"
+      ],
+      "spec": [["형태", "손목시계"], ["비서", "edd · 홀로그램"], ["조작", "음성 · 터치"]],
+      "status": "concept"
+    },
+    {
+      "id": "harnesspect",
+      "name": "harnesspect",
+      "ko": "하네스펙트",
+      "kind": "XR Concept Car",
+      "tagline": "말로 움직이고, 가 보기 전에 달려 보는 차",
+      "desc": "전기로 달리는 미니멀한 컨셉카입니다. 실내의 모든 조작은 자연어로 하고, 자율주행에 맞춘 AI 디스플레이가 차가 보고 판단하는 것을 그대로 보여 줍니다.",
+      "points": [
+        "시뮬레이션 주행 — 처음 가는 길을 출발 전에 미리 달려 보기",
+        "자연어 조작 — 버튼을 덜어낸 실내, 말 한마디로 모든 기능",
+        "자율과 수동 — 맡길 때도 직접 몰 때도 같은 AI 디스플레이"
+      ],
+      "spec": [["형태", "전기 컨셉카"], ["주행", "자율 · 수동 · 시뮬레이션"], ["조작", "자연어"]],
+      "status": "concept"
     }
   ]
 }

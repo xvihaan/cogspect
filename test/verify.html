@@ -1656,7 +1656,7 @@ f.addEventListener('load', async () => {
     key3(k); await wait(3500);
     ok(want.test(roomText()), `${label} introduces itself (${roomText().slice(0, 24)})`);
   }
-  // prospect has a desk on it now and says so; minimalid still has nothing
+  // prospect has a lineup on it now and says so; minimalid still has nothing
   // settled to say
   for (const [k, label] of [['ArrowDown', 'minimalid']]) {
     d3.getElementById('ghostMsg').click();
@@ -1874,9 +1874,9 @@ f.addEventListener('load', async () => {
   ok(!cubeOf(skin6), 'pressing home while home does not square it');
   f6.remove();
 
-  /* ---------- prospect: the desk ---------------------------------------- */
+  /* ---------- prospect: the reel and the sheet --------------------------- */
 
-  log('\n— the desk —');
+  log('\n— the reel —');
   const f7 = document.createElement('iframe');
   f7.style.cssText = 'width:1280px;height:800px;border:1px solid #ddd';
   document.body.appendChild(f7);
@@ -1900,46 +1900,51 @@ f.addEventListener('load', async () => {
   // waited for, not timed: the line starts a beat after the landing and then
   // types itself out at its own pace
   const deskLine = () => [...d7.querySelectorAll('.ghost-line')].map((n) => n.textContent).join(' ');
-  for (let i = 0; i < 60 && !/책상/.test(deskLine()); i++) await wait(100);
-  ok(/책상/.test(deskLine()), 'cpt says what the top face is now');
+  for (let i = 0; i < 60 && !/라인업/.test(deskLine()); i++) await wait(100);
+  ok(/라인업/.test(deskLine()), 'cpt says what the top face is now');
   await wait(600);
   d7.getElementById('ghostMsg').click();
   await wait(300);
 
+  /* A reel on the left and a sheet on the right. The reel holds every
+     product, the first listed in the middle, one either side of it in view;
+     the sheet says what the one in the middle is. */
   const catalogue = (await (await fetch('../data/prospects.json')).json()).products;
-  const objets = [...d7.querySelectorAll('.objet')];
-  ok(objets.length === catalogue.length && objets.length > 0,
-     `everything in prospects.json is on the desk (${objets.length} of ${catalogue.length})`);
-  /* A lineup: every plinth on one floor line, evenly spaced, the row centred
-     on the room, and the newest product (listed first) in the middle. Empty
-     plinths stand in the row as the places the next products go. */
-  const stands = [...d7.querySelectorAll('.stand')];
-  const lineupData = await (await fetch('../data/prospects.json')).json();
-  ok(stands.length === Math.max(lineupData.slots || 0, catalogue.length),
-     `the lineup has a plinth for every slot (${stands.length})`);
-  const floors = stands.map((st) => Math.round(st.querySelector('.plinth').getBoundingClientRect().bottom));
-  ok(Math.max(...floors) - Math.min(...floors) <= 1,
-     `every plinth stands on the same floor line (${floors.join(', ')})`);
-  const mids = stands.map((st) => { const r = st.getBoundingClientRect(); return (r.left + r.right) / 2; });
-  const steps = mids.slice(1).map((m, i) => m - mids[i]);
-  ok(steps.every((g) => Math.abs(g - steps[0]) < 1.5), `evenly spaced (${steps.map(Math.round).join(', ')})`);
-  ok(Math.abs((mids[0] + mids[mids.length - 1]) / 2 - w7.innerWidth / 2) < 1.5, 'and centred in the room');
-  const centre = stands[Math.floor((stands.length - 1) / 2)];
-  ok(!!centre.querySelector(`.objet[data-id="${catalogue[0].id}"]`),
-     'the newest product takes the middle plinth');
-  ok(stands.filter((st) => st.classList.contains('empty')).every((st) => !st.querySelector('.objet')),
-     'and an empty plinth holds nothing that can be pressed');
-  ok(stands.every((st) => { const r = st.getBoundingClientRect();
-       return r.left >= 0 && r.right <= w7.innerWidth && r.top > 130 && r.bottom < w7.innerHeight - 70; }),
-     'and the whole row clears the banner above and the bar below');
+  const reel7 = d7.querySelector('.reel'), sheet7 = d7.querySelector('.sheet');
+  const reelAll = () => [...d7.querySelectorAll('.reel-item')];
+  const reelMid = () => reelAll().find((it) => it.dataset.near === '0');
+  const reelAt = (dd) => reelAll().find((it) => it.style.getPropertyValue('--d') === String(dd));
+  ok(!!reel7 && !!sheet7 && new Set(reelAll().map((it) => it.dataset.id)).size === catalogue.length,
+     `everything in prospects.json is on the reel (${new Set(reelAll().map((it) => it.dataset.id)).size} of ${catalogue.length})`);
+  ok(reelMid() && reelMid().dataset.id === catalogue[0].id, 'the first listed is the one in the middle');
+  ok(sheet7.querySelector('.sheet-name').textContent.startsWith(catalogue[0].name) &&
+     sheet7.querySelector('.sheet-count').textContent.replace(/\s/g, '') === '01/' + String(catalogue.length).padStart(2, '0'),
+     `and the sheet is about that one (${sheet7.querySelector('.sheet-count').textContent})`);
+  ok(reelAll().filter((it) => it.dataset.near === '1').length === 2 &&
+     reelAt(1).dataset.id === catalogue[1 % catalogue.length].id,
+     'one either side of it is in view, the next one below');
+  ok(reelAll().filter((it) => it.dataset.near === '2').every((it) =>
+       w7.getComputedStyle(it).opacity === '0' && it.tabIndex === -1 && w7.getComputedStyle(it).pointerEvents === 'none'),
+     'and the rest of the drum is out of sight and out of reach');
+  const reelBox = reel7.getBoundingClientRect(), sheetBox = sheet7.getBoundingClientRect();
+  ok(reelBox.right <= sheetBox.left + 1 && reelBox.left >= 0 && sheetBox.right <= w7.innerWidth,
+     `the reel is on the left and the sheet on the right (${Math.round(reelBox.right)} | ${Math.round(sheetBox.left)})`);
+  ok([reelBox, sheetBox].every((r) => r.top > 128 && r.bottom < w7.innerHeight - 70),
+     'and both clear the banner above and the bar below');
+  const midBox = reelMid().getBoundingClientRect();
+  ok(Math.abs((midBox.top + midBox.bottom) / 2 - (reelBox.top + reelBox.bottom) / 2) < 2,
+     'the one in the middle sits in the middle of the reel');
+  ok(reelAt(1).getBoundingClientRect().top > midBox.top + 40 && reelAt(-1).getBoundingClientRect().bottom < midBox.bottom - 40,
+     'and its neighbours lie below and above it on the drum');
 
-  const liveObj = objets.find((o) => o.getAttribute('aria-disabled') !== 'true');
-  ok(!!liveObj, 'at least one can be picked up');
+  const liveObj = reelMid();
+  ok(catalogue[0].status === 'released' && !!sheet7.querySelector('.sheet-cta'),
+     'a released product offers the way in');
   const liveImg = liveObj.querySelector('img');
   ok(liveImg && liveImg.naturalWidth > 0, 'its model comes from the product\'s own folder');
   const lr7 = liveObj.querySelector('.objet-body').getBoundingClientRect();
   const hit7 = d7.elementFromPoint(lr7.left + lr7.width / 2, lr7.top + lr7.height / 2);
-  ok(!!hit7 && hit7.closest('.objet') === liveObj, 'and the pointer reaches it');
+  ok(!!hit7 && hit7.closest('.reel-item') === liveObj, 'and the pointer reaches it');
   ok(!d7.querySelector('.prospect-room iframe'), 'no room exists until one is entered');
   // before the dive: afterwards the plane is six and a half times its size
   // and its rect is of the dive, not of the desk
@@ -2002,6 +2007,119 @@ f.addEventListener('load', async () => {
   w7.postMessage({type: 'prospect:close'}, '*');
   await wait(300);
   ok(!room7.classList.contains('open'), 'and a room can ask to be closed from inside');
+  await wait(800);
+  /* The button on the sheet is the same door, and the dive still goes through
+     the model, not through the button. */
+  // the keyboard visit above left focus on the model, which lifts it; the
+  // comparison is with the model at rest
+  if (d7.activeElement) d7.activeElement.blur();
+  sheet7.querySelector('.sheet-cta').dispatchEvent(new w7.MouseEvent('click', {bubbles: true, detail: 1}));
+  await wait(500);
+  const originCta = d7.getElementById('deskPlane').style.transformOrigin.split(' ').map(parseFloat);
+  ok(room7.classList.contains('open') && Math.abs(originCta[0] - origin7[0]) < 3 && Math.abs(originCta[1] - origin7[1]) < 3,
+     'the button on the sheet opens the same room, through the model');
+  room7.querySelector('.room-back').click();
+  await wait(800);
+
+  /* ---- turning ---- */
+  const midId = () => reelMid().dataset.id;
+  const sheetName = () => sheet7.querySelector('.sheet-name').firstChild.textContent;
+  reelAt(1).dispatchEvent(new w7.MouseEvent('click', {bubbles: true, detail: 1}));
+  await wait(100);
+  ok(midId() === catalogue[1].id && sheetName() === catalogue[1].name &&
+     /^02/.test(sheet7.querySelector('.sheet-count').textContent),
+     `pressing the one below turns the reel to it, and the sheet follows (${sheetName()})`);
+  ok(reelAll().filter((it) => it.dataset.near === '0').length === 1 &&
+     reelAll().filter((it) => it.dataset.near === '1').length === 2,
+     'still one in the middle and one either side');
+  ok(catalogue[1].status !== 'released' && !sheet7.querySelector('.sheet-cta') && !!sheet7.querySelector('.sheet-soon'),
+     'a concept has no way in, and says so');
+  reelMid().dispatchEvent(new w7.MouseEvent('click', {bubbles: true, detail: 1}));
+  await wait(450);
+  ok(!room7.classList.contains('open') && !d7.getElementById('deskPlane').classList.contains('diving'),
+     'and pressing it opens nothing');
+  reelAt(-1).dispatchEvent(new w7.MouseEvent('click', {bubbles: true, detail: 1}));
+  await wait(100);
+  ok(midId() === catalogue[0].id, 'pressing the one above turns it back');
+  for (let i = 0; i < catalogue.length; i++) {
+    reelAt(1).dispatchEvent(new w7.MouseEvent('click', {bubbles: true, detail: 1}));
+    await wait(60);
+  }
+  ok(midId() === catalogue[0].id && reelAt(1).dataset.id === catalogue[1 % catalogue.length].id &&
+     reelAt(-1).dataset.id === catalogue[catalogue.length - 1].id,
+     'the reel goes round: after the last comes the first, neighbours and all');
+  // by keyboard, focus goes with the turn — to the product now in the middle
+  reelAt(1).focus();
+  reelAt(1).click();
+  await wait(100);
+  ok(d7.activeElement === reelMid() && midId() === catalogue[1].id,
+     'turned by keyboard, focus follows to the one now in the middle');
+  d7.activeElement.blur();
+
+  /* Pointing: resting below the middle leans the drum toward the next one,
+     and held there, turns to it. Leaving puts the lean back and stops it. */
+  const rb = reel7.getBoundingClientRect();
+  const point = (type, fy, extra) => reel7.dispatchEvent(new w7.PointerEvent(type, Object.assign({
+    bubbles: true, pointerType: 'mouse', pointerId: 1,
+    clientX: rb.left + rb.width / 2, clientY: rb.top + rb.height * fy}, extra || {})));
+  const lean = () => parseFloat(reel7.style.getPropertyValue('--peek')) || 0;
+  point('pointermove', 0.5);
+  ok(lean() === 0, 'pointing at the one in the middle leans nothing');
+  const beforeLean = reelMid().getBoundingClientRect().top;
+  point('pointermove', 0.8);
+  ok(lean() < 0 && midId() === catalogue[1].id && reelMid().getBoundingClientRect().top < beforeLean - 4,
+     `pointing below leans the drum toward the next one, without turning yet (${lean()})`);
+  await wait(800);
+  ok(midId() === catalogue[2 % catalogue.length].id, 'held there, it turns to it');
+  await wait(1600);
+  ok(midId() === catalogue[3 % catalogue.length].id, 'and goes on turning, slower, while the pointer stays');
+  reel7.dispatchEvent(new w7.PointerEvent('pointerleave', {pointerType: 'mouse'}));
+  const restId = midId();
+  await wait(1800);
+  ok(lean() === 0 && midId() === restId, 'taking the pointer away puts the lean back and stops the turning');
+  point('pointermove', 0.2);
+  await wait(800);
+  ok(lean() > 0 && midId() !== restId, 'pointing above turns it the other way');
+  reel7.dispatchEvent(new w7.PointerEvent('pointerleave', {pointerType: 'mouse'}));
+  // a finger has no hover: touching the lower part must not start a turn
+  const touchId = midId();
+  point('pointermove', 0.8, {pointerType: 'touch'});
+  await wait(800);
+  ok(midId() === touchId && lean() === 0, 'a finger resting there turns nothing');
+
+  /* A swipe on the reel turns the reel — and must not turn the cube. */
+  point('pointerdown', 0.6, {pointerType: 'touch', pointerId: 7});
+  ok(!d7.querySelector('.stage').classList.contains('dragging'), 'a press on the reel does not grab the cube');
+  point('pointerup', 0.4, {pointerType: 'touch', pointerId: 7});
+  await wait(100);
+  ok(midId() !== touchId, 'a swipe up brings the next one up');
+  const swipedId = midId();
+  point('pointerdown', 0.5, {pointerType: 'touch', pointerId: 8});
+  point('pointerup', 0.51, {pointerType: 'touch', pointerId: 8});
+  await wait(100);
+  ok(midId() === swipedId, 'a tap that barely moves is not a swipe');
+
+  /* The wheel: over the reel it turns the reel; anywhere else it is the
+     camera, as on every other face. */
+  const wheelId = midId();
+  reelMid().dispatchEvent(new w7.WheelEvent('wheel', {bubbles: true, cancelable: true, deltaY: 120}));
+  await wait(100);
+  ok(midId() !== wheelId, 'the wheel over the reel turns the reel');
+  const wheelId2 = midId();
+  d7.querySelector('.stage').dispatchEvent(new w7.WheelEvent('wheel', {bubbles: true, cancelable: true, deltaY: 120}));
+  await wait(100);
+  ok(midId() === wheelId2, 'and anywhere else it leaves the reel alone');
+  d7.querySelector('.stage').dispatchEvent(new w7.WheelEvent('wheel', {bubbles: true, cancelable: true, deltaY: -400}));
+  await wait(1200);
+
+  /* Asked about one product, cpt turns the reel to it. */
+  const target7 = catalogue[catalogue.length - 1];
+  while (midId() === target7.id) { reelAt(1).click(); await wait(60); }
+  d7.getElementById('chatInput').value = target7.name + '가 뭐야?';
+  d7.getElementById('chatForm').dispatchEvent(new w7.Event('submit', {bubbles: true, cancelable: true}));
+  await wait(400);
+  ok(midId() === target7.id && sheetName() === target7.name,
+     `asking cpt about ${target7.name} turns the reel to it`);
   f7.remove();
 
   /* ---------- the voice is off until asked for ------------------------- */

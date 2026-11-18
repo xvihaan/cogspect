@@ -801,7 +801,7 @@
        with momentum and a snap onto the nearest resting pose. */
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .face-banner--handle')) return;
+    if (e.target.closest('button, input, a, textarea, form, .cell--proj, .ghost-msg, .face-banner--handle, .reel')) return;
     if (overlayOpen()) return;
     if (phase !== 'idle' && phase !== 'roll') return;   // can catch a rolling cube
     clearTimeout(chainTimer);
@@ -925,6 +925,8 @@
     // face must not swallow it, or the cursor sits in a zoom dead zone
     if (e.target.closest && e.target.closest('input, textarea, .project-card')) return;
     e.preventDefault();
+    // over the reel the wheel turns the reel, not the camera
+    if (cur === 'top' && e.target.closest && e.target.closest('.reel')) { reelWheel(e); return; }
     if (overlayOpen()) return;
     const dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
     const gain = e.ctrlKey ? 0.011 : 0.0016;      // ctrlKey = trackpad pinch
@@ -1926,8 +1928,8 @@
       '위의 바를 누르면 흐릿한 공간이 또렷해져요.'
     ],
     top: [
-      'cogspect가 만든 제품이 놓이는 책상입니다.',
-      '오브제를 집어 들면 그 안으로 들어가요.'
+      'cogspect가 상상한 제품을 모아 둔 라인업입니다.',
+      '룰렛 위아래에 포인터를 두면 다음 제품으로 돌아가요.'
     ]
   };
   const introSaid = new Set();
@@ -1979,7 +1981,7 @@
     right:  '민혁님의 포트폴리오 공간이에요. 잔디 속에 프로젝트가 숨어 있어요.',
     left:   '다른 공간으로 건너가는 다리예요. 색다른 이벤트를 경험할 수 있어요.',
     back:   'keen — 바를 누르면 흐릿한 것이 또렷해지는 공간이에요.',
-    top:    'prospect — cogspect의 제품을 미리 경험하는 책상이에요.',
+    top:    'prospect — cogspect가 상상한 제품을 미리 경험하는 곳이에요.',
     bottom: 'minimalid — 최소한의 견고함. 아카이브로 이어져요.'
   };
   /* Corners, not edges. The four edges are where the chrome lives — the nav
@@ -2353,6 +2355,8 @@
     const projHits = hits.filter((h) => h.kind === 'project').slice(0, 3);
     const face = top.face || (projHits.length ? 'right' : null);
     if (face && face !== cur) navigateTo(face);
+    // a question about one product turns the reel to it as well
+    if (top.kind === 'chunk' && top.ref.product) reelTo(top.ref.product);
     if (projHits.length) markProjects(projHits.map((h) => h.ref.id));
     showGhost('생각을 모으는 중…', true);
     const context = hits.slice(0, 3).map((h) => h.kind === 'project'
@@ -2525,78 +2529,256 @@
   let PRODUCTS = [];
   let roomFrame = null, roomTimer = null, roomFrom = null, roomByKey = false;
 
-  let SLOTS = 3;
+  /* The reel: the products wound on a drum, one in the middle and one either
+     side of it in view. Turning is the only motion it has, one place at a
+     time, and it goes round — after the last comes the first.
 
-  /* The lineup: SLOTS plinths in a row, products placed from the middle
-     outward in the order they are listed — so the newest, listed first, takes
-     the centre. Plinths without a product stay, empty: the next places. */
+     Each product is on the drum more than once, enough copies to make at
+     least six places. With three products and one copy each, the item leaving
+     at the top would have to be the same element as the one arriving at the
+     bottom, and it cannot be in both places for the length of a turn. With
+     six places, the one that wraps does it from one hidden place to another. */
+  const REEL_PEEK = 0.2;              // how far the drum leans toward a neighbour, in places
+  const REEL_DWELL_MS = 620;          // resting on a neighbour this long turns to it
+  const REEL_REPEAT_MS = 1500;        // and keeps turning, slower, while the pointer stays
+  let reel = null, sheet = null, reelMarks = [], reelItems = [];
+  let reelPos = 0;                    // which place is in the middle; unbounded, so it never rewinds
+  let reelZone = null, reelDwell = null;
+  let reelSwipe = null, reelSwiped = false;
+  let reelWheelAcc = 0, reelWheelAt = 0;
+
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const reelIndex = () => ((reelPos % PRODUCTS.length) + PRODUCTS.length) % PRODUCTS.length;
+  const reelCentre = () => reelItems.find((it) => it._d === 0) || null;
+
   function buildDesk() {
     if (!deskPlane) return;
-    const old = deskPlane.querySelector('.lineup');
-    if (old) old.remove();
-    const n = Math.max(SLOTS, PRODUCTS.length);
-    const mid = (n - 1) / 2;
-    // centre, then one either side, alternating, outward
-    const order = [...Array(n).keys()].sort((a, b) =>
-      Math.abs(a - mid) - Math.abs(b - mid) || a - b);
-    const placed = new Array(n).fill(null);
-    PRODUCTS.forEach((p, i) => { placed[order[i]] = p; });
+    deskPlane.querySelectorAll('.showcase').forEach((n) => n.remove());
+    reelItems = []; reelMarks = []; reelPos = 0;
+    const n = PRODUCTS.length;
+    if (!n) return;
 
-    const row = document.createElement('div');
-    row.className = 'lineup';
-    for (const p of placed) {
-      const stand = document.createElement('div');
-      stand.className = 'stand';
-      const live = !!p && p.status === 'released';
-      let objet = null;
-      if (live) {
-        objet = document.createElement('button');
-        objet.type = 'button';
-        objet.className = 'objet';
-        objet.dataset.id = p.id;
-        objet.setAttribute('aria-label', `${p.name} 경험하기`);
-        // objet.png over shadow.png: rendered in prospect/<id>/render.html.
-        // The shadow sits beside the body, not in it, so lifting the body
-        // leaves the shadow on the plinth.
-        const cast = document.createElement('img');
-        cast.className = 'objet-cast';
-        cast.src = `prospect/${p.id}/shadow.png`;
-        cast.alt = '';
-        cast.draggable = false;
-        const body = document.createElement('span');
-        body.className = 'objet-body';
-        const img = document.createElement('img');
-        img.src = `prospect/${p.id}/objet.png`;
-        img.alt = '';
-        img.draggable = false;
-        body.append(img);
-        objet.append(cast, body);
-        // detail is 0 for a click synthesised from Enter or Space
-        objet.addEventListener('click', (e) => enterRoom(p, objet, e.detail === 0));
-        stand.append(objet);
-      } else {
-        stand.classList.add('empty');
-      }
-      const plinth = document.createElement('div');
-      plinth.className = 'plinth';
-      const label = document.createElement('div');
-      label.className = 'stand-label';
-      // an empty plinth is a place, not an item: it carries no name at all
-      if (p) {
-        const name = document.createElement('b');
-        name.textContent = p.name;
-        label.append(name);
-      }
-      if (p) {
-        const sub = document.createElement('span');
-        sub.textContent = live ? (p.tagline || '') : '제작 중';
-        label.append(sub);
-      }
-      if (!live) label.setAttribute('aria-hidden', p ? 'false' : 'true');
-      stand.append(plinth, label);
-      row.append(stand);
+    const show = el('div', 'showcase');
+    reel = el('div', 'reel');
+    reel.setAttribute('role', 'group');
+    reel.setAttribute('aria-label', '제품 룰렛');
+    reel.append(el('div', 'reel-window'));
+    const places = n * Math.ceil(6 / n);
+    for (let k = 0; k < places; k++) {
+      const p = PRODUCTS[k % n];
+      const item = el('button', 'reel-item');
+      item.type = 'button';
+      item.dataset.id = p.id;
+      item.dataset.status = p.status || 'concept';
+      // objet.png over shadow.png: one render, two passes (prospect/studio.html)
+      const cast = el('img', 'objet-cast');
+      cast.src = `prospect/${p.id}/shadow.png`;
+      cast.alt = '';
+      cast.draggable = false;
+      const body = el('span', 'objet-body');
+      const img = el('img');
+      img.src = `prospect/${p.id}/objet.png`;
+      img.alt = '';
+      img.draggable = false;
+      body.append(img);
+      item.append(cast, body);
+      item.addEventListener('click', (e) => reelPress(item, e));
+      reelItems.push(item);
+      reel.append(item);
     }
-    deskPlane.append(row);
+    const marks = el('div', 'reel-marks');
+    marks.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < n; i++) { const m = el('i'); reelMarks.push(m); marks.append(m); }
+    reel.append(marks);
+
+    /* Pointing at a neighbour. The middle third of the reel is the product in
+       focus; above and below it are the two that can be turned to. Mouse only
+       — a finger has no hover, and gets a swipe instead. */
+    reel.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || reelSwipe) return;
+      const r = reel.getBoundingClientRect();
+      const f = (e.clientY - r.top) / r.height;
+      reelHover(f > 0.64 ? 'down' : f < 0.36 ? 'up' : null);
+    });
+    reel.addEventListener('pointerleave', () => reelHover(null));
+    reel.addEventListener('pointerdown', (e) => {
+      reelSwipe = { id: e.pointerId, y: e.clientY, x: e.clientX };
+      reelSwiped = false;
+    });
+    const endSwipe = (e) => {
+      if (!reelSwipe || e.pointerId !== reelSwipe.id) return;
+      const dy = e.clientY - reelSwipe.y, dx = e.clientX - reelSwipe.x;
+      reelSwipe = null;
+      if (e.type === 'pointerup' && Math.abs(dy) > 34 && Math.abs(dy) > Math.abs(dx)) {
+        // the drum follows the finger: pushed up, the next one comes up
+        reelSwiped = true;                // the click that follows is the end of a swipe, not a press
+        setTimeout(() => { reelSwiped = false; }, 0);
+        reelStep(dy < 0 ? 1 : -1);
+      }
+    };
+    reel.addEventListener('pointerup', endSwipe);
+    reel.addEventListener('pointercancel', endSwipe);
+
+    sheet = el('div', 'sheet');
+    sheet.setAttribute('aria-live', 'polite');
+    show.append(reel, sheet);
+    deskPlane.append(show);
+    paintReel(true);
+    paintSheet(0);
+  }
+
+  function paintReel(instant) {
+    const m = reelItems.length, n = PRODUCTS.length;
+    const at = reelIndex();
+    reelItems.forEach((it, k) => {
+      let d = (((k - reelPos) % m) + m) % m;
+      if (d >= m / 2) d -= m;
+      // an item that wraps goes from one hidden place to another, at once
+      const jump = instant || (it._d != null && Math.abs(d - it._d) > 1.5);
+      if (jump) it.style.transition = 'none';
+      it.style.setProperty('--d', d);
+      it._d = d;
+      const near = Math.min(Math.abs(d), 2);
+      it.dataset.near = near;
+      const p = PRODUCTS[k % n];
+      it.tabIndex = near === 2 ? -1 : 0;
+      it.setAttribute('aria-hidden', near === 2 ? 'true' : 'false');
+      if (near === 0) {
+        it.setAttribute('aria-current', 'true');
+        it.setAttribute('aria-label', p.status === 'released' ? `${p.name} 미리 경험하기` : `${p.name}, 경험 준비 중`);
+      } else {
+        it.removeAttribute('aria-current');
+        it.setAttribute('aria-label', `${p.name} 보기`);
+      }
+      if (jump) { void it.offsetWidth; it.style.transition = ''; }
+    });
+    reelMarks.forEach((mk, i) => mk.classList.toggle('on', i === at));
+  }
+
+  function paintSheet(dir) {
+    if (!sheet) return;
+    const p = PRODUCTS[reelIndex()];
+    const two = (v) => String(v).padStart(2, '0');
+    sheet.textContent = '';
+    sheet.dataset.dir = dir < 0 ? '-1' : '1';
+    sheet.dataset.id = p.id;
+    const rows = [];
+    const count = el('div', 'sheet-count');
+    count.append(el('b', '', two(reelIndex() + 1)), ` / ${two(PRODUCTS.length)}`);
+    rows.push(count);
+    if (p.kind) rows.push(el('div', 'sheet-kind', p.kind));
+    const name = el('h3', 'sheet-name', p.name);
+    if (p.ko) name.append(el('small', '', p.ko));
+    rows.push(name);
+    if (p.tagline) rows.push(el('p', 'sheet-tag', p.tagline));
+    if (p.desc) rows.push(el('p', 'sheet-desc', p.desc));
+    if (p.points && p.points.length) {
+      const ul = el('ul', 'sheet-points');
+      for (const line of p.points) {
+        // "제목 — 설명": the title is what a glance takes in
+        const cut = line.indexOf(' — ');
+        const li = el('li');
+        const span = el('span');
+        if (cut > 0) span.append(el('b', '', line.slice(0, cut)), line.slice(cut));
+        else span.textContent = line;
+        li.append(span);
+        ul.append(li);
+      }
+      rows.push(ul);
+    }
+    if (p.spec && p.spec.length) {
+      const dl = el('dl', 'sheet-spec');
+      for (const [k, v] of p.spec) {
+        const cell = el('div');
+        cell.append(el('dt', '', k), el('dd', '', v));
+        dl.append(cell);
+      }
+      rows.push(dl);
+    }
+    const foot = el('div', 'sheet-foot');
+    if (p.status === 'released') {
+      const cta = el('button', 'sheet-cta');
+      cta.type = 'button';
+      cta.append('미리 경험하기 ', el('i', '', '→'));
+      // detail is 0 for a click synthesised from Enter or Space
+      cta.addEventListener('click', (e) => enterRoom(p, cta, e.detail === 0));
+      foot.append(cta);
+    } else {
+      foot.append(el('span', 'sheet-soon', '경험 준비 중'));
+    }
+    foot.append(el('span', 'sheet-note', '상상으로 만든 가상의 제품'));
+    rows.push(foot);
+    rows.forEach((r, i) => { r.style.setProperty('--i', i); sheet.append(r); });
+  }
+
+  function reelReady() {
+    return reelItems.length > 1 && phase === 'idle' && !overlayOpen() && cur === 'top';
+  }
+  /* dir 1 brings up the one below (the next), -1 brings down the one above. */
+  function reelStep(dir) {
+    if (!reelReady()) return false;
+    reelPos += dir;
+    paintReel(false);
+    paintSheet(dir);
+    haptic(90);
+    return true;
+  }
+  /* Turn to a product by id, the short way round. For cpt: "glasspect 보여줘". */
+  function reelTo(id) {
+    const n = PRODUCTS.length, i = PRODUCTS.findIndex((p) => p.id === id);
+    if (i < 0 || !reelItems.length) return false;
+    let d = (((i - reelIndex()) % n) + n) % n;
+    if (d > n / 2) d -= n;
+    if (!d) return true;
+    reelPos += d;
+    paintReel(false);
+    paintSheet(d);
+    return true;
+  }
+  function reelPress(item, e) {
+    if (reelSwiped) return;
+    const byKey = e.detail === 0;
+    if (item._d === 0) {
+      const p = PRODUCTS[reelIndex()];
+      if (p.status === 'released') enterRoom(p, item, byKey);
+      return;
+    }
+    if (reelStep(item._d > 0 ? 1 : -1) && byKey) {
+      const c = reelCentre();
+      if (c) c.focus({ preventScroll: true });
+    }
+  }
+  function reelHover(zone) {
+    if (zone === reelZone) return;
+    reelZone = zone;
+    clearTimeout(reelDwell);
+    if (!reel) return;
+    // leaning toward the one below moves everything up a little, and back
+    reel.style.setProperty('--peek', zone === 'down' ? -REEL_PEEK : zone === 'up' ? REEL_PEEK : 0);
+    if (zone && !reducedMotion.matches) reelDwell = setTimeout(reelTick, REEL_DWELL_MS);
+  }
+  function reelTick() {
+    if (!reelZone) return;
+    reelStep(reelZone === 'down' ? 1 : -1);
+    reelDwell = setTimeout(reelTick, REEL_REPEAT_MS);
+  }
+  /* The wheel over the reel turns the reel; anywhere else it is the cube's
+     zoom, as on every other face. One notch or one flick is one place. */
+  function reelWheel(e) {
+    const now = performance.now();
+    if (now - reelWheelAt > 260) reelWheelAcc = 0;
+    reelWheelAt = now;
+    reelWheelAcc += e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
+    if (Math.abs(reelWheelAcc) < 48) return;
+    if (reelStep(reelWheelAcc > 0 ? 1 : -1)) {
+      // a trackpad flick keeps sending deltas; they belong to this one turn
+      reelWheelAcc = -Math.sign(reelWheelAcc) * 260;
+    } else reelWheelAcc = 0;
   }
 
   function ensureRoom() {
@@ -2607,8 +2789,8 @@
     const back = document.createElement('button');
     back.type = 'button';
     back.className = 'room-back';
-    back.textContent = '← desk';
-    back.setAttribute('aria-label', '책상으로 돌아가기');
+    back.textContent = '← lineup';
+    back.setAttribute('aria-label', '라인업으로 돌아가기');
     back.addEventListener('click', leaveRoom);
     prospectRoom.append(back);
     // outside the stage, so locking the stage's chrome does not lock this
@@ -2627,7 +2809,10 @@
        smaller than its layout box if the cube is zoomed out, so the screen
        distance is divided back by that scale. */
     const pr = deskPlane.getBoundingClientRect();
-    const br = btn.querySelector('.objet-body').getBoundingClientRect();
+    // whatever was pressed — the model or the button on the sheet — the dive
+    // goes through the model in the middle of the reel
+    const through = reelCentre() || btn;
+    const br = (through.querySelector('.objet-body') || through).getBoundingClientRect();
     const k = pr.width / (deskPlane.offsetWidth || pr.width) || 1;
     deskPlane.style.transformOrigin =
       `${(br.left + br.width / 2 - pr.left) / k}px ${(br.top + br.height / 2 - pr.top) / k}px`;
@@ -2635,6 +2820,7 @@
     faceEls.top.classList.add('diving');
     setPeek(null);
     clearHints();
+    reelHover(null);
 
     if (roomFrame) roomFrame.remove();
     roomFrame = document.createElement('iframe');
@@ -2703,7 +2889,7 @@
 
   fetch('data/prospects.json')
     .then((r) => r.json())
-    .then((d) => { PRODUCTS = d.products || []; SLOTS = d.slots || SLOTS; buildDesk(); })
+    .then((d) => { PRODUCTS = d.products || []; buildDesk(); })
     .catch((err) => console.warn('prospects.json load failed:', err));
 
   fetch('data/projects.json')
